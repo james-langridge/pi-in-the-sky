@@ -37,9 +37,6 @@ body, html {
     display: flex;
     flex-direction: column;
 }
-#timestamp {
-    font-size: 18px;
-}
 #shutdown {
     background-color: #ff4444;
     color: white;

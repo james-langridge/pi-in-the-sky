@@ -1,11 +1,3 @@
-function updateTimestamp() {
-    fetch('/timestamp')
-        .then(response => response.text())
-        .then(timestamp => {
-            document.getElementById('timestamp').textContent = timestamp;
-        });
-}
-
 function updateCameraSettings() {
     const settings = {
         exposureTime: document.getElementById('exposure-time').value,
@@ -66,10 +58,6 @@ function checkStreamStatus() {
             document.getElementById('stream-status').style.display = 'block';
         });
 }
-
-// Update timestamp every second
-setInterval(updateTimestamp, 1000);
-updateTimestamp();
 
 // Check stream status every 5 seconds
 setInterval(checkStreamStatus, 5000);

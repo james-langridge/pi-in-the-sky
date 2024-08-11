@@ -149,10 +149,6 @@ def update_camera():
 
         return jsonify({"status": "error", "message": "An error occurred while updating settings. The stream will continue with previous settings."}), 500
 
-@app.route('/timestamp')
-def timestamp():
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
 @app.route('/shutdown')
 def shutdown():
     os.system('sudo shutdown -h now')
