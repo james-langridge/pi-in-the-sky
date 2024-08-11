@@ -9,6 +9,7 @@ import time
 from datetime import datetime
 import traceback
 import threading
+import os
 
 app = Flask(__name__,
             template_folder='/home/james/pi-in-the-sky/templates',
