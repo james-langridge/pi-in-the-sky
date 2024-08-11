@@ -7,58 +7,112 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <div class="container">
-        <div id="video-container">
-            <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Video stream">
-            <div id="stream-status">Stream Stopped</div>
-        </div>
-        <div id="controls">
-            <button id="shutdown" onclick="if(confirm('Are you sure you want to shut down?')) fetch('/shutdown')">Shut Down</button>
-            <div id="camera-controls">
-                <div class="control-group">
-                    <label for="exposure-time">Exposure Time (ms):</label>
-                    <input type="number" id="exposure-time" min="0" max="1000" step="1" value="33">
-                </div>
-                <div class="control-group">
-                    <label for="iso">ISO:</label>
-                    <input type="number" id="iso" min="1" max="16" step="0.1" value="1">
-                </div>
-                <div class="control-group">
-                    <label for="awb-mode">AWB Mode:</label>
-                    <select id="awb-mode">
-                        <option value="Auto">Auto</option>
-                        <option value="Tungsten">Tungsten</option>
-                        <option value="Fluorescent">Fluorescent</option>
-                        <option value="Indoor">Indoor</option>
-                        <option value="Daylight">Daylight</option>
-                        <option value="Cloudy">Cloudy</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="frame-rate">Frame Rate:</label>
-                    <input type="number" id="frame-rate" min="1" max="30" step="1" value="30">
-                </div>
-                <div class="control-group">
-                    <label for="noise-reduction">Noise Reduction:</label>
-                    <select id="noise-reduction">
-                        <option value="Fast">Fast</option>
-                        <option value="HighQuality">High Quality</option>
-                        <option value="Off">Off</option>
-                    </select>
-                </div>
-                <div class="control-group">
-                    <label for="contrast">Contrast:</label>
-                    <input type="number" id="contrast" min="0" max="2" step="0.1" value="1">
-                </div>
-                <div class="control-group">
-                    <label for="brightness">Brightness:</label>
-                    <input type="number" id="brightness" min="-1" max="1" step="0.1" value="0">
-                </div>
-                <button onclick="updateCameraSettings()">Apply Settings</button>
-            </div>
-            <div id="status-message"></div>
-        </div>
+<div class="container">
+    <div id="video-container">
+        <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Video stream">
+        <div id="stream-status">Stream Stopped</div>
     </div>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <div id="controls">
+        <button id="shutdown" onclick="if(confirm('Are you sure you want to shut down?')) fetch('/shutdown')">Shut Down</button>
+        <div id="camera-controls">
+            <div class="control-group">
+                <label for="exposure-time">Exposure Time (ms):</label>
+                <input type="number" id="exposure-time" min="0" max="1000" step="1" value="33">
+            </div>
+            <div class="control-group">
+                <label for="iso">ISO:</label>
+                <input type="number" id="iso" min="1" max="16" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="awb-mode">AWB Mode:</label>
+                <select id="awb-mode">
+                    <option value="Auto">Auto</option>
+                    <option value="Tungsten">Tungsten</option>
+                    <option value="Fluorescent">Fluorescent</option>
+                    <option value="Indoor">Indoor</option>
+                    <option value="Daylight">Daylight</option>
+                    <option value="Cloudy">Cloudy</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="frame-rate">Frame Rate:</label>
+                <input type="number" id="frame-rate" min="1" max="30" step="1" value="30">
+            </div>
+            <div class="control-group">
+                <label for="noise-reduction">Noise Reduction:</label>
+                <select id="noise-reduction">
+                    <option value="Fast">Fast</option>
+                    <option value="HighQuality">High Quality</option>
+                    <option value="Off">Off</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="contrast">Contrast:</label>
+                <input type="number" id="contrast" min="0" max="2" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="brightness">Brightness:</label>
+                <input type="number" id="brightness" min="-1" max="1" step="0.1" value="0">
+            </div>
+            <!-- New controls -->
+            <div class="control-group">
+                <label for="sharpness">Sharpness:</label>
+                <input type="number" id="sharpness" min="0" max="2" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="hdr-mode">HDR Mode:</label>
+                <select id="hdr-mode">
+                    <option value="Off">Off</option>
+                    <option value="SingleExposure">Single Exposure</option>
+                    <option value="MultiExposure">Multi Exposure</option>
+                    <option value="Night">Night</option>
+                    <option value="MultiExposureUnmerged">Multi Exposure Unmerged</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="temporal-noise-reduction">Temporal Noise Reduction:</label>
+                <select id="temporal-noise-reduction">
+                    <option value="Off">Off</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Aggressive">Aggressive</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="high-quality-denoise">High Quality Denoise:</label>
+                <select id="high-quality-denoise">
+                    <option value="Off">Off</option>
+                    <option value="Normal">Normal</option>
+                    <option value="HighQuality">High Quality</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="local-tone-mapping">Local Tone Mapping:</label>
+                <input type="checkbox" id="local-tone-mapping">
+            </div>
+            <div class="control-group">
+                <label for="lens-shading">Lens Shading:</label>
+                <input type="range" id="lens-shading" min="0" max="1" step="0.1" value="1">
+            </div>
+            <div class="control-group">
+                <label for="defective-pixel-correction">Defective Pixel Correction:</label>
+                <input type="checkbox" id="defective-pixel-correction" checked>
+            </div>
+            <div class="control-group">
+                <label for="black-level">Black Level:</label>
+                <input type="number" id="black-level" min="0" max="255" value="0">
+            </div>
+            <button onclick="updateCameraSettings()">Apply Settings</button>
+        </div>
+        <!-- Presets and Reset buttons -->
+        <div class="preset-controls">
+            <button onclick="applyPreset('low_light')">Low Light Preset</button>
+            <button onclick="applyPreset('fast_motion')">Fast Motion Preset</button>
+            <button onclick="applyPreset('high_detail')">High Detail Preset</button>
+            <button onclick="resetToDefaults()">Reset to Defaults</button>
+        </div>
+        <div id="status-message"></div>
+    </div>
+</div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
