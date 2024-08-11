@@ -58,6 +58,25 @@ def video_feed():
     return Response(generate_frames(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+def get_awb_mode(mode_str):
+    awb_modes = {
+        'Auto': 0,
+        'Tungsten': 1,
+        'Fluorescent': 2,
+        'Indoor': 3,
+        'Daylight': 4,
+        'Cloudy': 5
+    }
+    return awb_modes.get(mode_str, 0)  # Default to Auto if not found
+
+def get_noise_reduction_mode(mode_str):
+    nr_modes = {
+        'Off': 0,
+        'Fast': 1,
+        'HighQuality': 2
+    }
+    return nr_modes.get(mode_str, 1)  # Default to Fast if not found
+
 @app.route('/update_camera', methods=['POST'])
 def update_camera():
     data = request.json
@@ -80,10 +99,8 @@ def update_camera():
                 errors.append("ISO must be between 1 and 16.")
 
         if 'awbMode' in data:
-            if hasattr(controls.AwbModes, data['awbMode']):
-                new_settings['AwbMode'] = getattr(controls.AwbModes, data['awbMode'])
-            else:
-                errors.append(f"Invalid AWB mode: {data['awbMode']}")
+            awb_mode = get_awb_mode(data['awbMode'])
+            new_settings['AwbMode'] = awb_mode
 
         if 'frameRate' in data:
             frame_rate = float(data['frameRate'])
@@ -93,10 +110,8 @@ def update_camera():
                 errors.append("Frame rate must be between 1 and 30.")
 
         if 'noiseReduction' in data:
-            if hasattr(controls.draft.NoiseReductionModeEnum, data['noiseReduction']):
-                new_settings['NoiseReductionMode'] = getattr(controls.draft.NoiseReductionModeEnum, data['noiseReduction'])
-            else:
-                errors.append(f"Invalid noise reduction mode: {data['noiseReduction']}")
+            noise_reduction = get_noise_reduction_mode(data['noiseReduction'])
+            new_settings['NoiseReductionMode'] = noise_reduction
 
         if 'contrast' in data:
             contrast = float(data['contrast'])
