@@ -85,11 +85,11 @@ def update_camera():
 
     try:
         if 'exposureTime' in data:
-            exposure_time = int(data['exposureTime'])
-            if 0 <= exposure_time <= 1000000:
-                new_settings['ExposureTime'] = exposure_time
+            exposure_time_ms = float(data['exposureTime'])
+            if 0 <= exposure_time_ms <= 1000:  # 0 to 1000 ms (1 second)
+                new_settings['ExposureTime'] = int(exposure_time_ms * 1000)  # Convert ms to µs
             else:
-                errors.append("Exposure time must be between 0 and 1000000 µs.")
+                errors.append("Exposure time must be between 0 and 1000 ms.")
 
         if 'iso' in data:
             iso = float(data['iso'])
