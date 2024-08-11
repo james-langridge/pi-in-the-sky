@@ -1,5 +1,17 @@
 function updateCameraSettings() {
-    const settings = getCameraSettingsFromUI();
+    const settings = {
+        exposureTime: document.getElementById('exposureTime').value,
+        iso: document.getElementById('iso').value,
+        awbMode: document.getElementById('awbMode').value,
+        frameRate: document.getElementById('frameRate').value,
+        brightness: document.getElementById('brightness').value,
+        contrast: document.getElementById('contrast').value,
+        saturation: document.getElementById('saturation').value,
+        sharpness: document.getElementById('sharpness').value,
+        hdrMode: document.getElementById('hdrMode').value,
+        exposureMode: document.getElementById('exposureMode').value,
+        meteringMode: document.getElementById('meteringMode').value
+    };
 
     fetch('/update_camera', {
         method: 'POST',
@@ -78,7 +90,7 @@ function resetToDefaults() {
 
 function displayStatusMessage(data) {
     const statusMessage = document.getElementById('status-message');
-    statusMessage.textContent = data.messages ? data.messages.join(' ') : data.message;
+    statusMessage.textContent = data.message;
     statusMessage.className = data.status === 'success' ? 'success' : 'error';
     statusMessage.style.display = 'block';
     setTimeout(() => {
@@ -90,26 +102,70 @@ function fetchAndUpdateCameraSettings() {
     fetch('/get_camera_settings')
         .then(response => response.json())
         .then(settings => {
-            document.getElementById('exposure-time').value = settings.exposureTime / 1000; // Convert µs to ms
+            document.getElementById('exposureTime').value = settings.exposureTime;
             document.getElementById('iso').value = settings.iso;
-            document.getElementById('awb-mode').value = settings.awbMode;
-            document.getElementById('frame-rate').value = settings.frameRate;
-            document.getElementById('noise-reduction').value = settings.noiseReduction;
-            document.getElementById('contrast').value = settings.contrast;
+            document.getElementById('awbMode').value = settings.awbMode;
+            document.getElementById('frameRate').value = settings.frameRate;
             document.getElementById('brightness').value = settings.brightness;
+            document.getElementById('contrast').value = settings.contrast;
+            document.getElementById('saturation').value = settings.saturation;
             document.getElementById('sharpness').value = settings.sharpness;
-            document.getElementById('hdr-mode').value = settings.hdrMode;
-            document.getElementById('temporal-noise-reduction').value = settings.temporalNoiseReduction;
-            document.getElementById('high-quality-denoise').value = settings.highQualityDenoise;
-            document.getElementById('local-tone-mapping').checked = settings.localToneMapping;
-            document.getElementById('lens-shading').value = settings.lensShading;
-            document.getElementById('defective-pixel-correction').checked = settings.defectivePixelCorrection;
-            document.getElementById('black-level').value = settings.blackLevel;
+            document.getElementById('hdrMode').value = settings.hdrMode;
+            document.getElementById('exposureMode').value = settings.exposureMode;
+            document.getElementById('meteringMode').value = settings.meteringMode;
         })
         .catch(error => {
             console.error('Error fetching camera settings:', error);
             displayStatusMessage({status: 'error', message: 'Failed to fetch current camera settings.'});
         });
+}
+
+const settingsMap = {
+    'exposureTime': 'exposure-time',
+    'iso': 'iso',
+    'awbMode': 'awb-mode',
+    'frameRate': 'frame-rate',
+    'noiseReduction': 'noise-reduction',
+    'contrast': 'contrast',
+    'brightness': 'brightness',
+    'sharpness': 'sharpness',
+    'hdrMode': 'hdr-mode',
+    'temporalNoiseReduction': 'temporal-noise-reduction',
+    'highQualityDenoise': 'high-quality-denoise',
+    'localToneMapping': 'local-tone-mapping',
+    'lensShading': 'lens-shading',
+    'defectivePixelCorrection': 'defective-pixel-correction',
+    'blackLevel': 'black-level'
+};
+
+function updateUIWithSettings(settings) {
+    console.log('Updating UI with settings:', settings);
+    for (const [key, value] of Object.entries(settings)) {
+        const elementId = settingsMap[key];
+        const element = document.getElementById(elementId);
+        if (element) {
+            if (element.type === 'checkbox') {
+                element.checked = value;
+            } else {
+                element.value = value;
+            }
+            element.disabled = false;
+            console.log(`Updated ${elementId} to ${element.value}`);
+        } else {
+            console.warn(`Element not found for setting: ${key} (ID: ${elementId})`);
+        }
+    }
+
+    // Disable controls that are not in the settings
+    for (const [key, elementId] of Object.entries(settingsMap)) {
+        if (!(key in settings)) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.disabled = true;
+                console.log(`Disabled unsupported control: ${elementId}`);
+            }
+        }
+    }
 }
 
 function checkStreamStatus() {
@@ -147,7 +203,4 @@ function addRealTimeListeners() {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     fetchAndUpdateCameraSettings();
-    addRealTimeListeners();
-    checkStreamStatus();
-    setInterval(checkStreamStatus, 5000);
 });

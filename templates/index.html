@@ -13,103 +13,81 @@
         <div id="stream-status">Stream Stopped</div>
     </div>
     <div id="controls">
-        <button id="shutdown" onclick="if(confirm('Are you sure you want to shut down?')) fetch('/shutdown')">Shut Down</button>
         <div id="camera-controls">
             <div class="control-group">
-                <label for="exposure-time">Exposure Time (ms):</label>
-                <input type="number" id="exposure-time" min="0" max="1000" step="1" value="33">
+                <label for="exposureTime">Exposure Time (ms):</label>
+                <input type="number" id="exposureTime" min="0" max="1000" step="1">
             </div>
             <div class="control-group">
                 <label for="iso">ISO:</label>
-                <input type="number" id="iso" min="1" max="16" step="0.1" value="1">
+                <input type="number" id="iso" min="1" max="16" step="0.1">
             </div>
             <div class="control-group">
-                <label for="awb-mode">AWB Mode:</label>
-                <select id="awb-mode">
-                    <option value="Auto">Auto</option>
-                    <option value="Tungsten">Tungsten</option>
-                    <option value="Fluorescent">Fluorescent</option>
-                    <option value="Indoor">Indoor</option>
-                    <option value="Daylight">Daylight</option>
-                    <option value="Cloudy">Cloudy</option>
+                <label for="awbMode">AWB Mode:</label>
+                <select id="awbMode">
+                    <option value="0">Auto</option>
+                    <option value="1">Incandescent</option>
+                    <option value="2">Tungsten</option>
+                    <option value="3">Fluorescent</option>
+                    <option value="4">Indoor</option>
+                    <option value="5">Daylight</option>
+                    <option value="6">Cloudy</option>
                 </select>
             </div>
             <div class="control-group">
-                <label for="frame-rate">Frame Rate:</label>
-                <input type="number" id="frame-rate" min="1" max="30" step="1" value="30">
-            </div>
-            <div class="control-group">
-                <label for="noise-reduction">Noise Reduction:</label>
-                <select id="noise-reduction">
-                    <option value="Fast">Fast</option>
-                    <option value="HighQuality">High Quality</option>
-                    <option value="Off">Off</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label for="contrast">Contrast:</label>
-                <input type="number" id="contrast" min="0" max="2" step="0.1" value="1">
+                <label for="frameRate">Frame Rate:</label>
+                <input type="number" id="frameRate" min="1" max="120" step="1">
             </div>
             <div class="control-group">
                 <label for="brightness">Brightness:</label>
-                <input type="number" id="brightness" min="-1" max="1" step="0.1" value="0">
+                <input type="range" id="brightness" min="-1" max="1" step="0.1">
             </div>
-            <!-- New controls -->
+            <div class="control-group">
+                <label for="contrast">Contrast:</label>
+                <input type="range" id="contrast" min="0" max="32" step="1">
+            </div>
+            <div class="control-group">
+                <label for="saturation">Saturation:</label>
+                <input type="range" id="saturation" min="0" max="32" step="1">
+            </div>
             <div class="control-group">
                 <label for="sharpness">Sharpness:</label>
-                <input type="number" id="sharpness" min="0" max="2" step="0.1" value="1">
+                <input type="range" id="sharpness" min="0" max="16" step="1">
             </div>
             <div class="control-group">
-                <label for="hdr-mode">HDR Mode:</label>
-                <select id="hdr-mode">
-                    <option value="Off">Off</option>
-                    <option value="SingleExposure">Single Exposure</option>
-                    <option value="MultiExposure">Multi Exposure</option>
-                    <option value="Night">Night</option>
-                    <option value="MultiExposureUnmerged">Multi Exposure Unmerged</option>
+                <label for="hdrMode">HDR Mode:</label>
+                <select id="hdrMode">
+                    <option value="0">Off</option>
+                    <option value="1">Single Exposure</option>
+                    <option value="2">Multi Exposure</option>
                 </select>
             </div>
             <div class="control-group">
-                <label for="temporal-noise-reduction">Temporal Noise Reduction:</label>
-                <select id="temporal-noise-reduction">
-                    <option value="Off">Off</option>
-                    <option value="Normal">Normal</option>
-                    <option value="Aggressive">Aggressive</option>
+                <label for="exposureMode">Exposure Mode:</label>
+                <select id="exposureMode">
+                    <option value="0">Normal</option>
+                    <option value="1">Short</option>
+                    <option value="2">Long</option>
+                    <option value="3">Custom</option>
                 </select>
             </div>
             <div class="control-group">
-                <label for="high-quality-denoise">High Quality Denoise:</label>
-                <select id="high-quality-denoise">
-                    <option value="Off">Off</option>
-                    <option value="Normal">Normal</option>
-                    <option value="HighQuality">High Quality</option>
+                <label for="meteringMode">Metering Mode:</label>
+                <select id="meteringMode">
+                    <option value="0">CenterWeighted</option>
+                    <option value="1">Spot</option>
+                    <option value="2">Matrix</option>
                 </select>
             </div>
-            <div class="control-group">
-                <label for="local-tone-mapping">Local Tone Mapping:</label>
-                <input type="checkbox" id="local-tone-mapping">
-            </div>
-            <div class="control-group">
-                <label for="lens-shading">Lens Shading:</label>
-                <input type="range" id="lens-shading" min="0" max="1" step="0.1" value="1">
-            </div>
-            <div class="control-group">
-                <label for="defective-pixel-correction">Defective Pixel Correction:</label>
-                <input type="checkbox" id="defective-pixel-correction" checked>
-            </div>
-            <div class="control-group">
-                <label for="black-level">Black Level:</label>
-                <input type="number" id="black-level" min="0" max="255" value="0">
-            </div>
-            <button onclick="updateCameraSettings()">Apply Settings</button>
         </div>
-        <!-- Presets and Reset buttons -->
         <div class="preset-controls">
+            <button onclick="resetToDefaults()">Reset to Defaults</button>
             <button onclick="applyPreset('low_light')">Low Light Preset</button>
             <button onclick="applyPreset('fast_motion')">Fast Motion Preset</button>
             <button onclick="applyPreset('high_detail')">High Detail Preset</button>
-            <button onclick="resetToDefaults()">Reset to Defaults</button>
         </div>
+        <button onclick="updateCameraSettings()">Apply Settings</button>
+        <button id="shutdown" onclick="if(confirm('Are you sure you want to shut down?')) fetch('/shutdown')">Shut Down</button>
         <div id="status-message"></div>
     </div>
 </div>
