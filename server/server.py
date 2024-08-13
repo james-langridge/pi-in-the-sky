@@ -9,12 +9,13 @@ import time
 from datetime import datetime
 import traceback
 import os
+from flask_cors import CORS
 
-Picamera2.set_logging(Picamera2.DEBUG)
+# Picamera2.set_logging(Picamera2.DEBUG)
 
-app = Flask(__name__,
-            template_folder='/home/james/pi-in-the-sky/templates',
-            static_folder='/home/james/pi-in-the-sky/static')
+app = Flask(__name__)
+
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 picam2 = Picamera2()
 camera_config = picam2.create_preview_configuration(main={"size": (1920, 1080)})
@@ -134,10 +135,6 @@ def generate_frames():
             time.sleep(1)  # Wait a bit before trying again
 
         time.sleep(0.1)  # Adjust this value to control frame rate
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 @app.route('/video_feed')
 def video_feed():
@@ -273,4 +270,9 @@ def get_camera_settings():
         return jsonify({"status": "error", "message": "Failed to get camera settings"}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, threaded=True)
+    app.run(
+        host='0.0.0.0',
+        port=int(os.getenv('FLASK_PORT', 8080)),
+        threaded=True,
+        debug=os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    )
