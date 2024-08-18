@@ -18,25 +18,81 @@ camera_config = picam2.create_preview_configuration(main={"size": (1920, 1080)})
 picam2.configure(camera_config)
 picam2.start()
 
+# (min, max, default)
 PRESETS = {
     'default': {
-        'ExposureTime': 33000,  # 33ms
-        'AnalogueGain': 1.0,    # ISO 100 equivalent
-        'AwbMode': controls.AwbModeEnum.Auto,
-        'FrameRate': 30.0,
-        'Brightness': 0,
-        'Contrast': 1.0,
-        'Saturation': 1.0,
-        'Sharpness': 1.0,
-        'HdrMode': controls.HdrModeEnum.Off,
-        'AeExposureMode': controls.AeExposureModeEnum.Normal,
-        'AeMeteringMode': controls.AeMeteringModeEnum.CentreWeighted
+        # Exposure time for the sensor to use, measured
+        # in microseconds.
+        'ExposureTime': None,  # (13, 112015443, None)
+        'AnalogueGain': None,    # (1.1228070259094238, 16.0, None)
+        # AwbModeEnum followed by one of:
+        # Auto - any illumant
+        # Tungsten - tungsten lighting
+        # Fluorescent - fluorescent lighting
+        # Indoor - indoor illumination
+        # Daylight - daylight illumination
+        # Cloudy - cloudy illumination
+        # Custom - custom setting
+        'AwbMode': controls.AwbModeEnum.Auto, # (0, 7, 0)
+        # Adjusts the image brightness where -1.0 is
+        # very dark, 1.0 is very bright, and 0.0 is the
+        # default "normal" brightness.
+        'Brightness': 0, # (-1.0, 1.0, 0.0)
+        # Sets the contrast of the image, where zero
+        # means "no contrast", 1.0 is the default "normal"
+        # contrast, and larger values increase the
+        # contrast proportionately.
+        'Contrast': 1.0, # (0.0, 32.0, 1.0)
+        # Amount of colour saturation, where zero
+        # produces greyscale images, 1.0 represents
+        # default "normal" saturation, and higher values
+        # produce more saturated colours.
+        'Saturation': 1.0, # (0.0, 32.0, 1.0)
+        # Sets the image sharpness, where zero implies
+        # no additional sharpening is performed, 1.0 is
+        # the default "normal" level of sharpening, and
+        # larger values apply proportionately stronger
+        # sharpening.
+        'Sharpness': 1.0, # (0.0, 16.0, 1.0)
+        # Whether to run the camera in an HDR mode
+        # (distinct from the in-camera HDR supported by
+        # the Camera Module 3). Most of these HDR
+        # features work only on Pi 5 or later devices.
+        # HdrModeEnum followed by one of:
+        # Off - disable HDR (default)
+        # SingleExposure - combine multiple short
+        # exposure images, this is the recommended
+        # mode (Pi 5 only)
+        # MultiExposure - combine short and long
+        # images, ony recommended when a scene is
+        # completely static (Pi 5 only)
+        # Night - an HDR mode that combines multiple
+        # low light images, and can recover some
+        # highlights (Pi 5 only)
+        # MultiExposureUnmerged - return unmerged
+        # distinct short and long exposure images.
+        'HdrMode': controls.HdrModeEnum.Off, # (0, 4, 0)
+        # Sets the exposure mode of the AEC/AGC
+        # algorithm.
+        # AeExposureModeEnum followed by one of:
+        # Normal - normal exposures
+        # Short - use shorter exposures
+        # Long - use longer exposures
+        # Custom - use custom exposures
+        'AeExposureMode': controls.AeExposureModeEnum.Normal, # (0, 3, 0)
+        # Sets the metering mode of the AEC/AGC
+        # algorithm.
+        # AeMeteringModeEnum followed by one of:
+        # CentreWeighted - centre weighted metering
+        # Spot - spot metering
+        # Matrix - matrix metering
+        # Custom - custom metering
+        'AeMeteringMode': controls.AeMeteringModeEnum.CentreWeighted # (0, 3, 0)
     },
     'low_light': {
-        'ExposureTime': 100000,  # 100ms
-        'AnalogueGain': 4.0,     # Higher ISO
+        'ExposureTime': 100000,
+        'AnalogueGain': 4.0,
         'AwbMode': controls.AwbModeEnum.Tungsten,
-        'FrameRate': 15.0,
         'Brightness': 0.1,
         'Contrast': 1.2,
         'Saturation': 1.1,

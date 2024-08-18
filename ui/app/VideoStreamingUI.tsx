@@ -54,6 +54,7 @@ const VideoStreamingUI = () => {
                         <div className="col-span-2 sm:col-span-3 lg:col-span-4 flex flex-wrap justify-between gap-2 mb-2">
                             {/*<button disabled className="bg-blue-500 text-white px-4 py-2 rounded flex-grow">Auto/Manual</button>*/}
                             {/*<button disabled className="bg-green-500 text-white px-4 py-2 rounded flex-grow">AF/MF</button>*/}
+                            <button onClick={() => applyPreset('default')} className="bg-green-500 text-white px-4 py-2 rounded flex-grow">Default</button>
                             <button onClick={() => applyPreset('low_light')} className="bg-green-500 text-white px-4 py-2 rounded flex-grow">Low light</button>
                             <button onClick={() => shutdown()} className="bg-red-500 text-white px-4 py-2 rounded flex-grow">Shut down</button>
                             {/*<button disabled className="bg-yellow-500 text-white px-4 py-2 rounded flex-grow">AWB</button>*/}
