@@ -5,7 +5,7 @@ from flask import Flask, Response, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 from config import AppConfig, get_default_presets
-from services import CameraService, StreamingService, PresetManager
+from services import CameraService, StreamingService, PresetManager, ControlManager
 from calculations import create_timestamp
 
 # Configure logging
@@ -35,6 +35,7 @@ def create_app(config: AppConfig) -> Flask:
     camera_service = CameraService()
     streaming_service = StreamingService(camera_service, config.frame_delay)
     preset_manager = PresetManager(camera_service, get_default_presets())
+    control_manager = ControlManager(camera_service)
     
     # Initialize camera on app startup
     @app.before_first_request
@@ -187,6 +188,110 @@ def create_app(config: AppConfig) -> Flask:
             "presets": presets,
             "current": None  # Could track current preset in service
         })
+    
+    @app.route('/controls')
+    def get_controls():
+        """
+        Get all available camera controls with metadata.
+        
+        Returns:
+            JSON response with control metadata grouped by category
+        """
+        categories = control_manager.get_controls_by_category()
+        
+        # Convert to JSON-serializable format
+        result = {}
+        for category, controls in categories.items():
+            result[category] = []
+            for control in controls:
+                control_dict = {
+                    "name": control.name,
+                    "display_name": control.display_name,
+                    "type": control.control_type,
+                    "category": control.category
+                }
+                
+                # Add type-specific fields
+                if control.control_type == "slider":
+                    control_dict.update({
+                        "min": control.min_value,
+                        "max": control.max_value,
+                        "step": control.step,
+                        "default": control.default_value
+                    })
+                    if control.unit:
+                        control_dict["unit"] = control.unit
+                elif control.control_type == "toggle":
+                    control_dict["default"] = control.default_value
+                elif control.control_type == "select":
+                    control_dict["options"] = control.options
+                    control_dict["default"] = control.default_value
+                
+                result[category].append(control_dict)
+        
+        return jsonify(result)
+    
+    @app.route('/control/<control_name>', methods=['GET'])
+    def get_control_value(control_name):
+        """
+        Get current value of a specific control.
+        
+        Args:
+            control_name: Name of the control
+            
+        Returns:
+            JSON response with control value
+        """
+        result = control_manager.get_control_value(control_name)
+        
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify({
+                "status": "error",
+                "message": result["error"]
+            }), 400
+    
+    @app.route('/control/<control_name>', methods=['POST'])
+    def update_control(control_name):
+        """
+        Update a specific camera control.
+        
+        Expected JSON:
+            {"value": <new_value>}
+            
+        Args:
+            control_name: Name of the control
+            
+        Returns:
+            JSON response with status
+        """
+        if not request.json:
+            return jsonify({
+                "status": "error",
+                "message": "No JSON data provided"
+            }), 400
+        
+        value = request.json.get('value')
+        if value is None:
+            return jsonify({
+                "status": "error",
+                "message": "No value specified"
+            }), 400
+        
+        result = control_manager.update_control(control_name, value)
+        
+        if result["success"]:
+            return jsonify({
+                "status": "success",
+                "message": result["message"],
+                "value": result["value"]
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": result["error"]
+            }), 400
     
     return app
 
