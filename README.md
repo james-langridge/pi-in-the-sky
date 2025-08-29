@@ -306,6 +306,148 @@ python3 server.py
    - Verify camera is enabled: `sudo raspi-config` → Interface Options → Camera
    - Reboot if camera or port issues persist: `sudo reboot`
 
+## Headless Setup in New Location
+
+When moving to a new location with only an Ethernet cable and no monitor:
+
+### 1. Find the Pi's IP Address
+
+After connecting the Pi to Ethernet and powering it on, find its IP from your laptop:
+
+**Option A: Using nmap (most reliable)**
+```bash
+# Install nmap if needed
+# Mac: brew install nmap
+# Linux: sudo apt install nmap
+# Windows: Download from nmap.org
+
+# Scan your network (adjust IP range to match your network)
+nmap -sn 192.168.1.0/24
+# or
+sudo nmap -sn 192.168.0.0/24
+
+# Look for "Raspberry Pi" in the output
+```
+
+**Option B: Using arp**
+```bash
+# Mac/Linux: Look for Raspberry Pi MAC addresses (start with B8:27:EB or DC:A6:32)
+arp -a | grep -i "b8:27:eb\|dc:a6:32"
+
+# Windows
+arp -a
+# Look for MAC addresses starting with b8-27-eb or dc-a6-32
+```
+
+**Option C: Check router's DHCP client list**
+- Access your router's admin page (usually 192.168.1.1 or 192.168.0.1)
+- Look for DHCP clients/connected devices
+- Find device named "raspberrypi" or with Raspberry Pi MAC address
+
+### 2. SSH into the Pi
+```bash
+ssh YOUR_USERNAME@[PI-IP-ADDRESS]
+```
+
+### 3. Configure WiFi from Command Line
+
+Once connected via SSH:
+
+```bash
+# Method 1: Using nmcli (if NetworkManager is installed)
+sudo nmcli dev wifi connect "WiFi-Network-Name" password "WiFi-Password"
+
+# Method 2: Using wpa_supplicant (standard on Raspberry Pi OS)
+sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+```
+
+Add your network to wpa_supplicant.conf:
+```
+country=US
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
+network={
+    ssid="Your-WiFi-Network-Name"
+    psk="Your-WiFi-Password"
+    key_mgmt=WPA-PSK
+}
+```
+
+Then restart networking:
+```bash
+sudo systemctl restart networking
+# or
+sudo reboot
+```
+
+### 4. Find the New WiFi IP Address
+```bash
+# While still connected via Ethernet
+ip addr show wlan0
+# or
+hostname -I
+```
+
+### 5. Make Pi Easier to Find (Optional)
+
+**Enable mDNS (Avahi) for hostname access:**
+```bash
+# Should be installed by default, but if not:
+sudo apt install avahi-daemon
+
+# Access your Pi as:
+# raspberrypi.local (or YOUR_HOSTNAME.local)
+```
+
+**Set a static IP (optional):**
+```bash
+sudo nano /etc/dhcpcd.conf
+```
+
+Add at the end:
+```
+interface wlan0
+static ip_address=192.168.1.100/24
+static routers=192.168.1.1
+static domain_name_servers=192.168.1.1 8.8.8.8
+```
+
+### Pro Tips for Headless Setup
+
+1. **Before moving locations**, while you still have access:
+   ```bash
+   # Save your current network config
+   sudo cat /etc/wpa_supplicant/wpa_supplicant.conf > ~/networks_backup.txt
+   
+   # Pre-add the new location's WiFi
+   sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+   # Add multiple networks - Pi will connect to whichever is available
+   ```
+
+2. **Create a setup script** on the Pi:
+   ```bash
+   nano ~/connect_wifi.sh
+   ```
+   ```bash
+   #!/bin/bash
+   echo "Available networks:"
+   sudo iwlist wlan0 scan | grep ESSID
+   read -p "Enter SSID: " ssid
+   read -sp "Enter Password: " password
+   echo
+   sudo nmcli dev wifi connect "$ssid" password "$password"
+   ```
+   ```bash
+   chmod +x ~/connect_wifi.sh
+   ```
+
+3. **Enable SSH over Ethernet** (should be default):
+   ```bash
+   sudo systemctl enable ssh
+   sudo systemctl start ssh
+   ```
+
 ### Web Interface
 
 The `ui/index.html` file can be:
