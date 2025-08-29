@@ -19,6 +19,8 @@ Raspberry Pi camera streaming application with web interface.
 - PiCamera2 0.3.12
 - OpenCV 4.8.0
 - NumPy 1.24.3
+- PyWebPush 2.0.0 (for push notifications)
+- Cryptography 41.0.4 (for VAPID keys)
 
 ## Installation
 
@@ -50,6 +52,9 @@ The server can be configured via environment variables:
 | `FLASK_DEBUG` | `false` | Debug mode |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated CORS origins |
 | `FRAME_DELAY` | `0.1` | Delay between frames (seconds) |
+| `VAPID_PRIVATE_KEY` | - | Private key for push notifications |
+| `VAPID_PUBLIC_KEY` | - | Public key for push notifications |
+| `VAPID_EMAIL` | `admin@example.com` | Contact email for push service |
 
 ## Running
 
@@ -61,6 +66,27 @@ python server.py
 ```
 
 The server will start on `http://0.0.0.0:8080` by default.
+
+### Enable Motion Detection (Optional)
+
+For motion detection with push notifications:
+
+1. **Generate VAPID keys:**
+   ```bash
+   cd server
+   python generate_vapid_keys.py
+   ```
+   Follow prompts to save keys to `.env` file.
+
+2. **Restart server** to load the keys.
+
+3. **In the web interface:**
+   - Open control panel
+   - Navigate to Motion Detection section
+   - Enable motion detection
+   - Allow push notifications when prompted
+
+See [MOTION_DETECTION_SETUP.md](MOTION_DETECTION_SETUP.md) for detailed configuration.
 
 ### Access the web interface
 
@@ -85,12 +111,39 @@ The interface can be installed as a Progressive Web App for fullscreen experienc
 
 The PWA runs in standalone mode without browser UI, providing an app-like experience.
 
+## Features
+
+### Live Camera Streaming
+- Real-time MJPEG stream with timestamp overlay
+- Adjustable frame rate and quality
+- Works on any device with a web browser
+
+### Motion Detection 🆕
+- Frame differencing algorithm for motion detection
+- Configurable sensitivity and detection zones
+- Cooldown periods to prevent notification spam
+- Visual indicators in the UI
+
+### Push Notifications 🆕
+- Browser push notifications for motion events
+- Works when browser is closed or phone is locked
+- No registration or API keys required
+- Uses Web Push Protocol with VAPID authentication
+
+### Camera Controls
+- Comprehensive control panel with sliders and toggles
+- Grouped by category (Image Quality, Exposure, White Balance)
+- Real-time adjustments
+- Preset configurations for common scenarios
+
 ## API Endpoints
 
-### `GET /video_feed`
-Returns MJPEG video stream with timestamp overlay.
+### Camera Endpoints
 
-### `POST /apply_preset`
+#### `GET /video_feed`
+Returns MJPEG video stream with timestamp overlay and optional motion detection.
+
+#### `POST /apply_preset`
 Apply camera preset configuration.
 
 **Request:**
@@ -136,6 +189,57 @@ List available camera presets.
 }
 ```
 
+### Motion Detection Endpoints 🆕
+
+#### `GET /api/motion/status`
+Get current motion detection status.
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "config": {
+    "sensitivity": 0.02,
+    "min_area": 500,
+    "cooldown_seconds": 30
+  },
+  "recent_events": 5,
+  "triggered_events": 2
+}
+```
+
+#### `POST /api/motion/config`
+Update motion detection configuration.
+
+**Request:**
+```json
+{
+  "enabled": true,
+  "sensitivity": 0.02,
+  "min_area": 500,
+  "cooldown_seconds": 30
+}
+```
+
+### Push Notification Endpoints 🆕
+
+#### `GET /api/push/vapid-key`
+Get VAPID public key for push subscriptions.
+
+#### `POST /api/push/subscribe`
+Subscribe to push notifications.
+
+**Request:**
+```json
+{
+  "endpoint": "https://fcm.googleapis.com/...",
+  "keys": {
+    "p256dh": "...",
+    "auth": "..."
+  }
+}
+```
+
 ## Camera Presets
 
 ### Default
@@ -153,21 +257,25 @@ Optimized for low-light conditions with:
 ```
 pi-in-the-sky/
 ├── server/
-│   ├── server.py          # Flask application
+│   ├── server.py          # Flask application with motion detection
 │   ├── services.py         # Camera and streaming services
-│   ├── calculations.py     # Image processing functions
-│   ├── models.py          # Data models
+│   ├── motion_services.py # Motion detection and notifications
+│   ├── storage.py         # SQLite subscription storage
+│   ├── calculations.py     # Image processing and motion detection
+│   ├── models.py          # Data models including motion events
 │   ├── config.py          # Configuration management
+│   ├── generate_vapid_keys.py # VAPID key generation utility
 │   ├── requirements.txt   # Python dependencies
 │   ├── test_architecture.py # Architecture tests
 │   └── ui/                # PWA assets served by Flask
 │       ├── manifest.json  # PWA manifest
-│       └── service-worker.js # Service worker for offline
+│       └── service-worker.js # Service worker with push support
 └── ui/
-    ├── index.html         # Web interface
+    ├── index.html         # Web interface with motion controls
     └── js/
         ├── api.js         # API client module
-        └── controls.js    # UI control logic
+        ├── controls.js    # UI control logic
+        └── motion.js      # Motion detection UI module
 ```
 
 ## Architecture
@@ -254,6 +362,10 @@ WorkingDirectory=/home/YOUR_USERNAME/pi-in-the-sky/server
 Environment="FLASK_PORT=8080"
 Environment="FLASK_DEBUG=false"
 Environment="CORS_ORIGINS=http://localhost:8080"
+# Add VAPID keys here if using motion detection
+# Environment="VAPID_PRIVATE_KEY=your-private-key"
+# Environment="VAPID_PUBLIC_KEY=your-public-key"
+# Environment="VAPID_EMAIL=admin@example.com"
 ExecStart=/usr/bin/python3 /home/YOUR_USERNAME/pi-in-the-sky/server/server.py
 Restart=always
 RestartSec=10
