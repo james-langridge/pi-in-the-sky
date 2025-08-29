@@ -6,6 +6,7 @@ export class CameraControls {
         this.controlsOpen = false;
         this.controls = {};
         this.debounceTimers = {};
+    }
 
     async init() {
         await this.loadControls();
@@ -19,7 +20,8 @@ export class CameraControls {
             this.renderControls();
         } catch (error) {
             console.error('Failed to load controls:', error);
-            this.showStatus('Failed to load camera controls', true);
+            // Don't show error status for local testing, just log it
+            console.log('Note: Controls will not work without server connection');
         }
     }
 
