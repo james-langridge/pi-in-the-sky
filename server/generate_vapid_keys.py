@@ -38,10 +38,11 @@ def generate_vapid_keys():
 
 def save_to_env_file(private_key, public_key, email):
     """Save VAPID keys to .env file."""
+    private_key_escaped = private_key.replace(chr(10), '\\\\n')
     env_content = f"""# VAPID Keys for Web Push Notifications
 # Generated automatically - DO NOT SHARE PRIVATE KEY
 
-VAPID_PRIVATE_KEY={private_key.replace(chr(10), '\\n')}
+VAPID_PRIVATE_KEY={private_key_escaped}
 VAPID_PUBLIC_KEY={public_key}
 VAPID_EMAIL={email}
 """
@@ -101,7 +102,8 @@ def main():
     print("-" * 40)
     print("Export these before running the server:")
     print()
-    print(f"export VAPID_PRIVATE_KEY='{private_key.replace(chr(10), '\\\\n')}'")
+    newline_escaped = private_key.replace(chr(10), '\\\\n')
+    print(f"export VAPID_PRIVATE_KEY='{newline_escaped}'")
     print(f"export VAPID_PUBLIC_KEY='{public_key}'")
     print(f"export VAPID_EMAIL='{email}'")
     
