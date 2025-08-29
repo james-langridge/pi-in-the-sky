@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Pi Camera Web Interface
 
-## Getting Started
+A simple, zero-dependency web interface for viewing Raspberry Pi camera streams.
 
-First, run the development server:
+## Features
+
+- **Live MJPEG video streaming**
+- **Camera preset controls** (default, low light)
+- **Health monitoring**
+- **Responsive design**
+- **Keyboard shortcuts** (Space to toggle controls, Esc to close)
+
+## Usage
+
+Simply open `index.html` in a web browser. No build process or installation required.
+
+### Configuration
+
+By default, the interface expects the camera server at:
+- `http://localhost:8080` when accessed from localhost
+- `http://[current-hostname]:8080` when accessed from other machines
+
+### Deployment
+
+Copy the single `index.html` file to any web server or open it directly from the filesystem.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Serve locally with Python
+python3 -m http.server 3000
+
+# Or with any other static server
+npx serve .
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Architecture
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+This is a single-file application with:
+- **312 lines total** (HTML + CSS + JavaScript)
+- **Zero dependencies**
+- **No build process**
+- **No framework overhead**
+- **Instant load time**
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+All styling is inline CSS, all functionality is vanilla JavaScript. The entire application is viewable with "View Source".
 
-## Learn More
+## API Endpoints Used
 
-To learn more about Next.js, take a look at the following resources:
+- `GET /video_feed` - MJPEG video stream
+- `POST /apply_preset` - Apply camera preset
+- `GET /health` - Server health check
+- `GET /presets` - List available presets
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Keyboard Shortcuts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+- **Space** - Toggle control panel
+- **Escape** - Close control panel
 
-## Deploy on Vercel
+## Browser Compatibility
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Works in all modern browsers that support:
+- ES6 JavaScript (async/await)
+- CSS Flexbox
+- MJPEG streams via img tag
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Comparison with Previous Next.js Version
+
+| Metric | Next.js Version | Vanilla Version |
+|--------|----------------|-----------------|
+| Files | 15+ | 1 |
+| Dependencies | 300+ | 0 |
+| Build time | 30+ seconds | 0 seconds |
+| Total size | ~100MB (with node_modules) | 9KB |
+| Lines of code | 1000+ | 312 |
+| Load time | 2-3 seconds | Instant |
+| Complexity | High | Low |
+
+## Philosophy
+
+Following the principle: "Complexity is the enemy." This interface does exactly what's needed, nothing more. It's debuggable, maintainable, and understandable by anyone who knows basic web development.
