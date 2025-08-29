@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Camera Stream</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Main video container */
+        .video-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: #000;
+        }
+
+        #stream {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Controls toggle button */
+        .toggle-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+        }
+
+        .toggle-controls:hover {
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .toggle-controls svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Control panel */
+        .controls {
+            background: #f3f4f6;
+            transition: height 0.3s ease;
+            overflow: hidden;
+            height: 0;
+        }
+
+        .controls.open {
+            height: auto;
+            padding: 20px;
+        }
+
+        .controls-inner {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-preset {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-preset:hover {
+            background: #059669;
+        }
+
+        .btn-info {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #2563eb;
+        }
+
+        /* Status message */
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+
+        /* Error state */
+        .error-message {
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <div class="loading" id="loading">Connecting to camera...</div>
+        <img id="stream" alt="Camera stream" style="display: none;">
+        <button class="toggle-controls" id="toggleBtn" onclick="toggleControls()">
+            <svg id="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 15l-6-6-6 6"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="controls" id="controls">
+        <div class="controls-inner">
+            <div class="button-group">
+                <button class="btn-preset" onclick="applyPreset('default')">Default</button>
+                <button class="btn-preset" onclick="applyPreset('low_light')">Low Light</button>
+                <button class="btn-info" onclick="checkHealth()">Health Check</button>
+                <button class="btn-info" onclick="listPresets()">List Presets</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <script>
+        // Configuration
+        const BASE_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:8080'
+            : `http://${window.location.hostname}:8080`;
+
+        // State
+        let controlsOpen = false;
+
+        // Initialize stream
+        function initStream() {
+            const stream = document.getElementById('stream');
+            const loading = document.getElementById('loading');
+            
+            stream.src = `${BASE_URL}/video_feed`;
+            
+            stream.onload = () => {
+                loading.style.display = 'none';
+                stream.style.display = 'block';
+            };
+            
+            stream.onerror = () => {
+                loading.innerHTML = 'Failed to connect to camera stream';
+            };
+        }
+
+        // Toggle controls panel
+        function toggleControls() {
+            controlsOpen = !controlsOpen;
+            const controls = document.getElementById('controls');
+            const chevron = document.getElementById('chevron');
+            
+            if (controlsOpen) {
+                controls.classList.add('open');
+                chevron.innerHTML = '<path d="M6 9l6 6 6-6"/>';
+            } else {
+                controls.classList.remove('open');
+                chevron.innerHTML = '<path d="M18 15l-6-6-6 6"/>';
+            }
+        }
+
+        // Show status message
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.background = isError ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)';
+            status.classList.add('show');
+            
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+
+        // Apply camera preset
+        async function applyPreset(presetName) {
+            try {
+                const response = await fetch(`${BASE_URL}/apply_preset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ preset: presetName })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`Applied ${presetName} preset`);
+                } else {
+                    showStatus(data.message || 'Failed to apply preset', true);
+                }
+            } catch (error) {
+                showStatus('Error applying preset', true);
+                console.error('Error:', error);
+            }
+        }
+
+        // Check health status
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`Server healthy at ${data.timestamp}`);
+                } else {
+                    showStatus('Health check failed', true);
+                }
+            } catch (error) {
+                showStatus('Cannot reach server', true);
+                console.error('Error:', error);
+            }
+        }
+
+        // List available presets
+        async function listPresets() {
+            try {
+                const response = await fetch(`${BASE_URL}/presets`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`Available presets: ${data.presets.join(', ')}`);
+                } else {
+                    showStatus('Failed to get presets', true);
+                }
+            } catch (error) {
+                showStatus('Error fetching presets', true);
+                console.error('Error:', error);
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', initStream);
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && controlsOpen) {
+                toggleControls();
+            }
+            if (e.key === ' ') {
+                e.preventDefault();
+                toggleControls();
+            }
+        });
+    </script>
+</body>
+</html>
