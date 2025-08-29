@@ -31,9 +31,13 @@ Raspberry Pi camera streaming application with web interface.
 git clone https://github.com/yourusername/pi-in-the-sky.git
 cd pi-in-the-sky
 
-# Install server dependencies
+# Create virtual environment (recommended for Raspberry Pi OS Bookworm+)
 cd server
-pip3 install -r requirements.txt
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 
 # Ensure your user is in required groups for camera access
 sudo usermod -a -G video $USER
@@ -41,6 +45,49 @@ sudo usermod -a -G i2c $USER
 sudo usermod -a -G gpio $USER
 # Log out and back in for group changes to take effect
 ```
+
+### Development Setup (Without Raspberry Pi)
+
+The server includes a mock camera mode for development on non-Pi systems:
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/pi-in-the-sky.git
+cd pi-in-the-sky/server
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies (excluding picamera2)
+pip install flask flask-cors opencv-python numpy pywebpush cryptography
+
+# Run server (will auto-detect missing PiCamera2 and use mock)
+python server.py
+```
+
+The mock camera generates test frames with:
+- Gradient backgrounds
+- Moving circular element (simulates motion for testing)
+- Timestamp overlays
+- Frame counter
+
+### Dealing with "externally-managed-environment" Error
+
+On newer Raspberry Pi OS (Bookworm+), you may encounter this error. Solutions:
+
+1. **Use virtual environment (recommended):**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. **Install system packages where available:**
+   ```bash
+   sudo apt install python3-flask python3-flask-cors python3-opencv python3-numpy
+   # Then use venv for remaining packages
+   ```
 
 ## Configuration
 
@@ -366,7 +413,7 @@ Environment="CORS_ORIGINS=http://localhost:8080"
 # Environment="VAPID_PRIVATE_KEY=your-private-key"
 # Environment="VAPID_PUBLIC_KEY=your-public-key"
 # Environment="VAPID_EMAIL=admin@example.com"
-ExecStart=/usr/bin/python3 /home/YOUR_USERNAME/pi-in-the-sky/server/server.py
+ExecStart=/home/YOUR_USERNAME/pi-in-the-sky/server/venv/bin/python /home/YOUR_USERNAME/pi-in-the-sky/server/server.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
