@@ -1,9 +1,10 @@
 """Pure functions for frame processing and calculations."""
 
 from datetime import datetime
-from typing import Union, Tuple, Optional
+from typing import Union, Tuple, Optional, List
 import cv2
 import numpy as np
+from models import MotionDetectionConfig, MotionEvent
 
 
 def create_timestamp() -> str:
@@ -179,3 +180,201 @@ def normalize_frame_duration(min_duration: int, max_duration: int) -> Tuple[int,
     min_clamped = clamp_value(min_duration, 1000, 1000000)
     max_clamped = clamp_value(max_duration, min_clamped, 10000000)
     return (min_clamped, max_clamped)
+
+
+def prepare_frame_for_motion_detection(frame: np.ndarray, blur_size: int) -> np.ndarray:
+    """
+    Prepare frame for motion detection by converting to grayscale and blurring.
+    
+    Args:
+        frame: Input frame as numpy array
+        blur_size: Gaussian blur kernel size (must be odd)
+        
+    Returns:
+        Processed grayscale blurred frame
+    """
+    # Ensure blur_size is odd
+    blur_size = blur_size if blur_size % 2 == 1 else blur_size + 1
+    
+    # Convert to grayscale
+    if len(frame.shape) == 3:
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = frame.copy()
+    
+    # Apply Gaussian blur to reduce noise
+    blurred = cv2.GaussianBlur(gray, (blur_size, blur_size), 0)
+    
+    return blurred
+
+
+def calculate_frame_difference(frame1: np.ndarray, frame2: np.ndarray, 
+                              threshold: int) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Calculate absolute difference between two frames and apply threshold.
+    
+    Args:
+        frame1: First frame (grayscale)
+        frame2: Second frame (grayscale)
+        threshold: Binary threshold for motion detection
+        
+    Returns:
+        Tuple of (difference frame, thresholded binary frame)
+    """
+    # Calculate absolute difference
+    frame_diff = cv2.absdiff(frame1, frame2)
+    
+    # Apply threshold to get binary image
+    _, thresh = cv2.threshold(frame_diff, threshold, 255, cv2.THRESH_BINARY)
+    
+    return frame_diff, thresh
+
+
+def detect_motion_contours(binary_frame: np.ndarray, min_area: int) -> List[np.ndarray]:
+    """
+    Find contours in binary frame that exceed minimum area.
+    
+    Args:
+        binary_frame: Binary thresholded frame
+        min_area: Minimum contour area to consider as motion
+        
+    Returns:
+        List of contours that exceed minimum area
+    """
+    # Find all contours
+    contours, _ = cv2.findContours(
+        binary_frame.copy(),
+        cv2.RETR_EXTERNAL,
+        cv2.CHAIN_APPROX_SIMPLE
+    )
+    
+    # Filter contours by area
+    significant_contours = [
+        contour for contour in contours
+        if cv2.contourArea(contour) >= min_area
+    ]
+    
+    return significant_contours
+
+
+def calculate_motion_metrics(contours: List[np.ndarray], 
+                            frame_shape: Tuple[int, int]) -> Tuple[float, int, float]:
+    """
+    Calculate motion metrics from detected contours.
+    
+    Args:
+        contours: List of motion contours
+        frame_shape: Shape of the frame (height, width)
+        
+    Returns:
+        Tuple of (motion_score, total_area, frame_diff_percentage)
+    """
+    if not contours:
+        return 0.0, 0, 0.0
+    
+    # Calculate total motion area
+    total_area = sum(cv2.contourArea(contour) for contour in contours)
+    
+    # Calculate frame coverage percentage
+    frame_area = frame_shape[0] * frame_shape[1]
+    frame_diff_percentage = (total_area / frame_area) * 100 if frame_area > 0 else 0.0
+    
+    # Calculate motion score (0-1 scale)
+    # Combines area coverage and number of motion regions
+    area_score = min(frame_diff_percentage / 10, 1.0)  # Max at 10% coverage
+    contour_score = min(len(contours) / 10, 1.0)  # Max at 10 contours
+    motion_score = (area_score * 0.7 + contour_score * 0.3)  # Weighted average
+    
+    return motion_score, int(total_area), frame_diff_percentage
+
+
+def should_trigger_motion_event(motion_score: float, 
+                               config: MotionDetectionConfig,
+                               time_since_last_trigger: float) -> bool:
+    """
+    Determine if motion event should trigger notification.
+    
+    Args:
+        motion_score: Current motion score (0-1)
+        config: Motion detection configuration
+        time_since_last_trigger: Seconds since last triggered event
+        
+    Returns:
+        True if event should trigger notification
+    """
+    # Check if motion detection is enabled
+    if not config.enabled:
+        return False
+    
+    # Check if motion exceeds sensitivity threshold
+    if motion_score < config.sensitivity:
+        return False
+    
+    # Check cooldown period
+    if time_since_last_trigger < config.cooldown_seconds:
+        return False
+    
+    return True
+
+
+def create_motion_event(timestamp: str, motion_score: float, 
+                       total_area: int, frame_diff_percentage: float,
+                       triggered: bool) -> MotionEvent:
+    """
+    Create an immutable motion event from detection results.
+    
+    Args:
+        timestamp: Event timestamp
+        motion_score: Motion score (0-1)
+        total_area: Total motion area in pixels
+        frame_diff_percentage: Percentage of frame with motion
+        triggered: Whether this event triggered a notification
+        
+    Returns:
+        Immutable MotionEvent instance
+    """
+    return MotionEvent(
+        timestamp=timestamp,
+        motion_score=motion_score,
+        area=total_area,
+        frame_diff_percentage=frame_diff_percentage,
+        triggered=triggered
+    )
+
+
+def detect_motion_between_frames(current_frame: np.ndarray, 
+                                previous_frame: np.ndarray,
+                                config: MotionDetectionConfig) -> Tuple[float, int, float]:
+    """
+    Perform complete motion detection between two frames.
+    
+    Args:
+        current_frame: Current frame
+        previous_frame: Previous frame
+        config: Motion detection configuration
+        
+    Returns:
+        Tuple of (motion_score, total_area, frame_diff_percentage)
+    """
+    # Prepare frames for comparison
+    current_processed = prepare_frame_for_motion_detection(
+        current_frame, config.blur_size
+    )
+    previous_processed = prepare_frame_for_motion_detection(
+        previous_frame, config.blur_size
+    )
+    
+    # Calculate difference
+    _, binary_diff = calculate_frame_difference(
+        current_processed, previous_processed, config.threshold
+    )
+    
+    # Find motion contours
+    contours = detect_motion_contours(binary_diff, config.min_area)
+    
+    # Calculate metrics
+    motion_score, total_area, frame_diff_percentage = calculate_motion_metrics(
+        contours, current_processed.shape
+    )
+    
+    return motion_score, total_area, frame_diff_percentage

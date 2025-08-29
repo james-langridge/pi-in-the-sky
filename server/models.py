@@ -164,3 +164,38 @@ class Frame:
     timestamp: str
     width: int
     height: int
+
+
+@dataclass(frozen=True)
+class MotionDetectionConfig:
+    """Immutable configuration for motion detection."""
+    
+    enabled: bool = False
+    sensitivity: float = 0.02  # 0-1 scale, lower = more sensitive
+    min_area: int = 500  # Minimum contour area in pixels
+    cooldown_seconds: int = 30  # Seconds between notifications
+    blur_size: int = 21  # Gaussian blur kernel size
+    threshold: int = 25  # Binary threshold for motion detection
+
+
+@dataclass(frozen=True)
+class MotionEvent:
+    """Immutable motion detection event."""
+    
+    timestamp: str
+    motion_score: float  # 0-1 scale
+    area: int  # Total motion area in pixels
+    frame_diff_percentage: float  # Percentage of frame with motion
+    triggered: bool  # Whether this event triggered a notification
+
+
+@dataclass(frozen=True)
+class PushSubscription:
+    """Immutable browser push notification subscription."""
+    
+    id: str  # Unique subscription ID
+    endpoint: str  # Push service endpoint URL
+    p256dh: str  # Public key for payload encryption
+    auth: str  # Authentication secret
+    created_at: str  # ISO format timestamp
+    user_agent: Optional[str] = None  # Browser user agent
