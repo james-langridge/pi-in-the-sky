@@ -54,6 +54,27 @@ def create_app(config: AppConfig) -> Flask:
             logger.error(f"App teardown due to error: {error}")
         # Cleanup will be called when app shuts down
     
+    @app.route('/')
+    def index():
+        """Serve the UI HTML file."""
+        import os
+        ui_path = os.path.join(os.path.dirname(__file__), '..', 'ui', 'index.html')
+        try:
+            with open(ui_path, 'r') as f:
+                content = f.read()
+                # Replace the BASE_URL with the actual server URL
+                # This makes the UI work regardless of how it's accessed
+                content = content.replace(
+                    "const BASE_URL = window.location.hostname === 'localhost' \n            ? 'http://localhost:8080'\n            : `http://${window.location.hostname}:8080`;",
+                    "const BASE_URL = window.location.origin;"
+                )
+                return content
+        except FileNotFoundError:
+            return "UI file not found. Please ensure ui/index.html exists.", 404
+        except Exception as e:
+            logger.error(f"Error serving UI: {e}")
+            return f"Error loading UI: {str(e)}", 500
+    
     @app.route('/video_feed')
     def video_feed():
         """

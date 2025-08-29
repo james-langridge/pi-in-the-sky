@@ -185,9 +185,10 @@
 
     <script>
         // Configuration
-        const BASE_URL = window.location.hostname === 'localhost' 
+        // When served from Flask, use same origin. When opened as file, use localhost:8080
+        const BASE_URL = window.location.protocol === 'file:' 
             ? 'http://localhost:8080'
-            : `http://${window.location.hostname}:8080`;
+            : window.location.origin;
 
         // State
         let controlsOpen = false;
