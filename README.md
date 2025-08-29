@@ -149,6 +149,25 @@ pi-in-the-sky/
 
 The server follows a layered architecture:
 
+```
+┌─────────────┐     ┌──────────────┐     ┌─────────────┐
+│   Flask     │────▶│   Services   │────▶│   Camera    │
+│  (HTTP)     │     │ (Orchestrate)│     │    (I/O)    │
+└─────────────┘     └──────────────┘     └─────────────┘
+                            │
+                            ▼
+                    ┌──────────────┐
+                    │ Calculations │
+                    │    (Pure)    │
+                    └──────────────┘
+                            │
+                            ▼
+                    ┌──────────────┐
+                    │    Models    │
+                    │  (Immutable) │
+                    └──────────────┘
+```
+
 - **HTTP Layer** (`server.py`): Flask endpoints
 - **Service Layer** (`services.py`): Camera operations and streaming
 - **Calculation Layer** (`calculations.py`): Pure functions for image processing
@@ -162,6 +181,16 @@ Single HTML file containing:
 - Vanilla JavaScript for API interaction
 - MJPEG stream display via img tag
 - Responsive control panel
+
+#### Keyboard Shortcuts
+- **Space** - Toggle control panel
+- **Escape** - Close control panel
+
+#### Browser Compatibility
+Works in all modern browsers that support:
+- ES6 JavaScript (async/await)
+- CSS Flexbox
+- MJPEG streams via img tag
 
 ## Testing
 
