@@ -2,7 +2,29 @@
  * Motion detection and push notification management module
  */
 
-import { API } from './api.js';
+import { CameraAPI } from './api.js';
+
+// Create API instance for motion detection
+const API = new CameraAPI(window.location.origin);
+
+// Add convenience methods if they don't exist
+if (!API.get) {
+    API.get = async function(endpoint) {
+        const response = await fetch(this.baseUrl + endpoint);
+        return response.json();
+    };
+}
+
+if (!API.post) {
+    API.post = async function(endpoint, data) {
+        const response = await fetch(this.baseUrl + endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return response.json();
+    };
+}
 
 export class MotionDetection {
     constructor() {
