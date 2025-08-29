@@ -39,8 +39,7 @@
         .toggle-controls {
             position: absolute;
             bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: calc(50% - 20px); /* Half of the 40px width */
             background: rgba(255, 255, 255, 0.8);
             border: none;
             border-radius: 50%;
@@ -51,6 +50,7 @@
             align-items: center;
             justify-content: center;
             transition: background 0.3s;
+            will-change: background; /* Optimize for background changes only */
         }
 
         .toggle-controls:hover {
@@ -60,6 +60,7 @@
         .toggle-controls svg {
             width: 24px;
             height: 24px;
+            pointer-events: none; /* Prevent SVG from interfering with hover */
         }
 
         /* Control panel */
