@@ -65,13 +65,14 @@
         /* Control panel */
         .controls {
             background: #f3f4f6;
-            transition: height 0.3s ease;
+            transition: max-height 0.3s ease, padding 0.3s ease;
             overflow: hidden;
-            height: 0;
+            max-height: 0;
+            padding: 0 20px;
         }
 
         .controls.open {
-            height: auto;
+            max-height: 200px;
             padding: 20px;
         }
 
