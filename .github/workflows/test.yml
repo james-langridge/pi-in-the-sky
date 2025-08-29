@@ -37,8 +37,8 @@ jobs:
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r server/requirements.txt
-        pip install pytest pytest-cov
+        # Use test requirements that don't include picamera2
+        pip install -r server/requirements-test.txt
     
     - name: Run core tests
       run: |
