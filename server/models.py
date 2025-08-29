@@ -1,7 +1,118 @@
 """Immutable data models for camera configuration."""
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union, Tuple
+from enum import IntEnum
+
+
+@dataclass(frozen=True)
+class ControlMetadata:
+    """Immutable metadata for a camera control."""
+    
+    name: str
+    display_name: str
+    control_type: str  # 'slider', 'toggle', 'select'
+    min_value: Optional[Union[float, int]] = None
+    max_value: Optional[Union[float, int]] = None
+    step: Optional[Union[float, int]] = None
+    default_value: Optional[Union[float, int, bool]] = None
+    options: Optional[dict] = None  # For select controls
+    unit: Optional[str] = None
+    category: str = "General"
+
+
+class AeMeteringMode(IntEnum):
+    """Auto exposure metering modes."""
+    CENTRE_WEIGHTED = 0
+    SPOT = 1
+    MATRIX = 2
+    CUSTOM = 3
+
+
+class AeExposureMode(IntEnum):
+    """Auto exposure modes."""
+    NORMAL = 0
+    SHORT = 1
+    LONG = 2
+    CUSTOM = 3
+
+
+class AwbMode(IntEnum):
+    """Auto white balance modes."""
+    AUTO = 0
+    INCANDESCENT = 1
+    TUNGSTEN = 2
+    FLUORESCENT = 3
+    INDOOR = 4
+    DAYLIGHT = 5
+    CLOUDY = 6
+    CUSTOM = 7
+
+
+class NoiseReductionMode(IntEnum):
+    """Noise reduction modes."""
+    OFF = 0
+    FAST = 1
+    HIGH_QUALITY = 2
+    MINIMAL = 3
+    ZSL = 4
+
+
+@dataclass(frozen=True)
+class CameraControls:
+    """Immutable camera control values."""
+    
+    # Image Quality
+    brightness: Optional[float] = None
+    contrast: Optional[float] = None
+    saturation: Optional[float] = None
+    sharpness: Optional[float] = None
+    
+    # Exposure
+    exposure_time: Optional[int] = None
+    analogue_gain: Optional[float] = None
+    exposure_value: Optional[float] = None
+    ae_enable: Optional[bool] = None
+    ae_exposure_mode: Optional[int] = None
+    ae_metering_mode: Optional[int] = None
+    
+    # White Balance
+    awb_enable: Optional[bool] = None
+    awb_mode: Optional[int] = None
+    colour_gains: Optional[Tuple[float, float]] = None
+    
+    # Advanced
+    noise_reduction_mode: Optional[int] = None
+    frame_duration_limits: Optional[Tuple[int, int]] = None
+    
+    def to_picamera2_controls(self) -> dict:
+        """Convert to dictionary for picamera2 controls, excluding None values."""
+        controls = {}
+        
+        field_mapping = {
+            'brightness': 'Brightness',
+            'contrast': 'Contrast',
+            'saturation': 'Saturation',
+            'sharpness': 'Sharpness',
+            'exposure_time': 'ExposureTime',
+            'analogue_gain': 'AnalogueGain',
+            'exposure_value': 'ExposureValue',
+            'ae_enable': 'AeEnable',
+            'ae_exposure_mode': 'AeExposureMode',
+            'ae_metering_mode': 'AeMeteringMode',
+            'awb_enable': 'AwbEnable',
+            'awb_mode': 'AwbMode',
+            'colour_gains': 'ColourGains',
+            'noise_reduction_mode': 'NoiseReductionMode',
+            'frame_duration_limits': 'FrameDurationLimits'
+        }
+        
+        for field_name, control_name in field_mapping.items():
+            value = getattr(self, field_name)
+            if value is not None:
+                controls[control_name] = value
+                
+        return controls
 
 
 @dataclass(frozen=True)
