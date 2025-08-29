@@ -5,3 +5,5 @@ CLAUDE.md
 *.db
 __pycache__/
 *.pyc
+venv/
+server/venv/
