@@ -64,13 +64,26 @@ The server will start on `http://0.0.0.0:8080` by default.
 
 ### Access the web interface
 
-Open `ui/index.html` in a web browser, or serve it from any web server:
+Navigate to `http://[PI-IP-ADDRESS]:8080` in your web browser. The server serves the UI directly.
 
-```bash
-cd ui
-python3 -m http.server 3000
-# Navigate to http://localhost:3000
-```
+#### Install as Mobile App (PWA)
+
+The interface can be installed as a Progressive Web App for fullscreen experience:
+
+**iOS (Safari):**
+1. Navigate to `http://[PI-IP-ADDRESS]:8080`
+2. Tap the Share button (square with arrow)
+3. Select "Add to Home Screen"
+4. Name it and tap "Add"
+5. Launch from home screen for fullscreen view
+
+**Android (Chrome):**
+1. Navigate to `http://[PI-IP-ADDRESS]:8080`
+2. Tap the three-dot menu
+3. Select "Add to Home screen" or "Install app"
+4. Launch from home screen for fullscreen view
+
+The PWA runs in standalone mode without browser UI, providing an app-like experience.
 
 ## API Endpoints
 
@@ -146,9 +159,15 @@ pi-in-the-sky/
 │   ├── models.py          # Data models
 │   ├── config.py          # Configuration management
 │   ├── requirements.txt   # Python dependencies
-│   └── test_architecture.py # Architecture tests
+│   ├── test_architecture.py # Architecture tests
+│   └── ui/                # PWA assets served by Flask
+│       ├── manifest.json  # PWA manifest
+│       └── service-worker.js # Service worker for offline
 └── ui/
-    └── index.html         # Web interface
+    ├── index.html         # Web interface
+    └── js/
+        ├── api.js         # API client module
+        └── controls.js    # UI control logic
 ```
 
 ## Architecture
