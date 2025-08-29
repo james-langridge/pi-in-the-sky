@@ -1,7 +1,7 @@
 """Flask server for Raspberry Pi camera streaming."""
 
 import logging
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 from config import AppConfig, get_default_presets
@@ -74,6 +74,36 @@ def create_app(config: AppConfig) -> Flask:
         except Exception as e:
             logger.error(f"Error serving UI: {e}")
             return f"Error loading UI: {str(e)}", 500
+    
+    @app.route('/manifest.json')
+    def manifest():
+        """Serve the PWA manifest file."""
+        import os
+        return send_from_directory(
+            os.path.join(os.path.dirname(__file__), 'ui'),
+            'manifest.json',
+            mimetype='application/manifest+json'
+        )
+    
+    @app.route('/service-worker.js')
+    def service_worker():
+        """Serve the service worker file."""
+        import os
+        return send_from_directory(
+            os.path.join(os.path.dirname(__file__), 'ui'),
+            'service-worker.js',
+            mimetype='application/javascript'
+        )
+    
+    @app.route('/js/<path:filename>')
+    def serve_js(filename):
+        """Serve JavaScript files."""
+        import os
+        return send_from_directory(
+            os.path.join(os.path.dirname(__file__), '..', 'ui', 'js'),
+            filename,
+            mimetype='application/javascript'
+        )
     
     @app.route('/video_feed')
     def video_feed():
