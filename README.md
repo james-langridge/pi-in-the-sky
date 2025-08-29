@@ -22,6 +22,8 @@ Raspberry Pi camera streaming application with web interface.
 
 ## Installation
 
+### Quick Setup on Raspberry Pi
+
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/pi-in-the-sky.git
@@ -29,7 +31,13 @@ cd pi-in-the-sky
 
 # Install server dependencies
 cd server
-pip install -r requirements.txt
+pip3 install -r requirements.txt
+
+# Ensure your user is in required groups for camera access
+sudo usermod -a -G video $USER
+sudo usermod -a -G i2c $USER
+sudo usermod -a -G gpio $USER
+# Log out and back in for group changes to take effect
 ```
 
 ## Configuration
@@ -201,11 +209,17 @@ cd server
 python test_architecture.py
 ```
 
-## Deployment
+## Raspberry Pi Setup
 
-### Systemd Service (Raspberry Pi)
+### Automatic Startup with systemd
 
-Create `/etc/systemd/system/pi-camera.service`:
+1. **Create the service file:**
+
+```bash
+sudo nano /etc/systemd/system/pi-camera-stream.service
+```
+
+2. **Add this configuration (adjust paths and username as needed):**
 
 ```ini
 [Unit]
@@ -214,20 +228,83 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/pi-in-the-sky/server
-ExecStart=/usr/bin/python3 /home/pi/pi-in-the-sky/server/server.py
+User=YOUR_USERNAME
+Group=video
+SupplementaryGroups=video i2c gpio
+WorkingDirectory=/home/YOUR_USERNAME/pi-in-the-sky/server
+Environment="FLASK_PORT=8080"
+Environment="FLASK_DEBUG=false"
+Environment="CORS_ORIGINS=http://localhost:8080"
+ExecStart=/usr/bin/python3 /home/YOUR_USERNAME/pi-in-the-sky/server/server.py
 Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-Enable and start:
+3. **Enable and start the service:**
+
 ```bash
-sudo systemctl enable pi-camera
-sudo systemctl start pi-camera
+# Reload systemd configuration
+sudo systemctl daemon-reload
+
+# Enable service to start at boot
+sudo systemctl enable pi-camera-stream
+
+# Start the service now
+sudo systemctl start pi-camera-stream
+
+# Check status
+sudo systemctl status pi-camera-stream
+
+# View logs if needed
+sudo journalctl -u pi-camera-stream -f
 ```
+
+4. **Access the interface:**
+   - From the Pi itself: `http://localhost:8080`
+   - From another device on the network: `http://[PI-IP-ADDRESS]:8080`
+   - Find your Pi's IP with: `hostname -I`
+
+### Managing the Service
+
+```bash
+# Stop the service
+sudo systemctl stop pi-camera-stream
+
+# Restart the service
+sudo systemctl restart pi-camera-stream
+
+# Disable automatic startup
+sudo systemctl disable pi-camera-stream
+
+# View logs
+sudo journalctl -u pi-camera-stream -n 50
+```
+
+### Troubleshooting Service Issues
+
+If the service fails to start:
+
+1. **Check port availability:**
+```bash
+sudo lsof -i :8080
+```
+
+2. **Test manual startup:**
+```bash
+cd /home/YOUR_USERNAME/pi-in-the-sky/server
+python3 server.py
+```
+
+3. **Common fixes:**
+   - If port 8080 is in use, change `FLASK_PORT` in the service file
+   - Ensure all Python dependencies are installed
+   - Verify camera is enabled: `sudo raspi-config` → Interface Options → Camera
+   - Reboot if camera or port issues persist: `sudo reboot`
 
 ### Web Interface
 
