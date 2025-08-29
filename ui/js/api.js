@@ -23,11 +23,21 @@ export class CameraAPI {
         return response.json();
     }
 
-    async updateControl(control, value) {
-        const response = await fetch(`${this.baseUrl}/control`, {
+    async getControls() {
+        const response = await fetch(`${this.baseUrl}/controls`);
+        return response.json();
+    }
+
+    async getControlValue(controlName) {
+        const response = await fetch(`${this.baseUrl}/control/${controlName}`);
+        return response.json();
+    }
+
+    async updateControl(controlName, value) {
+        const response = await fetch(`${this.baseUrl}/control/${controlName}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ control, value })
+            body: JSON.stringify({ value })
         });
         return response.json();
     }
