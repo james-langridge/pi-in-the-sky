@@ -3,7 +3,25 @@
 import os
 from dataclasses import dataclass
 from typing import List, Dict
-from libcamera import controls
+
+try:
+    from libcamera import controls
+except ImportError:
+    # Mock controls for development without libcamera
+    class MockControls:
+        class AwbModeEnum:
+            Auto = 0
+            Tungsten = 2
+        class HdrModeEnum:
+            Off = 0
+            Night = 1
+        class AeExposureModeEnum:
+            Normal = 0
+            Long = 2
+        class AeMeteringModeEnum:
+            CentreWeighted = 0
+            Matrix = 2
+    controls = MockControls()
 
 from models import CameraPreset
 

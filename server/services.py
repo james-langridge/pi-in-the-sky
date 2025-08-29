@@ -4,7 +4,13 @@ import io
 import time
 import logging
 from typing import Optional, Generator, Union, Tuple
-from picamera2 import Picamera2
+
+try:
+    from picamera2 import Picamera2
+except ImportError:
+    logger = logging.getLogger(__name__)
+    logger.warning("PiCamera2 not available, using mock camera")
+    from mock_camera import MockPicamera2 as Picamera2
 
 from models import CameraPreset, Frame, CameraControls, ControlMetadata
 from calculations import (
