@@ -64,15 +64,12 @@ def create_app(config: AppConfig) -> Flask:
         logger.warning("VAPID keys not configured - push notifications disabled")
     
     # Initialize camera on app startup
-    @app.before_first_request
-    def initialize_camera():
-        """Initialize camera before handling first request."""
+    with app.app_context():
         try:
             camera_service.initialize()
             logger.info("Camera initialized on startup")
         except Exception as e:
             logger.error(f"Failed to initialize camera: {e}")
-            # Could implement fallback or mock mode here
     
     @app.teardown_appcontext
     def cleanup_camera(error=None):
