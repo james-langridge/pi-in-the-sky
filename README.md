@@ -388,10 +388,6 @@ python run_tests.py
 
 # Run architecture verification tests
 python test_architecture.py
-
-# Run full test suite with pytest (requires test dependencies)
-pip install pytest pytest-cov pytest-mock
-pytest tests/ -v
 ```
 
 ### Test Coverage
