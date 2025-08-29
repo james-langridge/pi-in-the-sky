@@ -376,12 +376,38 @@ Works in all modern browsers that support:
 
 ## Testing
 
-Run architecture tests (no hardware required):
+The project includes comprehensive tests that run automatically on all pull requests:
+
+### Run Tests Locally
 
 ```bash
 cd server
+
+# Run core functionality tests
+python run_tests.py
+
+# Run architecture verification tests
 python test_architecture.py
+
+# Run full test suite with pytest (requires test dependencies)
+pip install pytest pytest-cov pytest-mock
+pytest tests/ -v
 ```
+
+### Test Coverage
+
+- **Pure calculations**: Image processing, motion detection algorithms
+- **Data models**: Immutability and structure validation
+- **Service layer**: Initialization and core operations
+- **API endpoints**: Health checks and configuration
+- **Mock camera**: Development without hardware
+
+### Continuous Integration
+
+GitHub Actions automatically runs tests on:
+- All pull requests to main branch
+- Python versions 3.9, 3.10, 3.11, and 3.12
+- Tests run without requiring Raspberry Pi hardware
 
 ## Raspberry Pi Setup
 
