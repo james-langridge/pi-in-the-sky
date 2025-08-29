@@ -301,7 +301,7 @@
     <div class="video-container">
         <div class="loading" id="loading">Connecting to camera...</div>
         <img id="stream" alt="Camera stream" style="display: none;">
-        <button class="toggle-controls" id="toggleBtn" onclick="toggleControls()">
+        <button class="toggle-controls" id="toggleBtn">
             <svg id="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 15l-6-6-6 6"/>
             </svg>
@@ -311,10 +311,10 @@
     <div class="controls" id="controls">
         <div class="controls-inner">
             <div class="button-group">
-                <button class="btn-preset" onclick="applyPreset('default')">Default</button>
-                <button class="btn-preset" onclick="applyPreset('low_light')">Low Light</button>
-                <button class="btn-preset" onclick="applyPreset('bright')">Bright</button>
-                <button class="btn-info" onclick="resetControls()">Reset All</button>
+                <button class="btn-preset" id="preset-default">Default</button>
+                <button class="btn-preset" id="preset-low-light">Low Light</button>
+                <button class="btn-preset" id="preset-bright">Bright</button>
+                <button class="btn-info" id="reset-all">Reset All</button>
             </div>
             <div id="controls-container">
                 <!-- Controls will be dynamically loaded here -->
@@ -358,7 +358,7 @@
         }
 
         // Toggle controls panel
-        window.toggleControls = function() {
+        function toggleControls() {
             controlsOpen = !controlsOpen;
             const controls = document.getElementById('controls');
             const chevron = document.getElementById('chevron');
@@ -385,7 +385,7 @@
         }
 
         // Apply camera preset
-        window.applyPreset = async function(presetName) {
+        async function applyPreset(presetName) {
             try {
                 const data = await api.applyPreset(presetName);
                 
@@ -405,7 +405,7 @@
         }
 
         // Reset all controls to defaults
-        window.resetControls = async function() {
+        async function resetControls() {
             if (cameraControls) {
                 await cameraControls.resetControls();
             }
@@ -431,16 +431,23 @@
             // Initialize camera controls
             cameraControls = new CameraControls(api, showStatus);
             await cameraControls.init();
+            
+            // Bind button events
+            document.getElementById('toggleBtn').addEventListener('click', toggleControls);
+            document.getElementById('preset-default').addEventListener('click', () => applyPreset('default'));
+            document.getElementById('preset-low-light').addEventListener('click', () => applyPreset('low_light'));
+            document.getElementById('preset-bright').addEventListener('click', () => applyPreset('bright'));
+            document.getElementById('reset-all').addEventListener('click', resetControls);
         });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && controlsOpen) {
-                window.toggleControls();
+                toggleControls();
             }
             if (e.key === ' ') {
                 e.preventDefault();
-                window.toggleControls();
+                toggleControls();
             }
         });
     </script>
