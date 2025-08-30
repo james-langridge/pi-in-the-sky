@@ -236,12 +236,19 @@ class NotificationService:
             except WebPushException as e:
                 failed_count += 1
                 logger.error(f"Failed to send notification to {subscription.id}: {e}")
+                logger.error(f"WebPushException details - Response status: {e.response.status_code if e.response else 'No response'}")
+                logger.error(f"WebPushException details - Response text: {e.response.text if e.response else 'No response text'}")
                 
                 # Handle expired subscriptions
                 if e.response and e.response.status_code == 410:
                     logger.info(f"Removing expired subscription {subscription.id}")
                     self._storage.remove_subscription(subscription.endpoint)
                     self._failed_endpoints.add(subscription.endpoint)
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Unexpected error sending notification to {subscription.id}: {type(e).__name__}: {e}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
         
         result = {
             "sent": sent_count,
@@ -293,6 +300,16 @@ class NotificationService:
             
         except WebPushException as e:
             logger.error(f"Failed to send test notification: {e}")
+            logger.error(f"WebPushException details - Response: {e.response}")
+            logger.error(f"WebPushException details - Response status: {e.response.status_code if e.response else 'No response'}")
+            logger.error(f"WebPushException details - Response text: {e.response.text if e.response else 'No response text'}")
+            if hasattr(e, 'message'):
+                logger.error(f"WebPushException message: {e.message}")
+            return False
+        except Exception as e:
+            logger.error(f"Unexpected error sending test notification: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return False
     
     def get_vapid_public_key(self) -> str:

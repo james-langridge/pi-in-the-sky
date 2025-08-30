@@ -6,6 +6,16 @@ import json
 from flask import Flask, Response, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+# Try to load .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+    logging.info("Loaded .env file")
+except ImportError:
+    logging.info("python-dotenv not installed, using system environment variables only")
+except Exception as e:
+    logging.warning(f"Could not load .env file: {e}")
+
 from config import AppConfig, get_default_presets
 from services import CameraService, StreamingService, PresetManager, ControlManager
 from motion_services import MotionDetectionService, NotificationService
@@ -51,15 +61,32 @@ def create_app(config: AppConfig) -> Flask:
     vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY', '')
     vapid_email = os.environ.get('VAPID_EMAIL', 'admin@example.com')
     
+    # Log VAPID key status for debugging
+    logger.info(f"VAPID configuration check:")
+    logger.info(f"  - Private key present: {bool(vapid_private_key)}")
+    logger.info(f"  - Public key present: {bool(vapid_public_key)}")
+    logger.info(f"  - Public key length: {len(vapid_public_key) if vapid_public_key else 0}")
+    logger.info(f"  - Email: {vapid_email}")
+    
+    # Check if keys need newline unescaping (common issue with .env files)
+    if vapid_private_key and '\\n' in vapid_private_key:
+        logger.info("Detected escaped newlines in private key, unescaping...")
+        vapid_private_key = vapid_private_key.replace('\\n', '\n')
+    
     notification_service = None
     if vapid_private_key and vapid_public_key:
-        notification_service = NotificationService(
-            subscription_storage,
-            vapid_private_key,
-            vapid_public_key,
-            vapid_email
-        )
-        logger.info("Push notification service initialized")
+        try:
+            notification_service = NotificationService(
+                subscription_storage,
+                vapid_private_key,
+                vapid_public_key,
+                vapid_email
+            )
+            logger.info("Push notification service initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize notification service: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
     else:
         logger.warning("VAPID keys not configured - push notifications disabled")
     
