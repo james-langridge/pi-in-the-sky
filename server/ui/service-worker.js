@@ -1,128 +1,78 @@
-const CACHE_NAME = 'pi-camera-v2';
-const urlsToCache = [
-  '/',
-  '/js/api.js',
-  '/js/controls.js',
-  '/js/motion.js'
-];
+// Minimal service worker for PWA installation and push notifications
+// No caching since the app requires network connectivity anyway
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
+  // Immediately activate
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
+  // Clean up any old caches from previous versions
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          console.log('Removing old cache:', cacheName);
+          return caches.delete(cacheName);
         })
       );
+    }).then(() => {
+      // Take control of all clients immediately
+      return clients.claim();
     })
   );
 });
 
-self.addEventListener('fetch', event => {
-  // Skip caching for video feed and API endpoints
-  if (event.request.url.includes('/video_feed') || 
-      event.request.url.includes('/health') ||
-      event.request.url.includes('/presets') ||
-      event.request.url.includes('/apply_preset') ||
-      event.request.url.includes('/api/')) {
-    return;
-  }
+// No fetch handling - let all requests go to network
+// The app is useless offline anyway since it needs camera stream
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
-});
-
-self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-
-// Push notification handling
+// Push notification handling for motion detection
 self.addEventListener('push', event => {
-  if (!event.data) {
-    console.log('Push event but no data');
-    return;
-  }
-
-  let notification;
-  try {
-    notification = event.data.json();
-  } catch (e) {
-    notification = {
-      title: 'Pi Camera Alert',
-      body: event.data.text()
-    };
-  }
-
   const options = {
-    body: notification.body || 'Motion detected',
-    icon: notification.icon || '/icon-192.png',
-    badge: notification.badge || '/badge-72.png',
+    body: 'Motion detected!',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     vibrate: [200, 100, 200],
-    data: notification.data || {},
-    requireInteraction: false,
-    actions: [
-      { action: 'view', title: 'View Camera' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ]
+    tag: 'motion-alert',
+    renotify: true,
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    }
   };
 
+  if (event.data) {
+    const data = event.data.json();
+    options.body = data.body || options.body;
+    if (data.title) {
+      event.waitUntil(
+        self.registration.showNotification(data.title, options)
+      );
+      return;
+    }
+  }
+
   event.waitUntil(
-    self.registration.showNotification(
-      notification.title || 'Motion Detected',
-      options
-    )
+    self.registration.showNotification('Pi Camera Alert', options)
   );
 });
 
-// Handle notification clicks
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-
-  if (event.action === 'view' || !event.action) {
-    // Open the camera interface
-    event.waitUntil(
-      clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then(clientList => {
-          // Check if there's already a window open
-          for (let client of clientList) {
-            if (client.url.includes(self.location.origin) && 'focus' in client) {
-              return client.focus();
-            }
-          }
-          // Open a new window if none found
-          if (clients.openWindow) {
-            return clients.openWindow('/');
-          }
-        })
-    );
-  }
+  
+  // Open the app when notification is clicked
+  event.waitUntil(
+    clients.matchAll({ type: 'window' }).then(clientList => {
+      // Focus if already open
+      for (const client of clientList) {
+        if (client.url === '/' && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Open new window if not open
+      if (clients.openWindow) {
+        return clients.openWindow('/');
+      }
+    })
+  );
 });
