@@ -1,53 +1,37 @@
 #!/usr/bin/env python3
 """Generate VAPID keys for Web Push notifications."""
 
-from pywebpush import webpush
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
-import base64
+from py_vapid import Vapid
 import os
 
 
 def generate_vapid_keys():
-    """Generate a new VAPID key pair."""
-    # Generate private key
-    private_key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+    """Generate a new VAPID key pair using py-vapid library."""
+    import base64
+    from cryptography.hazmat.primitives import serialization
     
-    # Get private key in PEM format
-    private_pem = private_key.private_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
-    )
+    vapid = Vapid()
+    vapid.generate_keys()
     
-    # Get public key
-    public_key = private_key.public_key()
+    # Get private key as PEM string for server
+    private_key = vapid.private_pem().decode('utf-8')
     
-    # Get public key in uncompressed format
-    public_bytes = public_key.public_bytes(
+    # Get public key in application server format (URL-safe base64)
+    public_key_obj = vapid.public_key
+    public_bytes = public_key_obj.public_bytes(
         encoding=serialization.Encoding.X962,
         format=serialization.PublicFormat.UncompressedPoint
     )
+    public_key = base64.urlsafe_b64encode(public_bytes).decode('utf-8').rstrip('=')
     
-    # Convert public key to URL-safe base64
-    public_key_b64 = base64.urlsafe_b64encode(public_bytes).decode('utf-8').rstrip('=')
-    
-    return private_pem.decode('utf-8'), public_key_b64
+    return private_key, public_key
 
 
 def save_to_env_file(private_key, public_key, email):
-    """Save VAPID keys to .env file."""
-    private_key_escaped = private_key.replace(chr(10), '\\\\n')
-    env_content = f"""# VAPID Keys for Web Push Notifications
-# Generated automatically - DO NOT SHARE PRIVATE KEY
-
-VAPID_PRIVATE_KEY={private_key_escaped}
-VAPID_PUBLIC_KEY={public_key}
-VAPID_EMAIL={email}
-"""
-    
-    env_file = os.path.join(os.path.dirname(__file__), '.env')
+    """Save VAPID keys to .env file and private key to separate file."""
+    server_dir = os.path.dirname(__file__)
+    env_file = os.path.join(server_dir, '.env')
+    key_file = os.path.join(server_dir, 'vapid_private_key.pem')
     
     # Check if .env already exists
     if os.path.exists(env_file):
@@ -56,10 +40,24 @@ VAPID_EMAIL={email}
             print("Aborted. Keys not saved.")
             return False
     
+    # Save private key to separate file
+    with open(key_file, 'w') as f:
+        f.write(private_key)
+    
+    # Save config to .env with file path reference
+    env_content = f"""# VAPID Keys for Web Push Notifications - Generated with py_vapid
+# Generated automatically - DO NOT SHARE PRIVATE KEY
+
+VAPID_PRIVATE_KEY_FILE=vapid_private_key.pem
+VAPID_PUBLIC_KEY={public_key}
+VAPID_EMAIL={email}
+"""
+    
     with open(env_file, 'w') as f:
         f.write(env_content)
     
-    print(f"Keys saved to {env_file}")
+    print(f"Private key saved to {key_file}")
+    print(f"Configuration saved to {env_file}")
     return True
 
 
@@ -102,8 +100,8 @@ def main():
     print("-" * 40)
     print("Export these before running the server:")
     print()
-    newline_escaped = private_key.replace(chr(10), '\\\\n')
-    print(f"export VAPID_PRIVATE_KEY='{newline_escaped}'")
+    private_key_escaped = private_key.replace('\n', '\\n')
+    print(f"export VAPID_PRIVATE_KEY='{private_key_escaped}'")
     print(f"export VAPID_PUBLIC_KEY='{public_key}'")
     print(f"export VAPID_EMAIL='{email}'")
     

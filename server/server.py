@@ -56,29 +56,53 @@ def create_app(config: AppConfig) -> Flask:
     motion_service = MotionDetectionService()
     subscription_storage = SubscriptionStorage()
     
-    # Get VAPID keys from environment or generate them
+    # Get VAPID keys from environment (support both direct and file-based)
     vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY', '')
+    vapid_private_key_file = os.environ.get('VAPID_PRIVATE_KEY_FILE', '')
     vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY', '')
     vapid_email = os.environ.get('VAPID_EMAIL', 'admin@example.com')
     
+    # Create VAPID object for push notifications
+    vapid_obj = None
+    key_file_path = None
+    
+    if vapid_private_key_file:
+        # Use file-based approach (recommended)
+        key_file_path = os.path.join(os.path.dirname(__file__), vapid_private_key_file)
+        try:
+            from py_vapid import Vapid
+            vapid_obj = Vapid.from_file(key_file_path)
+            logger.info(f"Loaded VAPID from file: {key_file_path}")
+        except Exception as e:
+            logger.error(f"Failed to load VAPID from file {key_file_path}: {e}")
+    elif vapid_private_key:
+        # Legacy environment variable approach  
+        vapid_private_key = vapid_private_key.strip('"').strip("'")
+        if '\\\\n' in vapid_private_key:
+            vapid_private_key = vapid_private_key.replace('\\\\n', '\n')
+        elif '\\n' in vapid_private_key:
+            vapid_private_key = vapid_private_key.replace('\\n', '\n')
+        
+        try:
+            from py_vapid import Vapid
+            vapid_obj = Vapid.from_string(vapid_private_key)
+            logger.info("Loaded VAPID from environment variable")
+        except Exception as e:
+            logger.error(f"Failed to create VAPID from environment variable: {e}")
+    
     # Log VAPID key status for debugging
     logger.info(f"VAPID configuration check:")
-    logger.info(f"  - Private key present: {bool(vapid_private_key)}")
+    logger.info(f"  - VAPID object created: {vapid_obj is not None}")
     logger.info(f"  - Public key present: {bool(vapid_public_key)}")
     logger.info(f"  - Public key length: {len(vapid_public_key) if vapid_public_key else 0}")
     logger.info(f"  - Email: {vapid_email}")
     
-    # Check if keys need newline unescaping (common issue with .env files)
-    if vapid_private_key and '\\n' in vapid_private_key:
-        logger.info("Detected escaped newlines in private key, unescaping...")
-        vapid_private_key = vapid_private_key.replace('\\n', '\n')
-    
     notification_service = None
-    if vapid_private_key and vapid_public_key:
+    if vapid_obj and vapid_public_key:
         try:
             notification_service = NotificationService(
                 subscription_storage,
-                vapid_private_key,
+                vapid_obj,
                 vapid_public_key,
                 vapid_email
             )
@@ -642,11 +666,23 @@ def main():
     
     # Run server
     try:
+        # Check for SSL certificates
+        ssl_cert_path = os.path.join(os.path.dirname(__file__), 'ssl', 'cert.pem')
+        ssl_key_path = os.path.join(os.path.dirname(__file__), 'ssl', 'key.pem')
+        
+        ssl_context = None
+        if os.path.exists(ssl_cert_path) and os.path.exists(ssl_key_path):
+            ssl_context = (ssl_cert_path, ssl_key_path)
+            logger.info("HTTPS enabled with SSL certificates")
+        else:
+            logger.info("No SSL certificates found, running HTTP only")
+        
         app.run(
             host=config.host,
             port=config.port,
             threaded=True,
-            debug=config.debug
+            debug=config.debug,
+            ssl_context=ssl_context
         )
     except KeyboardInterrupt:
         logger.info("Server shutdown requested")

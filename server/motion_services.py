@@ -158,19 +158,19 @@ class MotionDetectionService:
 class NotificationService:
     """Handles push notification sending."""
     
-    def __init__(self, storage: SubscriptionStorage, vapid_private_key: str, 
+    def __init__(self, storage: SubscriptionStorage, vapid_obj, 
                  vapid_public_key: str, vapid_email: str):
         """
         Initialize notification service.
         
         Args:
             storage: Subscription storage instance
-            vapid_private_key: VAPID private key for authentication
+            vapid_obj: VAPID object for authentication
             vapid_public_key: VAPID public key
             vapid_email: Contact email for VAPID
         """
         self._storage = storage
-        self._vapid_private_key = vapid_private_key
+        self._vapid_obj = vapid_obj
         self._vapid_public_key = vapid_public_key
         self._vapid_claims = {"sub": f"mailto:{vapid_email}"}
         self._failed_endpoints = set()
@@ -227,7 +227,7 @@ class NotificationService:
                         }
                     },
                     data=payload,
-                    vapid_private_key=self._vapid_private_key,
+                    vapid_private_key=self._vapid_obj,
                     vapid_claims=self._vapid_claims
                 )
                 sent_count += 1
@@ -292,7 +292,7 @@ class NotificationService:
                     }
                 },
                 data=payload,
-                vapid_private_key=self._vapid_private_key,
+                vapid_private_key=self._vapid_obj,
                 vapid_claims=self._vapid_claims
             )
             logger.info(f"Test notification sent to {subscription.id}")

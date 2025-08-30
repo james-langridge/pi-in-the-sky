@@ -19,7 +19,8 @@ Raspberry Pi camera streaming application with web interface.
 - PiCamera2 0.3.12
 - OpenCV 4.8.0
 - NumPy 1.24.3
-- PyWebPush 2.0.0 (for push notifications)
+- PyWebPush 2.0.3 (for push notifications)
+- py-vapid 1.9.2 (for VAPID key generation)
 - Cryptography 41.0.4 (for VAPID keys)
 
 ## Installation
@@ -114,7 +115,8 @@ The server can be configured via environment variables:
 | `FLASK_DEBUG` | `false` | Debug mode |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated CORS origins |
 | `FRAME_DELAY` | `0.1` | Delay between frames (seconds) |
-| `VAPID_PRIVATE_KEY` | - | Private key for push notifications |
+| `VAPID_PRIVATE_KEY_FILE` | - | Path to VAPID private key file (recommended) |
+| `VAPID_PRIVATE_KEY` | - | Private key for push notifications (legacy) |
 | `VAPID_PUBLIC_KEY` | - | Public key for push notifications |
 | `VAPID_EMAIL` | `admin@example.com` | Contact email for push service |
 
@@ -136,9 +138,12 @@ For motion detection with push notifications:
 1. **Generate VAPID keys:**
    ```bash
    cd server
+   source venv/bin/activate
    python generate_vapid_keys.py
    ```
-   Follow prompts to save keys to `.env` file.
+   The script will generate compatible keys using the py-vapid library and save them to:
+   - `vapid_private_key.pem` - Private key file
+   - `.env` - Configuration with file reference
 
 2. **Restart server** to load the keys.
 
@@ -326,7 +331,8 @@ pi-in-the-sky/
 │   ├── calculations.py     # Image processing and motion detection
 │   ├── models.py          # Data models including motion events
 │   ├── config.py          # Configuration management
-│   ├── generate_vapid_keys.py # VAPID key generation utility
+│   ├── generate_vapid_keys.py # VAPID key generation utility (py-vapid)
+│   ├── vapid_private_key.pem # VAPID private key file (generated)
 │   ├── requirements.txt   # Python dependencies
 │   ├── test_architecture.py # Architecture tests
 │   └── ui/                # PWA assets served by Flask
@@ -702,46 +708,37 @@ If motion detection is enabled but push notifications aren't being sent:
 - Motion detection works (you see events in `/api/motion/status`)
 - VAPID key endpoint returns empty response or 404
 - No push notifications received despite motion being detected
+- Error logs show "Could not deserialize key data" or "header too long"
 
-**Root Cause:** VAPID keys not properly configured in the systemd service environment.
+**Root Cause:** VAPID key generation or loading compatibility issue between py-vapid and pywebpush libraries.
 
 **Fix:**
-1. **Verify your VAPID keys exist** in `server/.env`:
+1. **Generate new compatible VAPID keys:**
    ```bash
-   cd /home/james/pi-in-the-sky/server
-   cat .env
+   cd server
+   source venv/bin/activate
+   python generate_vapid_keys.py
    ```
-   
-2. **Add VAPID environment variables to the systemd service:**
-   ```bash
-   sudo nano /etc/systemd/system/pi-camera-stream.service
-   ```
-   
-   Add these lines to the `[Service]` section (replace with your actual keys):
-   ```ini
-   Environment="VAPID_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nYour-Private-Key-Here\n-----END PRIVATE KEY-----\n"
-   Environment="VAPID_PUBLIC_KEY=Your-Public-Key-Here"
-   Environment="VAPID_EMAIL=your-email@example.com"
-   ```
+   This will create:
+   - `vapid_private_key.pem` - Private key file (recommended approach)
+   - `.env` - Configuration with `VAPID_PRIVATE_KEY_FILE=vapid_private_key.pem`
 
-3. **Reload and restart the service:**
+2. **Restart the service:**
    ```bash
-   sudo systemctl daemon-reload
    sudo systemctl restart pi-camera-stream.service
    ```
 
-4. **Verify the fix:**
+3. **Verify the fix:**
    ```bash
-   # Should return your public key
-   curl http://localhost:8080/api/push/vapid-key
-   
-   # Check motion detection status
-   curl http://localhost:8080/api/motion/status
+   # Should return your public key (requires HTTPS on most browsers)
+   curl -k https://localhost:8080/api/push/vapid-key
    ```
 
-**Why this happens:** The systemd service runs in an isolated environment and doesn't automatically load `.env` files. Even though the Python code tries to load `.env` files, the systemd service needs explicit environment variable configuration.
+**Why this happens:** Earlier versions of the VAPID key generator used manual cryptography that was incompatible with current py-vapid/pywebpush versions. The updated generator uses py-vapid directly and saves keys to files, which avoids environment variable parsing issues.
 
-**Verification:** The VAPID key endpoint should return a JSON response with your public key, not an empty response.
+**Important:** Push notifications require HTTPS. The server automatically generates self-signed certificates for development.
+
+**Legacy Environment Variable Approach:** If you prefer environment variables, ensure you have compatible keys generated with py-vapid and properly escaped in the systemd service file.
 
 ### Other Camera Issues
 - Ensure camera is enabled: `sudo raspi-config`

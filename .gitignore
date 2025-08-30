@@ -3,6 +3,9 @@ CLAUDE.md
 .claude/
 .env
 *.db
+server/vapid_private_key.pem
+server/private_key.pem
+server/public_key.pem
 __pycache__/
 *.pyc
 venv/
