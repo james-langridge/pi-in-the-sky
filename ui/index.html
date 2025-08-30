@@ -263,6 +263,15 @@
             background: #2563eb;
         }
         
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
         .btn-danger {
             background: #ef4444;
             color: white;
@@ -371,10 +380,6 @@
             <!-- Motion Detection Section -->
             <div class="control-category">
                 <div class="category-header">Motion Detection</div>
-                <div class="notification-banner" id="notification-banner">
-                    <strong>Enable notifications</strong> to receive alerts when motion is detected.
-                    <button class="btn-info" id="enable-notifications" style="margin-top: 10px;">Enable Notifications</button>
-                </div>
                 <div class="motion-status">
                     <span class="motion-indicator" id="motion-indicator"></span>
                     <span id="motion-status-text">Motion Detection: Off</span>
@@ -533,11 +538,6 @@
             try {
                 await motionDetection.initialize();
                 updateMotionUI();
-                
-                // Check if we should show notification prompt
-                if (motionDetection.isPushSupported() && !await motionDetection.checkSubscription()) {
-                    document.getElementById('notification-banner').classList.add('show');
-                }
             } catch (error) {
                 console.error('Failed to initialize motion detection:', error);
             }
@@ -579,7 +579,13 @@
             try {
                 await motionDetection.toggle();
                 updateMotionUI();
-                showStatus(motionDetection.enabled ? 'Motion detection enabled' : 'Motion detection disabled');
+                
+                if (motionDetection.enabled) {
+                    const hasNotifications = motionDetection.subscription ? ' (with notifications)' : ' (notifications unavailable)';
+                    showStatus('Motion detection enabled' + hasNotifications);
+                } else {
+                    showStatus('Motion detection disabled');
+                }
             } catch (error) {
                 showStatus('Failed to toggle motion detection', true);
                 console.error('Error:', error);
@@ -603,16 +609,6 @@
             }
         }
         
-        async function enableNotifications() {
-            try {
-                await motionDetection.requestNotificationPermission();
-                document.getElementById('notification-banner').classList.remove('show');
-                showStatus('Push notifications enabled');
-            } catch (error) {
-                showStatus('Failed to enable notifications: ' + error.message, true);
-                console.error('Error:', error);
-            }
-        }
         
         async function testNotification() {
             try {
@@ -645,7 +641,6 @@
             // Motion detection events
             document.getElementById('toggle-motion').addEventListener('click', toggleMotion);
             document.getElementById('save-motion-config').addEventListener('click', saveMotionConfig);
-            document.getElementById('enable-notifications').addEventListener('click', enableNotifications);
             document.getElementById('test-notification').addEventListener('click', testNotification);
             
             // Motion config slider events

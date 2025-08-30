@@ -131,9 +131,9 @@ python server.py
 
 The server will start on `http://0.0.0.0:8080` by default.
 
-### Enable Motion Detection (Optional)
+### Enable Motion Detection with Push Notifications
 
-For motion detection with push notifications:
+Motion detection automatically handles push notification setup when enabled.
 
 1. **Generate VAPID keys:**
    ```bash
@@ -147,13 +147,17 @@ For motion detection with push notifications:
 
 2. **Restart server** to load the keys.
 
-3. **In the web interface:**
-   - Open control panel
-   - Navigate to Motion Detection section
-   - Enable motion detection
-   - Allow push notifications when prompted
+3. **Enable motion detection:**
+   - Open the camera interface at `https://[PI-IP]:8080`
+   - Open control panel (tap chevron button)
+   - In Motion Detection section, click **"Enable"**
+   - Motion detection and push notifications will be configured automatically
 
-See [MOTION_DETECTION_SETUP.md](MOTION_DETECTION_SETUP.md) for detailed configuration.
+**Important for iOS:** Push notifications only work when the app is installed as a PWA:
+1. In Safari, navigate to `https://[PI-IP]:8080`
+2. Tap Share → "Add to Home Screen" 
+3. Open the app from the home screen icon (not Safari)
+4. Only then enable motion detection for notifications to work
 
 ### Access the web interface
 
@@ -161,22 +165,22 @@ Navigate to `http://[PI-IP-ADDRESS]:8080` in your web browser. The server serves
 
 #### Install as Mobile App (PWA)
 
-The interface can be installed as a Progressive Web App for fullscreen experience:
+The interface can be installed as a Progressive Web App for fullscreen experience. **Note: On iOS, PWA installation is required for push notifications to work.**
 
-**iOS (Safari):**
-1. Navigate to `http://[PI-IP-ADDRESS]:8080`
+**iOS (Safari) - Required for push notifications:**
+1. Navigate to `https://[PI-IP-ADDRESS]:8080`
 2. Tap the Share button (square with arrow)
 3. Select "Add to Home Screen"
-4. Name it and tap "Add"
-5. Launch from home screen for fullscreen view
+4. Name it "PiCam" and tap "Add"
+5. Launch from home screen icon (not Safari) for fullscreen view and notifications
 
 **Android (Chrome):**
-1. Navigate to `http://[PI-IP-ADDRESS]:8080`
+1. Navigate to `https://[PI-IP-ADDRESS]:8080`
 2. Tap the three-dot menu
 3. Select "Add to Home screen" or "Install app"
 4. Launch from home screen for fullscreen view
 
-The PWA runs in standalone mode without browser UI, providing an app-like experience.
+The PWA runs in standalone mode without browser UI, providing an app-like experience. Push notifications work in both regular browser and PWA mode on Android, but only in PWA mode on iOS.
 
 ## Features
 

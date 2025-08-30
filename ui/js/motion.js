@@ -35,6 +35,27 @@ export class MotionDetection {
     }
 
     /**
+     * Reset push notifications (clears subscription state)
+     */
+    async resetNotifications() {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) {
+                    await subscription.unsubscribe();
+                }
+            }
+            this.subscription = null;
+            console.log('Push notifications reset');
+            return true;
+        } catch (error) {
+            console.error('Failed to reset notifications:', error);
+            return false;
+        }
+    }
+
+    /**
      * Initialize motion detection module
      */
     async initialize() {
@@ -189,10 +210,37 @@ export class MotionDetection {
     }
 
     /**
-     * Toggle motion detection
+     * Toggle motion detection and handle push notifications automatically
      */
     async toggle() {
-        return this.updateConfig({ enabled: !this.enabled });
+        const newEnabled = !this.enabled;
+        
+        if (newEnabled) {
+            // Enabling motion detection - try to subscribe to push notifications
+            if (this.isPushSupported() && !this.subscription) {
+                try {
+                    // Request permission and subscribe
+                    await this.requestNotificationPermission();
+                    console.log('Push notifications enabled with motion detection');
+                } catch (error) {
+                    console.warn('Failed to enable push notifications, continuing with motion detection only:', error);
+                    // Continue even if push notifications fail
+                }
+            }
+        } else {
+            // Disabling motion detection - unsubscribe from push notifications
+            if (this.subscription) {
+                try {
+                    await this.resetNotifications();
+                    console.log('Push notifications disabled with motion detection');
+                } catch (error) {
+                    console.warn('Failed to clean up push notifications:', error);
+                    // Continue even if cleanup fails
+                }
+            }
+        }
+        
+        return this.updateConfig({ enabled: newEnabled });
     }
 
     /**
