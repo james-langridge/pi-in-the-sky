@@ -1,14 +1,30 @@
-const CACHE_NAME = 'pi-camera-v1';
+const CACHE_NAME = 'pi-camera-v2';
 const urlsToCache = [
   '/',
   '/js/api.js',
-  '/js/controls.js'
+  '/js/controls.js',
+  '/js/motion.js'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
   );
 });
 
