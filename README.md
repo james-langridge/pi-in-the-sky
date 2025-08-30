@@ -694,6 +694,55 @@ This is the most common issue when the server says "PiCamera2 not available, usi
 
 **Why this happens:** On Raspberry Pi, `picamera2` must be installed as a system package (not via pip) because it needs access to system camera drivers. The virtual environment needs the `--system-site-packages` flag to access these system packages.
 
+### Push Notifications Not Working
+
+If motion detection is enabled but push notifications aren't being sent:
+
+**Symptoms:**
+- Motion detection works (you see events in `/api/motion/status`)
+- VAPID key endpoint returns empty response or 404
+- No push notifications received despite motion being detected
+
+**Root Cause:** VAPID keys not properly configured in the systemd service environment.
+
+**Fix:**
+1. **Verify your VAPID keys exist** in `server/.env`:
+   ```bash
+   cd /home/james/pi-in-the-sky/server
+   cat .env
+   ```
+   
+2. **Add VAPID environment variables to the systemd service:**
+   ```bash
+   sudo nano /etc/systemd/system/pi-camera-stream.service
+   ```
+   
+   Add these lines to the `[Service]` section (replace with your actual keys):
+   ```ini
+   Environment="VAPID_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\nYour-Private-Key-Here\n-----END PRIVATE KEY-----\n"
+   Environment="VAPID_PUBLIC_KEY=Your-Public-Key-Here"
+   Environment="VAPID_EMAIL=your-email@example.com"
+   ```
+
+3. **Reload and restart the service:**
+   ```bash
+   sudo systemctl daemon-reload
+   sudo systemctl restart pi-camera-stream.service
+   ```
+
+4. **Verify the fix:**
+   ```bash
+   # Should return your public key
+   curl http://localhost:8080/api/push/vapid-key
+   
+   # Check motion detection status
+   curl http://localhost:8080/api/motion/status
+   ```
+
+**Why this happens:** The systemd service runs in an isolated environment and doesn't automatically load `.env` files. Even though the Python code tries to load `.env` files, the systemd service needs explicit environment variable configuration.
+
+**Verification:** The VAPID key endpoint should return a JSON response with your public key, not an empty response.
+
 ### Other Camera Issues
 - Ensure camera is enabled: `sudo raspi-config`
 - Check camera connection
