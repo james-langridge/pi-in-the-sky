@@ -672,20 +672,49 @@ The `ui/index.html` file can be:
 
 ## Troubleshooting
 
-### Camera not initializing
+### Camera not initializing (showing mock camera instead of real camera)
+
+This is the most common issue when the server says "PiCamera2 not available, using mock camera".
+
+**Root Cause:** The virtual environment was created without system packages access, so it can't see the system-installed `picamera2`.
+
+**Fix:**
+1. Stop the server: `sudo systemctl stop pi-camera-stream.service`
+2. Recreate the virtual environment with system packages:
+   ```bash
+   cd /home/james/pi-in-the-sky/server
+   rm -rf venv
+   python3 -m venv venv --system-site-packages
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+3. Restart the server: `sudo systemctl start pi-camera-stream.service`
+
+**Verification:** Check that `include-system-site-packages = true` in `venv/pyvenv.cfg`
+
+**Why this happens:** On Raspberry Pi, `picamera2` must be installed as a system package (not via pip) because it needs access to system camera drivers. The virtual environment needs the `--system-site-packages` flag to access these system packages.
+
+### Other Camera Issues
 - Ensure camera is enabled: `sudo raspi-config`
 - Check camera connection
-- Verify PiCamera2 installation
+- Verify user is in video group: `groups $USER`
+- Check for camera conflicts: `sudo lsof /dev/video*`
 
 ### Stream not displaying
 - Check server is running: `curl http://localhost:8080/health`
 - Verify CORS settings if accessing from different origin
 - Check browser console for errors
+- Test video feed directly: `curl http://localhost:8080/video_feed`
 
 ### Poor performance
 - Adjust `FRAME_DELAY` environment variable
 - Reduce resolution in camera configuration
 - Check CPU usage and temperature
+
+### Service Management Issues
+- View service logs: `sudo journalctl -u pi-camera-stream.service -n 50`
+- Check service status: `sudo systemctl status pi-camera-stream.service`
+- Manual test: `cd server && python3 server.py`
 
 ## License
 
