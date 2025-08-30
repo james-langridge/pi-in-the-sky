@@ -31,13 +31,15 @@ Raspberry Pi camera streaming application with web interface.
 git clone https://github.com/yourusername/pi-in-the-sky.git
 cd pi-in-the-sky
 
-# Create virtual environment (recommended for Raspberry Pi OS Bookworm+)
+# Use existing virtual environment (already configured with system packages)
 cd server
-python3 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Note: If venv doesn't exist, create it with:
+# python3 -m venv venv --system-site-packages
 
 # Ensure your user is in required groups for camera access
 sudo usermod -a -G video $USER
@@ -88,6 +90,19 @@ On newer Raspberry Pi OS (Bookworm+), you may encounter this error. Solutions:
    sudo apt install python3-flask python3-flask-cors python3-opencv python3-numpy
    # Then use venv for remaining packages
    ```
+
+### Updating Dependencies
+
+When updating the project or adding new dependencies:
+
+```bash
+cd server
+source venv/bin/activate
+pip install -r requirements.txt
+
+# If running as a systemd service, restart it:
+sudo systemctl restart pi-camera-stream.service
+```
 
 ## Configuration
 
@@ -475,7 +490,7 @@ sudo journalctl -u pi-camera-stream -f
 # Stop the service
 sudo systemctl stop pi-camera-stream
 
-# Restart the service
+# Restart the service (after updating dependencies or configuration)
 sudo systemctl restart pi-camera-stream
 
 # Disable automatic startup
