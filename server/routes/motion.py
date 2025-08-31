@@ -1,0 +1,142 @@
+"""Motion detection routes."""
+
+import logging
+from flask import Blueprint, request, jsonify, current_app
+from models import MotionDetectionConfig
+
+logger = logging.getLogger(__name__)
+
+motion_bp = Blueprint('motion', __name__, url_prefix='/api/motion')
+
+
+@motion_bp.route('/status')
+def motion_status():
+    """
+    Get current motion detection status.
+    
+    Returns:
+        JSON response with motion detection status
+    """
+    motion_service = current_app.config['services']['motion_service']
+    return jsonify({
+        "enabled": motion_service.is_enabled(),
+        "current_event": motion_service.get_current_event()
+    })
+
+
+@motion_bp.route('/config', methods=['GET'])
+def get_motion_config():
+    """
+    Get current motion detection configuration.
+    
+    Returns:
+        JSON response with configuration
+    """
+    motion_service = current_app.config['services']['motion_service']
+    config = motion_service.get_config()
+    return jsonify({
+        "enabled": config.enabled,
+        "sensitivity": config.sensitivity,
+        "min_area": config.min_area,
+        "cooldown_seconds": config.cooldown_seconds,
+        "blur_size": config.blur_size,
+        "threshold": config.threshold
+    })
+
+
+@motion_bp.route('/config', methods=['POST'])
+def update_motion_config():
+    """
+    Update motion detection configuration.
+    
+    Expected JSON (all fields optional):
+        {
+            "enabled": boolean,
+            "sensitivity": float (0.0-1.0),
+            "min_area": integer,
+            "cooldown_seconds": integer,
+            "blur_size": integer (odd number),
+            "threshold": integer
+        }
+        
+    Returns:
+        JSON response with updated configuration
+    """
+    motion_service = current_app.config['services']['motion_service']
+    
+    if not request.json:
+        return jsonify({
+            "status": "error",
+            "message": "No JSON data provided"
+        }), 400
+    
+    try:
+        current_config = motion_service.get_config()
+        
+        # Create updated config with only provided fields
+        config_dict = {
+            "enabled": request.json.get("enabled", current_config.enabled),
+            "sensitivity": request.json.get("sensitivity", current_config.sensitivity),
+            "min_area": request.json.get("min_area", current_config.min_area),
+            "cooldown_seconds": request.json.get("cooldown_seconds", current_config.cooldown_seconds),
+            "blur_size": request.json.get("blur_size", current_config.blur_size),
+            "threshold": request.json.get("threshold", current_config.threshold)
+        }
+        
+        # Validate and create new config
+        new_config = MotionDetectionConfig(**config_dict)
+        
+        # Update service
+        motion_service.update_config(new_config)
+        
+        return jsonify({
+            "status": "success",
+            "config": {
+                "enabled": new_config.enabled,
+                "sensitivity": new_config.sensitivity,
+                "min_area": new_config.min_area,
+                "cooldown_seconds": new_config.cooldown_seconds,
+                "blur_size": new_config.blur_size,
+                "threshold": new_config.threshold
+            }
+        })
+    except (TypeError, ValueError) as e:
+        return jsonify({
+            "status": "error",
+            "message": f"Invalid configuration: {str(e)}"
+        }), 400
+
+
+@motion_bp.route('/events')
+def get_motion_events():
+    """
+    Get recent motion detection events.
+    
+    Query parameters:
+        limit: Maximum number of events to return (default: 10)
+        
+    Returns:
+        JSON response with motion events
+    """
+    motion_service = current_app.config['services']['motion_service']
+    
+    limit = request.args.get('limit', 10, type=int)
+    limit = min(max(limit, 1), 100)  # Clamp between 1 and 100
+    
+    events = motion_service.get_recent_events(limit)
+    
+    # Convert events to JSON-serializable format
+    events_data = []
+    for event in events:
+        events_data.append({
+            "timestamp": event.timestamp,
+            "motion_score": event.motion_score,
+            "total_area": event.total_area,
+            "triggered": event.triggered,
+            "frame_diff_percentage": event.frame_diff_percentage
+        })
+    
+    return jsonify({
+        "events": events_data,
+        "count": len(events_data)
+    })
