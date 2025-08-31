@@ -87,7 +87,12 @@ def subscribe():
     
     # Store subscription
     try:
-        subscription_storage.add_subscription(subscription_info)
+        subscription_storage.add_subscription(
+            endpoint=subscription_info['endpoint'],
+            p256dh=subscription_info['keys']['p256dh'],
+            auth=subscription_info['keys']['auth'],
+            user_agent=request.headers.get('User-Agent')
+        )
         logger.info(f"Added subscription: {subscription_info['endpoint'][:50]}...")
         
         # Test the subscription with a welcome notification
@@ -193,8 +198,7 @@ def test_notification():
     endpoint = request.json['endpoint']
     
     # Find subscription
-    subscriptions = subscription_storage.get_all_subscriptions()
-    subscription = next((s for s in subscriptions if s['endpoint'] == endpoint), None)
+    subscription = subscription_storage.get_subscription_by_endpoint(endpoint)
     
     if not subscription:
         return jsonify({
@@ -204,8 +208,17 @@ def test_notification():
     
     # Send test notification
     try:
+        # Convert PushSubscription to webpush format
+        subscription_info = {
+            "endpoint": subscription.endpoint,
+            "keys": {
+                "auth": subscription.auth,
+                "p256dh": subscription.p256dh
+            }
+        }
+        
         webpush(
-            subscription_info=subscription,
+            subscription_info=subscription_info,
             data='{"title": "Test Notification", "body": "This is a test notification from Pi Camera"}',
             vapid_private_key=notification_service.vapid_private_key,
             vapid_claims={
