@@ -123,26 +123,30 @@ def get_controls():
     for category, controls in categories.items():
         result[category] = []
         for control in controls:
-            control_data = {
+            control_dict = {
                 "name": control.name,
-                "label": control.label,
-                "type": control.type,
+                "display_name": control.display_name,
+                "type": control.control_type,
                 "category": control.category
             }
             
-            # Add type-specific metadata
-            if control.min is not None:
-                control_data["min"] = control.min
-            if control.max is not None:
-                control_data["max"] = control.max
-            if control.step is not None:
-                control_data["step"] = control.step
-            if control.options:
-                control_data["options"] = control.options
-            if control.default is not None:
-                control_data["default"] = control.default
+            # Add type-specific fields
+            if control.control_type == "slider":
+                control_dict.update({
+                    "min": control.min_value,
+                    "max": control.max_value,
+                    "step": control.step,
+                    "default": control.default_value
+                })
+                if control.unit:
+                    control_dict["unit"] = control.unit
+            elif control.control_type == "toggle":
+                control_dict["default"] = control.default_value
+            elif control.control_type == "select":
+                control_dict["options"] = control.options
+                control_dict["default"] = control.default_value
                 
-            result[category].append(control_data)
+            result[category].append(control_dict)
     
     return jsonify(result)
 
@@ -162,10 +166,7 @@ def get_control(control_name):
     result = control_manager.get_control_value(control_name)
     
     if result["success"]:
-        return jsonify({
-            "status": "success",
-            "value": result["value"]
-        })
+        return jsonify(result)
     else:
         return jsonify({
             "status": "error",
