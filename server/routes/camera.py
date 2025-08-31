@@ -79,15 +79,15 @@ def apply_preset():
     
     result = preset_manager.apply_preset(preset_name)
     
-    if result["success"]:
+    if result.is_success:
         return jsonify({
             "status": "success",
-            "message": result["message"]
+            "message": result.value
         })
     else:
         return jsonify({
             "status": "error",
-            "message": result["error"]
+            "message": result.error
         }), 400
 
 

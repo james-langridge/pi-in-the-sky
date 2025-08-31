@@ -14,6 +14,7 @@ except ImportError:
 
 from models import CameraPreset, Frame, CameraControls, ControlMetadata
 from calculations import camera_preset_to_controls_dict
+from result import Result, StringResult
 from calculations import (
     create_timestamp,
     add_timestamp_to_frame,
@@ -546,7 +547,7 @@ class PresetManager:
         self._camera_service = camera_service
         self._presets = presets
     
-    def apply_preset(self, preset_name: str) -> dict:
+    def apply_preset(self, preset_name: str) -> StringResult[str]:
         """
         Apply a named preset.
         
@@ -554,24 +555,15 @@ class PresetManager:
             preset_name: Name of preset to apply
             
         Returns:
-            Result dictionary with status and message
+            Result with success message or error
         """
         if preset_name not in self._presets:
-            return {
-                "success": False,
-                "error": f"Unknown preset: {preset_name}"
-            }
+            return Result.failure(f"Unknown preset: {preset_name}")
         
         try:
             preset = self._presets[preset_name]
             self._camera_service.apply_preset(preset)
-            return {
-                "success": True,
-                "message": f"Applied {preset_name} preset successfully"
-            }
+            return Result.success(f"Applied {preset_name} preset successfully")
         except Exception as e:
             logger.error(f"Failed to apply preset {preset_name}: {e}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return Result.failure(str(e))
