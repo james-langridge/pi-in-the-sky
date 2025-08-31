@@ -32,8 +32,19 @@ def main():
     # Create Flask app using factory
     app = create_app(config)
     
-    # Run the server
-    logger.info(f"Starting server on {config.host}:{config.port}")
+    # Check for SSL certificates
+    ssl_cert_path = os.path.join(os.path.dirname(__file__), 'ssl', 'cert.pem')
+    ssl_key_path = os.path.join(os.path.dirname(__file__), 'ssl', 'key.pem')
+    
+    ssl_context = None
+    if os.path.exists(ssl_cert_path) and os.path.exists(ssl_key_path):
+        ssl_context = (ssl_cert_path, ssl_key_path)
+        logger.info("HTTPS enabled with SSL certificates")
+        logger.info(f"Starting HTTPS server on {config.host}:{config.port}")
+    else:
+        logger.info("No SSL certificates found, running HTTP only")
+        logger.info(f"Starting HTTP server on {config.host}:{config.port}")
+    
     logger.info(f"Debug mode: {config.debug}")
     logger.info(f"CORS origins: {config.cors_origins}")
     
@@ -41,7 +52,8 @@ def main():
         host=config.host,
         port=config.port,
         debug=config.debug,
-        threaded=True
+        threaded=True,
+        ssl_context=ssl_context
     )
 
 

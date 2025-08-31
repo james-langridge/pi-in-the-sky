@@ -107,6 +107,21 @@ sudo systemctl restart pi-camera-stream.service
 
 ## Configuration
 
+### SSL/HTTPS Setup
+
+Push notifications require HTTPS. To enable HTTPS:
+
+```bash
+cd server
+python3 generate_ssl_cert.py
+```
+
+This creates a self-signed certificate for development. The server will automatically use it when present.
+
+**Note:** Browsers will show a security warning for self-signed certificates - this is normal for development.
+
+### Environment Variables
+
 The server can be configured via environment variables:
 
 | Variable | Default | Description |

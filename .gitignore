@@ -6,6 +6,7 @@ CLAUDE.md
 server/vapid_private_key.pem
 server/private_key.pem
 server/public_key.pem
+server/ssl/
 __pycache__/
 *.pyc
 venv/
