@@ -62,7 +62,7 @@ def apply_preset():
     Returns:
         JSON response with status
     """
-    preset_manager = current_app.config['services']['preset_manager']
+    camera_service = current_app.config['services']['camera_service']
     
     if not request.json:
         return jsonify({
@@ -77,7 +77,7 @@ def apply_preset():
             "message": "No preset specified"
         }), 400
     
-    result = preset_manager.apply_preset(preset_name)
+    result = camera_service.apply_preset(preset_name)
     
     if result.is_success:
         return jsonify({
@@ -99,8 +99,8 @@ def list_presets():
     Returns:
         JSON response with preset names
     """
-    preset_manager = current_app.config['services']['preset_manager']
-    presets = list(preset_manager._presets.keys())
+    from config import get_default_presets
+    presets = list(get_default_presets().keys())
     return jsonify({
         "presets": presets,
         "current": None  # Could track current preset in service

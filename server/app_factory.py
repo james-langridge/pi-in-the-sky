@@ -4,8 +4,8 @@ import logging
 import os
 from flask import Flask
 from flask_cors import CORS
-from config import AppConfig, get_default_presets
-from services import CameraService, StreamingService, PresetManager, ControlManager
+from config import AppConfig
+from services import CameraService, StreamingService, ControlManager
 from motion_services import MotionDetectionService, NotificationService
 from storage import SubscriptionStorage
 
@@ -65,7 +65,6 @@ def create_services(config: AppConfig):
     # Core services
     camera_service = CameraService()
     streaming_service = StreamingService(camera_service, config.frame_delay)
-    preset_manager = PresetManager(camera_service, get_default_presets())
     control_manager = ControlManager(camera_service)
     
     # Motion detection
@@ -93,7 +92,6 @@ def create_services(config: AppConfig):
     return {
         'camera_service': camera_service,
         'streaming_service': streaming_service,
-        'preset_manager': preset_manager,
         'control_manager': control_manager,
         'motion_service': motion_service,
         'subscription_storage': subscription_storage,

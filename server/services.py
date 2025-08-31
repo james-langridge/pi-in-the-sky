@@ -90,27 +90,40 @@ class CameraService:
         self._camera.capture_file(stream, format='jpeg')
         return stream.getvalue()
     
-    def apply_preset(self, preset: CameraPreset) -> None:
+    def apply_preset(self, preset: Union[CameraPreset, str]) -> StringResult[str]:
         """
         Apply camera settings from preset.
         
         Args:
-            preset: Camera preset to apply
+            preset: Camera preset object or preset name string
             
-        Raises:
-            RuntimeError: If camera not initialized
+        Returns:
+            Result with success message or error
         """
         if not self._initialized:
-            raise RuntimeError("Camera not initialized")
+            return Result.failure("Camera not initialized")
+        
+        # Handle string preset names
+        if isinstance(preset, str):
+            from config import get_default_presets
+            presets = get_default_presets()
+            if preset not in presets:
+                return Result.failure(f"Unknown preset: {preset}")
+            preset_obj = presets[preset]
+            preset_name = preset
+        else:
+            preset_obj = preset
+            preset_name = preset.name
             
         try:
-            controls = camera_preset_to_controls_dict(preset)
+            controls = camera_preset_to_controls_dict(preset_obj)
             self._camera.set_controls(controls)
-            self._current_preset = preset
-            logger.info(f"Applied camera preset: {preset.name}")
+            self._current_preset = preset_obj
+            logger.info(f"Applied camera preset: {preset_name}")
+            return Result.success(f"Applied {preset_name} preset successfully")
         except Exception as e:
-            logger.error(f"Failed to apply preset {preset.name}: {e}")
-            raise RuntimeError(f"Failed to apply preset: {e}")
+            logger.error(f"Failed to apply preset {preset_name}: {e}")
+            return Result.failure(f"Failed to apply preset: {str(e)}")
     
     def update_control(self, control_name: str, value: Union[float, int, bool, Tuple]) -> None:
         """
@@ -533,37 +546,3 @@ class ControlManager:
             }
 
 
-class PresetManager:
-    """Manages camera preset application."""
-    
-    def __init__(self, camera_service: CameraService, presets: dict):
-        """
-        Initialize preset manager.
-        
-        Args:
-            camera_service: Camera service instance
-            presets: Dictionary of preset configurations
-        """
-        self._camera_service = camera_service
-        self._presets = presets
-    
-    def apply_preset(self, preset_name: str) -> StringResult[str]:
-        """
-        Apply a named preset.
-        
-        Args:
-            preset_name: Name of preset to apply
-            
-        Returns:
-            Result with success message or error
-        """
-        if preset_name not in self._presets:
-            return Result.failure(f"Unknown preset: {preset_name}")
-        
-        try:
-            preset = self._presets[preset_name]
-            self._camera_service.apply_preset(preset)
-            return Result.success(f"Applied {preset_name} preset successfully")
-        except Exception as e:
-            logger.error(f"Failed to apply preset {preset_name}: {e}")
-            return Result.failure(str(e))
