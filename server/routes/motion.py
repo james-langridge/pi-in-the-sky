@@ -3,6 +3,7 @@
 import logging
 from flask import Blueprint, request, jsonify, current_app
 from models import MotionDetectionConfig
+from motion_presets import get_motion_preset, get_preset_descriptions, MOTION_PRESETS
 
 logger = logging.getLogger(__name__)
 
@@ -139,4 +140,69 @@ def get_motion_events():
     return jsonify({
         "events": events_data,
         "count": len(events_data)
+    })
+
+
+@motion_bp.route('/presets')
+def get_motion_presets():
+    """
+    Get available motion detection presets.
+    
+    Returns:
+        JSON response with preset names and descriptions
+    """
+    descriptions = get_preset_descriptions()
+    presets = []
+    
+    for name, description in descriptions.items():
+        preset_config = MOTION_PRESETS[name]
+        presets.append({
+            "name": name,
+            "description": description,
+            "config": {
+                "enabled": preset_config.enabled,
+                "sensitivity": preset_config.sensitivity,
+                "min_area": preset_config.min_area,
+                "cooldown_seconds": preset_config.cooldown_seconds
+            }
+        })
+    
+    return jsonify({
+        "presets": presets
+    })
+
+
+@motion_bp.route('/preset/<preset_name>', methods=['POST'])
+def apply_motion_preset(preset_name):
+    """
+    Apply a motion detection preset.
+    
+    Args:
+        preset_name: Name of the preset to apply
+        
+    Returns:
+        JSON response with status
+    """
+    motion_service = current_app.config['services']['motion_service']
+    
+    if preset_name not in MOTION_PRESETS:
+        return jsonify({
+            "status": "error",
+            "message": f"Unknown preset: {preset_name}"
+        }), 404
+    
+    preset_config = get_motion_preset(preset_name)
+    motion_service.update_config(preset_config)
+    
+    return jsonify({
+        "status": "success",
+        "message": f"Applied motion preset: {preset_name}",
+        "config": {
+            "enabled": preset_config.enabled,
+            "sensitivity": preset_config.sensitivity,
+            "min_area": preset_config.min_area,
+            "cooldown_seconds": preset_config.cooldown_seconds,
+            "blur_size": preset_config.blur_size,
+            "threshold": preset_config.threshold
+        }
     })
