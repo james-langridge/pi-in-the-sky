@@ -228,7 +228,8 @@ class NotificationService:
                     },
                     data=payload,
                     vapid_private_key=self._vapid_obj,
-                    vapid_claims=self._vapid_claims
+                    vapid_claims=self._vapid_claims,
+                    ttl=86400  # 24 hours TTL required by Apple
                 )
                 sent_count += 1
                 logger.debug(f"Notification sent to {subscription.id}")
@@ -293,7 +294,8 @@ class NotificationService:
                 },
                 data=payload,
                 vapid_private_key=self._vapid_obj,
-                vapid_claims=self._vapid_claims
+                vapid_claims=self._vapid_claims,
+                ttl=86400  # 24 hours TTL required by Apple
             )
             logger.info(f"Test notification sent to {subscription.id}")
             return True
