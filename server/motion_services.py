@@ -175,6 +175,21 @@ class NotificationService:
         self._vapid_claims = {"sub": f"mailto:{vapid_email}"}
         self._failed_endpoints = set()
     
+    @property
+    def vapid_public_key(self) -> str:
+        """Get VAPID public key for client subscriptions."""
+        return self._vapid_public_key
+    
+    @property
+    def vapid_private_key(self):
+        """Get VAPID private key object for authentication."""
+        return self._vapid_obj
+    
+    @property
+    def vapid_email(self) -> str:
+        """Get VAPID email for claims."""
+        return self._vapid_claims["sub"].replace("mailto:", "")
+    
     def send_motion_notification(self, motion_event: MotionEvent) -> Dict[str, Any]:
         """
         Send motion detection notification to all subscribers.
