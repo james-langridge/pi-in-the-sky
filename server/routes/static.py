@@ -68,3 +68,15 @@ def serve_css(filename):
         filename,
         mimetype='text/css'
     )
+
+
+@static_bp.route('/<path:filename>')
+def serve_ui_files(filename):
+    """Serve UI files directly from ui/ directory."""
+    if filename.endswith(('.css', '.js')):
+        mimetype = 'text/css' if filename.endswith('.css') else 'application/javascript'
+        return send_from_directory(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'ui'),
+            filename,
+            mimetype=mimetype
+        )
