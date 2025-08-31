@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pi Camera Stream</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PiCam">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%234a90e2'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.35em' font-family='Arial' font-size='96' fill='white'%3E📷%3C/text%3E%3C/svg%3E">
+    
+    <!-- Theme color -->
+    <meta name="theme-color" content="#4a90e2">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Main video container */
+        .video-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: #000;
+        }
+
+        #stream {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Controls toggle button */
+        .toggle-controls {
+            position: absolute;
+            bottom: 20px;
+            left: calc(50% - 20px); /* Half of the 40px width */
+            background: rgba(255, 255, 255, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s;
+            will-change: background; /* Optimize for background changes only */
+        }
+
+        .toggle-controls:hover {
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .toggle-controls svg {
+            width: 24px;
+            height: 24px;
+            pointer-events: none; /* Prevent SVG from interfering with hover */
+        }
+
+        /* Control panel */
+        .controls {
+            background: #f3f4f6;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            overflow: hidden;
+            max-height: 0;
+            padding: 0 20px;
+        }
+
+        .controls.open {
+            min-height: 80px;
+            max-height: 600px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .controls-inner {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        
+        /* Control categories */
+        .control-category {
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        
+        .category-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4b5563;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .category-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .control-label {
+            font-size: 13px;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        /* Slider controls */
+        .slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-slider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #e5e7eb;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .control-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .slider-value {
+            min-width: 50px;
+            text-align: right;
+            font-size: 13px;
+            color: #6b7280;
+        }
+        
+        /* Toggle controls */
+        .control-toggle {
+            width: 44px;
+            height: 24px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #e5e7eb;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .control-toggle:checked {
+            background: #3b82f6;
+        }
+        
+        .control-toggle::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+        }
+        
+        .control-toggle:checked::after {
+            transform: translateX(20px);
+        }
+        
+        /* Select controls */
+        .control-select {
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 13px;
+            color: #374151;
+            cursor: pointer;
+        }
+
+        button {
+            flex: 1;
+            min-width: 120px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-preset {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-preset:hover {
+            background: #059669;
+        }
+
+        .btn-info {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #2563eb;
+        }
+        
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        
+        /* Motion detection status */
+        .motion-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        
+        .motion-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #d1d5db;
+        }
+        
+        .motion-indicator.active {
+            background: #10b981;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .notification-banner {
+            padding: 15px;
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .notification-banner.show {
+            display: block;
+        }
+
+        /* Status message */
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+
+        /* Error state */
+        .error-message {
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Loading indicator */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <div class="loading" id="loading">Connecting to camera...</div>
+        <img id="stream" alt="Camera stream" style="display: none;">
+        <button class="toggle-controls" id="toggleBtn">
+            <svg id="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 15l-6-6-6 6"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="controls" id="controls">
+        <div class="controls-inner">
+            <div class="button-group">
+                <button class="btn-preset" id="preset-default">Default</button>
+                <button class="btn-preset" id="preset-low-light">Low Light</button>
+                <button class="btn-preset" id="preset-bright">Bright</button>
+                <button class="btn-info" id="reset-all">Reset All</button>
+            </div>
+            
+            <!-- Motion Detection Section -->
+            <div class="control-category">
+                <div class="category-header">Motion Detection</div>
+                <div class="motion-status">
+                    <span class="motion-indicator" id="motion-indicator"></span>
+                    <span id="motion-status-text">Motion Detection: Off</span>
+                    <button class="btn-info" id="toggle-motion" style="margin-left: auto; min-width: 100px;">Enable</button>
+                </div>
+                <div class="category-controls">
+                    <div class="control-item">
+                        <label class="control-label">Sensitivity</label>
+                        <div class="slider-wrapper">
+                            <input type="range" class="control-slider" id="motion-sensitivity" 
+                                min="0" max="1" step="0.01" value="0.02">
+                            <span class="slider-value" id="motion-sensitivity-value">0.02</span>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label class="control-label">Minimum Area (pixels)</label>
+                        <div class="slider-wrapper">
+                            <input type="range" class="control-slider" id="motion-min-area" 
+                                min="100" max="5000" step="100" value="500">
+                            <span class="slider-value" id="motion-min-area-value">500</span>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label class="control-label">Cooldown (seconds)</label>
+                        <div class="slider-wrapper">
+                            <input type="range" class="control-slider" id="motion-cooldown" 
+                                min="5" max="300" step="5" value="30">
+                            <span class="slider-value" id="motion-cooldown-value">30</span>
+                        </div>
+                    </div>
+                    <div class="control-item">
+                        <label class="control-label">Detection Threshold</label>
+                        <div class="slider-wrapper">
+                            <input type="range" class="control-slider" id="motion-threshold" 
+                                min="10" max="100" step="5" value="25">
+                            <span class="slider-value" id="motion-threshold-value">25</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group" style="margin-top: 15px;">
+                    <button class="btn-info" id="save-motion-config">Save Settings</button>
+                    <button class="btn-danger" id="test-notification">Test Notification</button>
+                </div>
+            </div>
+            <div id="controls-container">
+                <!-- Controls will be dynamically loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <script type="module">
+        import { CameraAPI } from './js/api.js';
+        import { CameraControls } from './js/controls.js';
+        import { motionDetection } from './js/motion.js';
+        
+        // Configuration
+        const BASE_URL = window.location.protocol === 'file:' 
+            ? 'http://localhost:8080'
+            : window.location.origin;
+
+        // Initialize API and controls
+        const api = new CameraAPI(BASE_URL);
+        let cameraControls = null;
+        
+        // State
+        let controlsOpen = false;
+
+        // Initialize stream
+        function initStream() {
+            const stream = document.getElementById('stream');
+            const loading = document.getElementById('loading');
+            
+            stream.src = api.getStreamUrl();
+            
+            stream.onload = () => {
+                loading.style.display = 'none';
+                stream.style.display = 'block';
+            };
+            
+            stream.onerror = () => {
+                loading.innerHTML = 'Failed to connect to camera stream';
+            };
+        }
+
+        // Toggle controls panel
+        function toggleControls() {
+            controlsOpen = !controlsOpen;
+            const controls = document.getElementById('controls');
+            const chevron = document.getElementById('chevron');
+            
+            if (controlsOpen) {
+                controls.classList.add('open');
+                chevron.innerHTML = '<path d="M6 9l6 6 6-6"/>';
+            } else {
+                controls.classList.remove('open');
+                chevron.innerHTML = '<path d="M18 15l-6-6-6 6"/>';
+            }
+        }
+
+        // Show status message
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.style.background = isError ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)';
+            status.classList.add('show');
+            
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 3000);
+        }
+
+        // Apply camera preset
+        async function applyPreset(presetName) {
+            try {
+                const data = await api.applyPreset(presetName);
+                
+                if (data.status === 'success') {
+                    showStatus(`Applied ${presetName} preset`);
+                    // Reload controls to reflect new values
+                    if (cameraControls) {
+                        await cameraControls.loadControls();
+                    }
+                } else {
+                    showStatus(data.message || 'Failed to apply preset', true);
+                }
+            } catch (error) {
+                showStatus('Error applying preset', true);
+                console.error('Error:', error);
+            }
+        }
+
+        // Reset all controls to defaults
+        async function resetControls() {
+            if (cameraControls) {
+                await cameraControls.resetControls();
+            }
+        }
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // Motion detection functions
+        async function initMotionDetection() {
+            try {
+                await motionDetection.initialize();
+                updateMotionUI();
+            } catch (error) {
+                console.error('Failed to initialize motion detection:', error);
+            }
+        }
+        
+        function updateMotionUI() {
+            const indicator = document.getElementById('motion-indicator');
+            const statusText = document.getElementById('motion-status-text');
+            const toggleBtn = document.getElementById('toggle-motion');
+            
+            if (motionDetection.enabled) {
+                indicator.classList.add('active');
+                statusText.textContent = 'Motion Detection: Active';
+                toggleBtn.textContent = 'Disable';
+                toggleBtn.classList.remove('btn-info');
+                toggleBtn.classList.add('btn-danger');
+            } else {
+                indicator.classList.remove('active');
+                statusText.textContent = 'Motion Detection: Off';
+                toggleBtn.textContent = 'Enable';
+                toggleBtn.classList.remove('btn-danger');
+                toggleBtn.classList.add('btn-info');
+            }
+            
+            // Update slider values from config
+            if (motionDetection.config) {
+                document.getElementById('motion-sensitivity').value = motionDetection.config.sensitivity;
+                document.getElementById('motion-sensitivity-value').textContent = motionDetection.config.sensitivity.toFixed(2);
+                document.getElementById('motion-min-area').value = motionDetection.config.min_area;
+                document.getElementById('motion-min-area-value').textContent = motionDetection.config.min_area;
+                document.getElementById('motion-cooldown').value = motionDetection.config.cooldown_seconds;
+                document.getElementById('motion-cooldown-value').textContent = motionDetection.config.cooldown_seconds;
+                document.getElementById('motion-threshold').value = motionDetection.config.threshold;
+                document.getElementById('motion-threshold-value').textContent = motionDetection.config.threshold;
+            }
+        }
+        
+        async function toggleMotion() {
+            try {
+                await motionDetection.toggle();
+                updateMotionUI();
+                
+                if (motionDetection.enabled) {
+                    const hasNotifications = motionDetection.subscription ? ' (with notifications)' : ' (notifications unavailable)';
+                    showStatus('Motion detection enabled' + hasNotifications);
+                } else {
+                    showStatus('Motion detection disabled');
+                }
+            } catch (error) {
+                showStatus('Failed to toggle motion detection', true);
+                console.error('Error:', error);
+            }
+        }
+        
+        async function saveMotionConfig() {
+            try {
+                const config = {
+                    sensitivity: parseFloat(document.getElementById('motion-sensitivity').value),
+                    min_area: parseInt(document.getElementById('motion-min-area').value),
+                    cooldown_seconds: parseInt(document.getElementById('motion-cooldown').value),
+                    threshold: parseInt(document.getElementById('motion-threshold').value)
+                };
+                
+                await motionDetection.updateConfig(config);
+                showStatus('Motion detection settings saved');
+            } catch (error) {
+                showStatus('Failed to save settings', true);
+                console.error('Error:', error);
+            }
+        }
+        
+        
+        async function testNotification() {
+            try {
+                await motionDetection.sendTestNotification();
+                showStatus('Test notification sent');
+            } catch (error) {
+                showStatus('Failed to send test notification', true);
+                console.error('Error:', error);
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', async () => {
+            initStream();
+            
+            // Initialize camera controls
+            cameraControls = new CameraControls(api, showStatus);
+            await cameraControls.init();
+            
+            // Initialize motion detection
+            await initMotionDetection();
+            
+            // Bind button events
+            document.getElementById('toggleBtn').addEventListener('click', toggleControls);
+            document.getElementById('preset-default').addEventListener('click', () => applyPreset('default'));
+            document.getElementById('preset-low-light').addEventListener('click', () => applyPreset('low_light'));
+            document.getElementById('preset-bright').addEventListener('click', () => applyPreset('bright'));
+            document.getElementById('reset-all').addEventListener('click', resetControls);
+            
+            // Motion detection events
+            document.getElementById('toggle-motion').addEventListener('click', toggleMotion);
+            document.getElementById('save-motion-config').addEventListener('click', saveMotionConfig);
+            document.getElementById('test-notification').addEventListener('click', testNotification);
+            
+            // Motion config slider events
+            document.getElementById('motion-sensitivity').addEventListener('input', (e) => {
+                document.getElementById('motion-sensitivity-value').textContent = parseFloat(e.target.value).toFixed(2);
+            });
+            document.getElementById('motion-min-area').addEventListener('input', (e) => {
+                document.getElementById('motion-min-area-value').textContent = e.target.value;
+            });
+            document.getElementById('motion-cooldown').addEventListener('input', (e) => {
+                document.getElementById('motion-cooldown-value').textContent = e.target.value;
+            });
+            document.getElementById('motion-threshold').addEventListener('input', (e) => {
+                document.getElementById('motion-threshold-value').textContent = e.target.value;
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && controlsOpen) {
+                toggleControls();
+            }
+            if (e.key === ' ') {
+                e.preventDefault();
+                toggleControls();
+            }
+        });
+    </script>
+</body>
+</html>

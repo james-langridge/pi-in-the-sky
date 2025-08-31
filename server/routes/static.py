@@ -58,3 +58,13 @@ def serve_js(filename):
         filename,
         mimetype='application/javascript'
     )
+
+
+@static_bp.route('/css/<path:filename>')
+def serve_css(filename):
+    """Serve CSS files."""
+    return send_from_directory(
+        os.path.join(os.path.dirname(__file__), '..', '..', 'ui'),
+        filename,
+        mimetype='text/css'
+    )
