@@ -13,6 +13,7 @@ except ImportError:
     from mock_camera import MockPicamera2 as Picamera2
 
 from models import CameraPreset, Frame, CameraControls, ControlMetadata
+from calculations import camera_preset_to_controls_dict
 from calculations import (
     create_timestamp,
     add_timestamp_to_frame,
@@ -102,7 +103,7 @@ class CameraService:
             raise RuntimeError("Camera not initialized")
             
         try:
-            controls = preset.to_controls_dict()
+            controls = camera_preset_to_controls_dict(preset)
             self._camera.set_controls(controls)
             self._current_preset = preset
             logger.info(f"Applied camera preset: {preset.name}")

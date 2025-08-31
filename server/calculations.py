@@ -1,10 +1,10 @@
 """Pure functions for frame processing and calculations."""
 
 from datetime import datetime
-from typing import Union, Tuple, Optional, List
+from typing import Union, Tuple, Optional, List, Dict, Any
 import cv2
 import numpy as np
-from models import MotionDetectionConfig, MotionEvent
+from models import MotionDetectionConfig, MotionEvent, CameraControls, CameraPreset
 
 
 def create_timestamp() -> str:
@@ -378,3 +378,74 @@ def detect_motion_between_frames(current_frame: np.ndarray,
     )
     
     return motion_score, total_area, frame_diff_percentage
+
+
+def camera_controls_to_picamera2_dict(controls: CameraControls) -> Dict[str, Any]:
+    """
+    Transform CameraControls to dictionary for picamera2, excluding None values.
+    
+    Args:
+        controls: CameraControls instance
+        
+    Returns:
+        Dictionary with picamera2 control names
+    """
+    result = {}
+    
+    field_mapping = {
+        'brightness': 'Brightness',
+        'contrast': 'Contrast',
+        'saturation': 'Saturation',
+        'sharpness': 'Sharpness',
+        'exposure_time': 'ExposureTime',
+        'analogue_gain': 'AnalogueGain',
+        'exposure_value': 'ExposureValue',
+        'ae_enable': 'AeEnable',
+        'ae_exposure_mode': 'AeExposureMode',
+        'ae_metering_mode': 'AeMeteringMode',
+        'awb_enable': 'AwbEnable',
+        'awb_mode': 'AwbMode',
+        'colour_gains': 'ColourGains',
+        'noise_reduction_mode': 'NoiseReductionMode',
+        'frame_duration_limits': 'FrameDurationLimits'
+    }
+    
+    for field_name, control_name in field_mapping.items():
+        value = getattr(controls, field_name)
+        if value is not None:
+            result[control_name] = value
+            
+    return result
+
+
+def camera_preset_to_controls_dict(preset: CameraPreset) -> Dict[str, Any]:
+    """
+    Transform CameraPreset to dictionary for picamera2 controls, excluding None values.
+    
+    Args:
+        preset: CameraPreset instance
+        
+    Returns:
+        Dictionary with picamera2 control names
+    """
+    result = {}
+    
+    field_mapping = {
+        'exposure_time': 'ExposureTime',
+        'analogue_gain': 'AnalogueGain',
+        'awb_mode': 'AwbMode',
+        'brightness': 'Brightness',
+        'contrast': 'Contrast',
+        'saturation': 'Saturation',
+        'sharpness': 'Sharpness',
+        'hdr_mode': 'HdrMode',
+        'ae_exposure_mode': 'AeExposureMode',
+        'ae_metering_mode': 'AeMeteringMode'
+    }
+    
+    for field_name, control_name in field_mapping.items():
+        value = getattr(preset, field_name)
+        if value is not None:
+            result[control_name] = value
+            
+    return result

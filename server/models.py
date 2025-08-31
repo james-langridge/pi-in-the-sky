@@ -84,35 +84,6 @@ class CameraControls:
     # Advanced
     noise_reduction_mode: Optional[int] = None
     frame_duration_limits: Optional[Tuple[int, int]] = None
-    
-    def to_picamera2_controls(self) -> dict:
-        """Convert to dictionary for picamera2 controls, excluding None values."""
-        controls = {}
-        
-        field_mapping = {
-            'brightness': 'Brightness',
-            'contrast': 'Contrast',
-            'saturation': 'Saturation',
-            'sharpness': 'Sharpness',
-            'exposure_time': 'ExposureTime',
-            'analogue_gain': 'AnalogueGain',
-            'exposure_value': 'ExposureValue',
-            'ae_enable': 'AeEnable',
-            'ae_exposure_mode': 'AeExposureMode',
-            'ae_metering_mode': 'AeMeteringMode',
-            'awb_enable': 'AwbEnable',
-            'awb_mode': 'AwbMode',
-            'colour_gains': 'ColourGains',
-            'noise_reduction_mode': 'NoiseReductionMode',
-            'frame_duration_limits': 'FrameDurationLimits'
-        }
-        
-        for field_name, control_name in field_mapping.items():
-            value = getattr(self, field_name)
-            if value is not None:
-                controls[control_name] = value
-                
-        return controls
 
 
 @dataclass(frozen=True)
@@ -130,30 +101,6 @@ class CameraPreset:
     hdr_mode: Optional[int] = None
     ae_exposure_mode: Optional[int] = None
     ae_metering_mode: Optional[int] = None
-    
-    def to_controls_dict(self) -> dict:
-        """Convert to dictionary for picamera2 controls, excluding None values."""
-        controls = {}
-        
-        field_mapping = {
-            'exposure_time': 'ExposureTime',
-            'analogue_gain': 'AnalogueGain',
-            'awb_mode': 'AwbMode',
-            'brightness': 'Brightness',
-            'contrast': 'Contrast',
-            'saturation': 'Saturation',
-            'sharpness': 'Sharpness',
-            'hdr_mode': 'HdrMode',
-            'ae_exposure_mode': 'AeExposureMode',
-            'ae_metering_mode': 'AeMeteringMode'
-        }
-        
-        for field_name, control_name in field_mapping.items():
-            value = getattr(self, field_name)
-            if value is not None:
-                controls[control_name] = value
-                
-        return controls
 
 
 @dataclass(frozen=True)
