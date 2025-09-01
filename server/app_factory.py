@@ -24,13 +24,27 @@ def load_vapid_keys():
     key_file_path = os.path.join(os.path.dirname(__file__), vapid_private_key_file)
     
     try:
+        import base64
+        from cryptography.hazmat.primitives import serialization
         from py_vapid import Vapid
+        
         vapid_obj = Vapid.from_file(key_file_path)
-        vapid_public_key = vapid_obj.public_key_urlsafe()
+        
+        # Get public key in application server format (URL-safe base64)
+        # This matches how generate_vapid_keys.py does it
+        public_key_obj = vapid_obj.public_key
+        public_bytes = public_key_obj.public_bytes(
+            encoding=serialization.Encoding.X962,
+            format=serialization.PublicFormat.UncompressedPoint
+        )
+        vapid_public_key = base64.urlsafe_b64encode(public_bytes).decode('utf-8').rstrip('=')
+        
         logger.info(f"Loaded VAPID from file: {key_file_path}")
         return vapid_obj, vapid_public_key, vapid_email
     except FileNotFoundError:
         logger.info(f"VAPID key file not found at {key_file_path} - push notifications disabled")
+    except ImportError as e:
+        logger.info(f"VAPID dependencies not available: {e} - push notifications disabled")
     except Exception as e:
         logger.error(f"Failed to load VAPID from file {key_file_path}: {e}")
     
