@@ -101,6 +101,33 @@ class CameraPreset:
     hdr_mode: Optional[int] = None
     ae_exposure_mode: Optional[int] = None
     ae_metering_mode: Optional[int] = None
+    
+    def to_controls_dict(self) -> dict:
+        """Convert preset to PiCamera2 controls dictionary."""
+        controls = {}
+        
+        if self.exposure_time is not None:
+            controls['ExposureTime'] = self.exposure_time
+        if self.analogue_gain is not None:
+            controls['AnalogueGain'] = self.analogue_gain
+        if self.awb_mode is not None:
+            controls['AwbMode'] = self.awb_mode
+        if self.brightness != 0.0:
+            controls['Brightness'] = self.brightness
+        if self.contrast != 1.0:
+            controls['Contrast'] = self.contrast
+        if self.saturation != 1.0:
+            controls['ColourGains'] = (self.saturation, self.saturation)
+        if self.sharpness != 1.0:
+            controls['Sharpness'] = self.sharpness
+        if self.hdr_mode is not None:
+            controls['HdrMode'] = self.hdr_mode
+        if self.ae_exposure_mode is not None:
+            controls['AeExposureMode'] = self.ae_exposure_mode
+        if self.ae_metering_mode is not None:
+            controls['AeMeteringMode'] = self.ae_metering_mode
+            
+        return controls
 
 
 @dataclass(frozen=True)
