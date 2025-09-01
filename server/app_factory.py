@@ -14,47 +14,27 @@ logger = logging.getLogger(__name__)
 
 def load_vapid_keys():
     """
-    Load VAPID keys from file or environment.
+    Load VAPID keys from file.
     Returns (vapid_obj, vapid_public_key, vapid_email) tuple.
     """
-    vapid_private_key_file = os.environ.get('VAPID_PRIVATE_KEY_FILE', '')
-    vapid_private_key = os.environ.get('VAPID_PRIVATE_KEY', '')
-    vapid_public_key = os.environ.get('VAPID_PUBLIC_KEY', '')
+    vapid_private_key_file = os.environ.get('VAPID_PRIVATE_KEY_FILE', 'vapid_private.pem')
     vapid_email = os.environ.get('VAPID_EMAIL', 'admin@example.com')
     
-    vapid_obj = None
+    # Use file-based approach only (simpler and cleaner)
+    key_file_path = os.path.join(os.path.dirname(__file__), vapid_private_key_file)
     
-    # Try file-based approach first (recommended)
-    if vapid_private_key_file:
-        key_file_path = os.path.join(os.path.dirname(__file__), vapid_private_key_file)
-        try:
-            from py_vapid import Vapid
-            vapid_obj = Vapid.from_file(key_file_path)
-            logger.info(f"Loaded VAPID from file: {key_file_path}")
-            return vapid_obj, vapid_public_key, vapid_email
-        except Exception as e:
-            logger.error(f"Failed to load VAPID from file {key_file_path}: {e}")
+    try:
+        from py_vapid import Vapid
+        vapid_obj = Vapid.from_file(key_file_path)
+        vapid_public_key = vapid_obj.public_key_urlsafe()
+        logger.info(f"Loaded VAPID from file: {key_file_path}")
+        return vapid_obj, vapid_public_key, vapid_email
+    except FileNotFoundError:
+        logger.info(f"VAPID key file not found at {key_file_path} - push notifications disabled")
+    except Exception as e:
+        logger.error(f"Failed to load VAPID from file {key_file_path}: {e}")
     
-    # Fall back to environment variable (legacy support)
-    if vapid_private_key and not vapid_obj:
-        vapid_private_key = vapid_private_key.strip('"').strip("'")
-        if '\\\\n' in vapid_private_key:
-            vapid_private_key = vapid_private_key.replace('\\\\n', '\n')
-        elif '\\n' in vapid_private_key:
-            vapid_private_key = vapid_private_key.replace('\\n', '\n')
-        
-        try:
-            from py_vapid import Vapid
-            vapid_obj = Vapid.from_string(vapid_private_key)
-            logger.info("Loaded VAPID from environment variable")
-            return vapid_obj, vapid_public_key, vapid_email
-        except Exception as e:
-            logger.error(f"Failed to create VAPID from environment variable: {e}")
-    
-    if not vapid_obj:
-        logger.warning("VAPID keys not configured - push notifications disabled")
-    
-    return vapid_obj, vapid_public_key, vapid_email
+    return None, None, vapid_email
 
 
 def create_services(config: AppConfig):

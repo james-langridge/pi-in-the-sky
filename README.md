@@ -153,9 +153,7 @@ The server can be configured via environment variables:
 | `FLASK_DEBUG` | `false` | Debug mode |
 | `CORS_ORIGINS` | `http://localhost:3000` | Comma-separated CORS origins |
 | `FRAME_DELAY` | `0.1` | Delay between frames (seconds) |
-| `VAPID_PRIVATE_KEY_FILE` | - | Path to VAPID private key file (recommended) |
-| `VAPID_PRIVATE_KEY` | - | Private key for push notifications (legacy) |
-| `VAPID_PUBLIC_KEY` | - | Public key for push notifications |
+| `VAPID_PRIVATE_KEY_FILE` | `vapid_private.pem` | Path to VAPID private key file |
 | `VAPID_EMAIL` | `admin@example.com` | Contact email for push service |
 
 ## Running
