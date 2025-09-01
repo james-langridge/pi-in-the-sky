@@ -1,33 +1,104 @@
-// Minimal service worker for PWA installation and push notifications
-// No caching since the app requires network connectivity anyway
+const CACHE_NAME = 'pi-camera-v1';
+const urlsToCache = [
+  '/',
+  '/app.css',
+  '/app.js',
+  '/js/api.js',
+  '/js/controls.js',
+  '/js/motion.js',
+  '/manifest.json'
+];
 
+// Install event - cache essential files
 self.addEventListener('install', event => {
-  // Immediately activate - but note this can cause issues
-  // when the PWA is resumed from background
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', event => {
-  // Clean up any old caches from previous versions
+  console.log('[ServiceWorker] Installing new version');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          console.log('Removing old cache:', cacheName);
-          return caches.delete(cacheName);
-        })
-      );
-    }).then(() => {
-      // Take control of all clients immediately
-      return clients.claim();
-    })
+      caches.open(CACHE_NAME)
+          .then(cache => {
+            console.log('[ServiceWorker] Caching app shell');
+            return cache.addAll(urlsToCache);
+          })
+          // Don't skip waiting - let the user control when to update
+          .then(() => console.log('[ServiceWorker] Install complete'))
   );
 });
 
-// No fetch handling - let all requests go to network
-// The app is useless offline anyway since it needs camera stream
+// Activate event - clean up old caches
+self.addEventListener('activate', event => {
+  console.log('[ServiceWorker] Activating new version');
+  event.waitUntil(
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+            cacheNames.map(cacheName => {
+              if (cacheName !== CACHE_NAME) {
+                console.log('[ServiceWorker] Removing old cache:', cacheName);
+                return caches.delete(cacheName);
+              }
+            })
+        );
+      }).then(() => {
+        console.log('[ServiceWorker] Activation complete');
+        // Take control of all clients
+        return clients.claim();
+      })
+  );
+});
 
-// Push notification handling for motion detection
+// Fetch event - network first for API, cache first for assets
+self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+
+  // Skip caching for video feed and API calls
+  if (url.pathname.includes('/video_feed') ||
+      url.pathname.includes('/api/') ||
+      url.pathname.includes('/health')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Cache-first strategy for app shell
+  event.respondWith(
+      caches.match(event.request)
+          .then(response => {
+            // Return cached version or fetch from network
+            return response || fetch(event.request).then(fetchResponse => {
+              // Don't cache non-successful responses
+              if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type === 'opaque') {
+                return fetchResponse;
+              }
+
+              // Clone the response as it can only be consumed once
+              const responseToCache = fetchResponse.clone();
+
+              // Update cache with new version
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+
+              return fetchResponse;
+            });
+          })
+          .catch(() => {
+            // Offline fallback could go here
+            console.log('[ServiceWorker] Fetch failed for:', event.request.url);
+          })
+  );
+});
+
+// Handle messages from the app
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[ServiceWorker] Received skip waiting message');
+    self.skipWaiting();
+  }
+
+  if (event.data && event.data.type === 'CLIENTS_CLAIM') {
+    console.log('[ServiceWorker] Claiming clients');
+    self.clients.claim();
+  }
+});
+
+// Push notification handling
 self.addEventListener('push', event => {
   const options = {
     body: 'Motion detected!',
@@ -36,6 +107,7 @@ self.addEventListener('push', event => {
     vibrate: [200, 100, 200],
     tag: 'motion-alert',
     renotify: true,
+    requireInteraction: false,
     data: {
       dateOfArrival: Date.now(),
       primaryKey: 1
@@ -43,37 +115,44 @@ self.addEventListener('push', event => {
   };
 
   if (event.data) {
-    const data = event.data.json();
-    options.body = data.body || options.body;
-    if (data.title) {
-      event.waitUntil(
-        self.registration.showNotification(data.title, options)
-      );
-      return;
+    try {
+      const data = event.data.json();
+      options.body = data.body || options.body;
+      if (data.title) {
+        event.waitUntil(
+            self.registration.showNotification(data.title, options)
+        );
+        return;
+      }
+    } catch (e) {
+      console.error('[ServiceWorker] Error parsing push data:', e);
     }
   }
 
   event.waitUntil(
-    self.registration.showNotification('Pi Camera Alert', options)
+      self.registration.showNotification('Pi Camera Alert', options)
   );
 });
 
+// Notification click handling
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  
-  // Open the app when notification is clicked
+
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then(clientList => {
-      // Focus if already open
-      for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) {
-          return client.focus();
+      clients.matchAll({
+        type: 'window',
+        includeUncontrolled: true
+      }).then(clientList => {
+        // Focus if already open
+        for (const client of clientList) {
+          if (client.url.includes(self.registration.scope) && 'focus' in client) {
+            return client.focus();
+          }
         }
-      }
-      // Open new window if not open
-      if (clients.openWindow) {
-        return clients.openWindow('/');
-      }
-    })
+        // Open new window if not open
+        if (clients.openWindow) {
+          return clients.openWindow('/');
+        }
+      })
   );
 });

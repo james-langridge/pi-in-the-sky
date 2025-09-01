@@ -13,7 +13,7 @@ camera_bp = Blueprint('camera', __name__)
 def video_feed():
     """
     Stream video feed as MJPEG with motion detection.
-    
+
     Returns:
         MJPEG stream response
     """
@@ -21,7 +21,7 @@ def video_feed():
     streaming_service = services['streaming_service']
     motion_service = services['motion_service']
     notification_service = services['notification_service']
-    
+
     def generate_with_motion_detection():
         """Generate MJPEG stream with motion detection."""
         for chunk in streaming_service.generate_mjpeg_stream():
@@ -33,21 +33,28 @@ def video_feed():
                     jpeg_end = chunk.find(b'\xff\xd9')
                     if jpeg_start != -1 and jpeg_end != -1:
                         jpeg_data = chunk[jpeg_start:jpeg_end + 2]
-                        
+
                         # Process frame for motion
                         motion_event = motion_service.process_frame(jpeg_data)
-                        
+
                         # Send notification if triggered
                         if motion_event and motion_event.triggered and notification_service:
                             notification_service.send_motion_notification(motion_event)
                 except Exception as e:
                     logger.error(f"Motion detection error: {e}")
-            
+
             yield chunk
-    
+
     return Response(
         generate_with_motion_detection(),
-        mimetype='multipart/x-mixed-replace; boundary=frame'
+        mimetype='multipart/x-mixed-replace; boundary=frame',
+        headers={
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'  # Disable Nginx buffering if using reverse proxy
+        }
     )
 
 
@@ -55,30 +62,30 @@ def video_feed():
 def apply_preset():
     """
     Apply camera preset settings.
-    
+
     Expected JSON:
         {"preset": "preset_name"}
-        
+
     Returns:
         JSON response with status
     """
     camera_service = current_app.config['services']['camera_service']
-    
+
     if not request.json:
         return jsonify({
             "status": "error",
             "message": "No JSON data provided"
         }), 400
-    
+
     preset_name = request.json.get('preset')
     if not preset_name:
         return jsonify({
             "status": "error",
             "message": "No preset specified"
         }), 400
-    
+
     result = camera_service.apply_preset(preset_name)
-    
+
     if result.is_success:
         return jsonify({
             "status": "success",
@@ -95,7 +102,7 @@ def apply_preset():
 def list_presets():
     """
     List available camera presets.
-    
+
     Returns:
         JSON response with preset names
     """
@@ -111,13 +118,13 @@ def list_presets():
 def get_controls():
     """
     Get all available camera controls with metadata.
-    
+
     Returns:
         JSON response with control metadata grouped by category
     """
     control_manager = current_app.config['services']['control_manager']
     categories = control_manager.get_controls_by_category()
-    
+
     # Convert to JSON-serializable format
     result = {}
     for category, controls in categories.items():
@@ -129,7 +136,7 @@ def get_controls():
                 "type": control.control_type,
                 "category": control.category
             }
-            
+
             # Add type-specific fields
             if control.control_type == "slider":
                 control_dict.update({
@@ -145,9 +152,9 @@ def get_controls():
             elif control.control_type == "select":
                 control_dict["options"] = control.options
                 control_dict["default"] = control.default_value
-                
+
             result[category].append(control_dict)
-    
+
     return jsonify(result)
 
 
@@ -155,16 +162,16 @@ def get_controls():
 def get_control(control_name):
     """
     Get current value of a camera control.
-    
+
     Args:
         control_name: Name of the control to get
-        
+
     Returns:
         JSON response with control value
     """
     control_manager = current_app.config['services']['control_manager']
     result = control_manager.get_control_value(control_name)
-    
+
     if result["success"]:
         return jsonify(result)
     else:
@@ -178,33 +185,33 @@ def get_control(control_name):
 def set_control(control_name):
     """
     Set value of a camera control.
-    
+
     Args:
         control_name: Name of the control to set
-        
+
     Expected JSON:
         {"value": <control_value>}
-        
+
     Returns:
         JSON response with status
     """
     control_manager = current_app.config['services']['control_manager']
-    
+
     if not request.json:
         return jsonify({
             "status": "error",
             "message": "No JSON data provided"
         }), 400
-    
+
     value = request.json.get('value')
     if value is None:
         return jsonify({
             "status": "error",
             "message": "No value specified"
         }), 400
-    
+
     result = control_manager.set_control_value(control_name, value)
-    
+
     if result["success"]:
         return jsonify({
             "status": "success",
@@ -222,7 +229,7 @@ def set_control(control_name):
 def health():
     """
     Health check endpoint.
-    
+
     Returns:
         JSON response with health status
     """

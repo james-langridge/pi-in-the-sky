@@ -4,19 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pi Camera Stream</title>
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="/manifest.json">
-    
+
     <!-- iOS PWA Support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="PiCam">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%234a90e2'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.35em' font-family='Arial' font-size='96' fill='white'%3E📷%3C/text%3E%3C/svg%3E">
-    
+
     <!-- Theme color -->
     <meta name="theme-color" content="#4a90e2">
-    
+
     <!-- External CSS -->
     <link rel="stylesheet" href="/app.css">
 </head>
@@ -42,7 +42,7 @@
                 <button class="btn-preset" id="preset-bright">Bright</button>
                 <button class="btn-info" id="reset-all">Reset All</button>
             </div>
-            
+
             <!-- Motion Detection Section -->
             <div class="control-category">
                 <div class="category-header">Motion Detection</div>
@@ -51,7 +51,7 @@
                     <span id="motion-status-text">Motion Detection: Off</span>
                     <button class="btn-info" id="toggle-motion" style="margin-left: auto; min-width: 100px;">Enable</button>
                 </div>
-                
+
                 <!-- Motion Preset Selection -->
                 <div class="category-controls">
                     <div class="control-item">
@@ -64,13 +64,13 @@
                         </select>
                     </div>
                 </div>
-                
+
                 <div class="button-group" style="margin-top: 15px;">
                     <button class="btn-info" id="apply-motion-preset">Apply Preset</button>
                     <button class="btn-danger" id="test-notification">Test Notification</button>
                 </div>
             </div>
-            
+
             <div id="controls-container">
                 <!-- Controls will be dynamically loaded here -->
             </div>
@@ -81,5 +81,35 @@
 
     <!-- External JavaScript modules -->
     <script type="module" src="/app.js"></script>
+    <!-- Prevent iOS from killing the app -->
+    <script>
+        // Keep-alive ping to prevent iOS suspension
+        let keepAliveInterval;
+        function startKeepAlive() {
+            keepAliveInterval = setInterval(() => {
+                if (!document.hidden) {
+                    fetch('/health', { method: 'HEAD' }).catch(() => {});
+                }
+            }, 25000); // Ping every 25 seconds (before iOS 30s timeout)
+        }
+
+        function stopKeepAlive() {
+            if (keepAliveInterval) {
+                clearInterval(keepAliveInterval);
+            }
+        }
+
+        // Manage based on visibility
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopKeepAlive();
+            } else {
+                startKeepAlive();
+            }
+        });
+
+        // Start on load
+        startKeepAlive();
+    </script>
 </body>
 </html>
