@@ -27,9 +27,32 @@ Raspberry Pi camera streaming application with web interface.
 
 ### Quick Setup on Raspberry Pi
 
+The easiest way to install is using the automated setup script:
+
+```bash
+# SSH into your Raspberry Pi, then run:
+curl -fsSL https://raw.githubusercontent.com/james-langridge/pi-in-the-sky/main/setup.sh | bash
+
+# Or if you want to customize the installation:
+curl -O https://raw.githubusercontent.com/james-langridge/pi-in-the-sky/main/setup.sh
+chmod +x setup.sh
+./setup.sh --help  # See available options
+./setup.sh --dir ~/my-camera --port 9000
+```
+
+The setup script will:
+- Install all system dependencies
+- Clone the repository
+- Set up Python virtual environment
+- Install Python packages
+- Configure systemd service (optional)
+- Provide access URLs
+
+### Manual Installation
+
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/pi-in-the-sky.git
+git clone https://github.com/jamesrobertsjr/pi-in-the-sky.git
 cd pi-in-the-sky
 
 # Use existing virtual environment (already configured with system packages)
@@ -55,7 +78,7 @@ The server includes a mock camera mode for development on non-Pi systems:
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/pi-in-the-sky.git
+git clone https://github.com/james-langridge/pi-in-the-sky.git
 cd pi-in-the-sky/server
 
 # Create virtual environment
