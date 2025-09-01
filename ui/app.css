@@ -199,16 +199,16 @@
         .control-select {
             flex: 1;
             padding: 8px 12px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid #d1d5db;
             border-radius: 6px;
-            background: rgba(255, 255, 255, 0.15);
+            background: white;
             font-size: 14px;
-            color: white;
+            color: #374151;
             cursor: pointer;
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 8px center;
             background-size: 20px;
@@ -216,8 +216,8 @@
         }
         
         .control-select:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.4);
+            background-color: #f9fafb;
+            border-color: #9ca3af;
         }
         
         .control-select:focus {
@@ -358,7 +358,7 @@
         }
 
         .control-select option {
-            background: #2c3e50;
-            color: white;
+            background: white;
+            color: #374151;
             padding: 8px;
         }
