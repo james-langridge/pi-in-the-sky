@@ -127,17 +127,6 @@
                 toggleBtn.classList.add('btn-info');
             }
             
-            // Update slider values from config
-            if (motionDetection.config) {
-                document.getElementById('motion-sensitivity').value = motionDetection.config.sensitivity;
-                document.getElementById('motion-sensitivity-value').textContent = motionDetection.config.sensitivity.toFixed(2);
-                document.getElementById('motion-min-area').value = motionDetection.config.min_area;
-                document.getElementById('motion-min-area-value').textContent = motionDetection.config.min_area;
-                document.getElementById('motion-cooldown').value = motionDetection.config.cooldown_seconds;
-                document.getElementById('motion-cooldown-value').textContent = motionDetection.config.cooldown_seconds;
-                document.getElementById('motion-threshold').value = motionDetection.config.threshold;
-                document.getElementById('motion-threshold-value').textContent = motionDetection.config.threshold;
-            }
         }
         
         async function toggleMotion() {
