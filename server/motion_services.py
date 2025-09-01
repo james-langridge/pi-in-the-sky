@@ -16,6 +16,7 @@ from calculations import (
     decode_jpeg_to_frame
 )
 from storage import SubscriptionStorage
+from result import Result, StringResult
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +191,7 @@ class NotificationService:
         """Get VAPID email for claims."""
         return self._vapid_claims["sub"].replace("mailto:", "")
     
-    def send_motion_notification(self, motion_event: MotionEvent) -> Dict[str, Any]:
+    def send_motion_notification(self, motion_event: MotionEvent) -> Result[Dict[str, Any], str]:
         """
         Send motion detection notification to all subscribers.
         
@@ -198,17 +199,17 @@ class NotificationService:
             motion_event: Motion event to notify about
             
         Returns:
-            Dictionary with send results
+            Result containing send statistics or error message
         """
         subscriptions = self._storage.get_all_subscriptions()
         
         if not subscriptions:
             logger.info("No subscriptions to notify")
-            return {
+            return Result.success({
                 "sent": 0,
                 "failed": 0,
                 "total": 0
-            }
+            })
         
         # Prepare notification payload
         payload = json.dumps({
@@ -273,9 +274,9 @@ class NotificationService:
         }
         
         logger.info(f"Notifications sent: {sent_count}/{len(subscriptions)}")
-        return result
+        return Result.success(result)
     
-    def test_notification(self, endpoint: str) -> bool:
+    def test_notification(self, endpoint: str) -> Result[bool, str]:
         """
         Send a test notification to a specific endpoint.
         
@@ -322,12 +323,12 @@ class NotificationService:
             logger.error(f"WebPushException details - Response text: {e.response.text if e.response else 'No response text'}")
             if hasattr(e, 'message'):
                 logger.error(f"WebPushException message: {e.message}")
-            return False
+            return Result.failure(f"Failed to send notification: {e}")
         except Exception as e:
             logger.error(f"Unexpected error sending test notification: {type(e).__name__}: {e}")
             import traceback
             logger.error(f"Traceback: {traceback.format_exc()}")
-            return False
+            return Result.failure(f"Unexpected error: {type(e).__name__}")
     
     def get_vapid_public_key(self) -> str:
         """Get VAPID public key for client subscription."""

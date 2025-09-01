@@ -44,10 +44,10 @@ class CameraService:
         self._current_preset: Optional[CameraPreset] = None
         self._initialized = False
     
-    def initialize(self) -> None:
+    def initialize(self) -> Result[bool, str]:
         """Lazy initialization of camera hardware."""
         if self._initialized:
-            return
+            return Result.success(True)
             
         try:
             self._camera = self._camera_factory()
@@ -58,9 +58,10 @@ class CameraService:
             self._camera.start()
             self._initialized = True
             logger.info("Camera initialized successfully")
+            return Result.success(True)
         except Exception as e:
             logger.error(f"Failed to initialize camera: {e}")
-            raise RuntimeError(f"Camera initialization failed: {e}")
+            return Result.failure(f"Camera initialization failed: {str(e)}")
     
     def cleanup(self) -> None:
         """Clean up camera resources."""
@@ -211,29 +212,36 @@ class CameraService:
         
         return None
     
-    def capture_frame_with_timestamp(self) -> Frame:
+    def capture_frame_with_timestamp(self) -> Result[Frame, str]:
         """
         Capture frame with timestamp overlay.
         
         Returns:
-            Frame object with processed image data
+            Result containing Frame object or error message
         """
-        # Action: Capture raw frame
-        raw_jpeg = self.capture_raw_frame()
-        
-        # Calculations: Process frame
-        raw_frame = decode_jpeg_to_frame(raw_jpeg)
-        timestamp = create_timestamp()
-        processed_frame = add_timestamp_to_frame(raw_frame, timestamp)
-        jpeg_data = encode_frame_to_jpeg(processed_frame)
-        
-        # Return immutable result
-        return Frame(
-            data=jpeg_data,
-            timestamp=timestamp,
-            width=1920,
-            height=1080
-        )
+        try:
+            # Action: Capture raw frame
+            raw_jpeg = self.capture_raw_frame()
+            
+            if not raw_jpeg:
+                return Result.failure("Failed to capture raw frame")
+            
+            # Calculations: Process frame
+            raw_frame = decode_jpeg_to_frame(raw_jpeg)
+            timestamp = create_timestamp()
+            processed_frame = add_timestamp_to_frame(raw_frame, timestamp)
+            jpeg_data = encode_frame_to_jpeg(processed_frame)
+            
+            # Return immutable result
+            return Result.success(Frame(
+                data=jpeg_data,
+                timestamp=timestamp,
+                width=1920,
+                height=1080
+            ))
+        except Exception as e:
+            logger.error(f"Error capturing frame with timestamp: {e}")
+            return Result.failure(f"Failed to capture frame: {str(e)}")
 
 
 class StreamingService:
@@ -260,10 +268,15 @@ class StreamingService:
         while True:
             try:
                 # Capture and process frame
-                frame = self._camera_service.capture_frame_with_timestamp()
+                frame_result = self._camera_service.capture_frame_with_timestamp()
+                
+                if frame_result.is_failure:
+                    logger.error(f"Failed to capture frame: {frame_result.error}")
+                    time.sleep(1)
+                    continue
                 
                 # Create MJPEG chunk
-                chunk = create_mjpeg_chunk(frame.data)
+                chunk = create_mjpeg_chunk(frame_result.value.data)
                 
                 yield chunk
                 

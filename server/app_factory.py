@@ -103,11 +103,11 @@ def create_app(config: AppConfig) -> Flask:
     
     # Initialize camera on app startup
     with app.app_context():
-        try:
-            services['camera_service'].initialize()
+        result = services['camera_service'].initialize()
+        if result.is_success:
             logger.info("Camera initialized on startup")
-        except Exception as e:
-            logger.error(f"Failed to initialize camera: {e}")
+        else:
+            logger.error(f"Failed to initialize camera: {result.error}")
     
     @app.teardown_appcontext
     def cleanup_camera(error=None):

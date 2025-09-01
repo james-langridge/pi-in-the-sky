@@ -197,49 +197,24 @@ def test_notification():
     
     endpoint = request.json['endpoint']
     
-    # Find subscription
-    subscription = subscription_storage.get_subscription_by_endpoint(endpoint)
+    # Use notification service to send test notification
+    result = notification_service.test_notification(endpoint)
     
-    if not subscription:
-        return jsonify({
-            "status": "error",
-            "message": "Subscription not found"
-        }), 404
-    
-    # Send test notification
-    try:
-        # Convert PushSubscription to webpush format
-        subscription_info = {
-            "endpoint": subscription.endpoint,
-            "keys": {
-                "auth": subscription.auth,
-                "p256dh": subscription.p256dh
-            }
-        }
-        
-        webpush(
-            subscription_info=subscription_info,
-            data='{"title": "Test Notification", "body": "This is a test notification from Pi Camera"}',
-            vapid_private_key=notification_service.vapid_private_key,
-            vapid_claims={
-                "sub": f"mailto:{notification_service.vapid_email}"
-            },
-            ttl=86400  # 24 hours TTL for iOS compatibility
-        )
+    if result.is_success:
         return jsonify({
             "status": "success",
             "message": "Test notification sent successfully"
         })
-    except WebPushException as e:
-        logger.error(f"Failed to send test notification: {e}")
-        if e.response and e.response.status_code == 410:
-            # Subscription is no longer valid
-            subscription_storage.remove_subscription(endpoint)
-            return jsonify({
-                "status": "error",
-                "message": "Subscription is no longer valid and has been removed"
-            }), 410
+    else:
+        # Determine appropriate status code based on error
+        if "No subscription found" in result.error:
+            status_code = 404
+        elif "no longer valid" in result.error:
+            status_code = 410
+        else:
+            status_code = 500
+        
         return jsonify({
             "status": "error",
-            "message": f"Failed to send notification: {str(e)}"
-        }), 500
+            "message": result.error
+        }), status_code
