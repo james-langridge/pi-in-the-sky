@@ -17,12 +17,19 @@ if (!API.get) {
 
 if (!API.post) {
     API.post = async function(endpoint, data) {
-        const response = await fetch(this.baseUrl + endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
-        return response.json();
+        try {
+            const response = await fetch(this.baseUrl + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            console.log(`POST ${endpoint} response:`, result);
+            return result;
+        } catch (error) {
+            console.error(`Failed to POST ${endpoint}:`, error);
+            throw error;
+        }
     };
 }
 
@@ -198,14 +205,17 @@ export class MotionDetection {
      * Update motion detection configuration
      */
     async updateConfig(config) {
+        console.log('Updating motion config:', config);
         const response = await API.post('/api/motion/config', config);
+        console.log('Motion config response:', response);
         
-        if (response.status === 'success') {
+        if (response && response.status === 'success') {
             this.config = { ...this.config, ...config };
             this.enabled = config.enabled !== undefined ? config.enabled : this.enabled;
             return true;
         } else {
-            throw new Error(response.message || 'Failed to update config');
+            console.error('Motion config update failed:', response);
+            throw new Error(response?.message || 'Failed to update config');
         }
     }
 
