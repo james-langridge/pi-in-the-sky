@@ -22,7 +22,10 @@
 </head>
 <body>
     <div class="video-container">
-        <div class="loading" id="loading">Connecting to camera...</div>
+        <div class="loading" id="loading">
+            <span id="loading-text">Connecting to camera...</span>
+            <button id="manual-reconnect" class="btn-info" style="display: none; margin-top: 10px;">Retry Connection</button>
+        </div>
         <img id="stream" alt="Camera stream" style="display: none;">
         <button class="toggle-controls" id="toggleBtn">
             <svg id="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

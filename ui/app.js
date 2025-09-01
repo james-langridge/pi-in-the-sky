@@ -13,22 +13,84 @@
         
         // State
         let controlsOpen = false;
+        let reconnectTimer = null;
+        let reconnectAttempts = 0;
+        const MAX_RECONNECT_ATTEMPTS = 10;
+        const RECONNECT_DELAY_BASE = 1000; // Start with 1 second
 
-        // Initialize stream
+        // Initialize stream with reconnection logic
         function initStream() {
             const stream = document.getElementById('stream');
             const loading = document.getElementById('loading');
             
-            stream.src = api.getStreamUrl();
+            // Clear any existing reconnect timer
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+            
+            // Force reload by adding timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            stream.src = api.getStreamUrl() + '?t=' + timestamp;
             
             stream.onload = () => {
+                const loadingText = document.getElementById('loading-text');
+                const manualReconnectBtn = document.getElementById('manual-reconnect');
+                
                 loading.style.display = 'none';
                 stream.style.display = 'block';
+                // Reset reconnect attempts on successful load
+                reconnectAttempts = 0;
+                
+                // Reset UI state
+                loadingText.textContent = 'Connecting to camera...';
+                manualReconnectBtn.style.display = 'none';
             };
             
             stream.onerror = () => {
-                loading.innerHTML = 'Failed to connect to camera stream';
+                handleStreamError();
             };
+        }
+        
+        // Handle stream errors with exponential backoff reconnection
+        function handleStreamError() {
+            const loading = document.getElementById('loading');
+            const loadingText = document.getElementById('loading-text');
+            const manualReconnectBtn = document.getElementById('manual-reconnect');
+            const stream = document.getElementById('stream');
+            
+            stream.style.display = 'none';
+            loading.style.display = 'block';
+            
+            if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+                reconnectAttempts++;
+                const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(2, reconnectAttempts - 1), 30000);
+                
+                loadingText.textContent = `Connection lost. Reconnecting (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`;
+                manualReconnectBtn.style.display = 'none';
+                
+                reconnectTimer = setTimeout(() => {
+                    console.log(`Reconnection attempt ${reconnectAttempts}`);
+                    initStream();
+                }, delay);
+            } else {
+                loadingText.textContent = 'Failed to connect to camera stream.';
+                manualReconnectBtn.style.display = 'inline-block';
+            }
+        }
+        
+        // Monitor stream health
+        function monitorStreamHealth() {
+            const stream = document.getElementById('stream');
+            
+            // Check if image is actually updating by monitoring naturalHeight
+            // If the image element loses its dimensions, it likely lost connection
+            setInterval(() => {
+                if (stream.style.display !== 'none' && stream.naturalHeight === 0) {
+                    console.log('Stream appears to be frozen, attempting reconnection');
+                    handleStreamError();
+                }
+            }, 5000); // Check every 5 seconds
         }
 
         // Toggle controls panel
@@ -184,9 +246,23 @@
             }
         }
         
+        // Handle page visibility changes (when app comes back to foreground)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                // Page is now visible, check stream health
+                const stream = document.getElementById('stream');
+                if (stream && (stream.naturalHeight === 0 || stream.style.display === 'none')) {
+                    console.log('App resumed, reinitializing stream');
+                    reconnectAttempts = 0; // Reset attempts when manually resuming
+                    initStream();
+                }
+            }
+        });
+        
         // Initialize on load
         window.addEventListener('DOMContentLoaded', async () => {
             initStream();
+            monitorStreamHealth();
             
             // Initialize camera controls
             cameraControls = new CameraControls(api, showStatus);
@@ -201,6 +277,12 @@
             document.getElementById('preset-low-light').addEventListener('click', () => applyPreset('low_light'));
             document.getElementById('preset-bright').addEventListener('click', () => applyPreset('bright'));
             document.getElementById('reset-all').addEventListener('click', resetControls);
+            
+            // Manual reconnect button
+            document.getElementById('manual-reconnect')?.addEventListener('click', () => {
+                reconnectAttempts = 0;
+                initStream();
+            });
             
             // Motion detection events
             document.getElementById('toggle-motion').addEventListener('click', toggleMotion);

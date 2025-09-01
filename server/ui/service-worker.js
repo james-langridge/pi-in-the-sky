@@ -2,7 +2,8 @@
 // No caching since the app requires network connectivity anyway
 
 self.addEventListener('install', event => {
-  // Immediately activate
+  // Immediately activate - but note this can cause issues
+  // when the PWA is resumed from background
   self.skipWaiting();
 });
 
