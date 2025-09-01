@@ -49,6 +49,7 @@
 
         .toggle-controls:hover {
             background: rgba(255, 255, 255, 0.95);
+            transform: translateX(-50%);
         }
 
         .toggle-controls svg {
