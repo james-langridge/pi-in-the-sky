@@ -314,7 +314,7 @@ class NotificationService:
                 ttl=86400  # 24 hours TTL required by Apple
             )
             logger.info(f"Test notification sent to {subscription.id}")
-            return True
+            return Result.success(True)
             
         except WebPushException as e:
             logger.error(f"Failed to send test notification: {e}")
