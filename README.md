@@ -5,7 +5,7 @@ Raspberry Pi camera streaming application with web interface.
 ## Components
 
 - **Server**: Flask-based Python server that interfaces with PiCamera2
-- **UI**: Single-file HTML interface for viewing the stream and controlling camera settings
+- **UI**: React + TypeScript + Tailwind CSS Progressive Web App for camera control
 
 ## Requirements
 
@@ -55,11 +55,13 @@ The setup script will:
 git clone https://github.com/jamesrobertsjr/pi-in-the-sky.git
 cd pi-in-the-sky
 
-# Install Node.js dependencies and build frontend
+# Build the React frontend
+cd ui
 npm install
 npm run build
+cd ..
 
-# Use existing virtual environment (already configured with system packages)
+# Set up Python environment
 cd server
 source venv/bin/activate
 
@@ -85,9 +87,11 @@ The server includes a mock camera mode for development on non-Pi systems:
 git clone https://github.com/james-langridge/pi-in-the-sky.git
 cd pi-in-the-sky
 
-# Build frontend
+# Build the React frontend
+cd ui
 npm install
 npm run build
+cd ..
 
 # Set up Python environment
 cd server
@@ -152,14 +156,16 @@ git pull
 ./deploy.sh
 
 # Or manually:
-npm install
+cd ui
+npm ci
 npm run build
-sudo systemctl restart pi-camera-stream
+cd ..
+sudo systemctl restart pi-camera-stream.service
 ```
 
 The deployment script will:
 1. Install/update npm dependencies
-2. Build the frontend with Vite
+2. Build the React frontend with Vite
 3. Restart the systemd service
 
 ### First-Time Production Setup
@@ -170,7 +176,13 @@ curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
-2. **Follow manual installation steps** (including `npm install` and `npm run build`)
+2. **Build the frontend:**
+```bash
+cd ui
+npm install
+npm run build
+cd ..
+```
 
 3. **Configure systemd service** as described in the Raspberry Pi Setup section
 
@@ -417,19 +429,26 @@ pi-in-the-sky/
 │   ├── calculations.py     # Image processing and motion detection
 │   ├── models.py          # Data models including motion events
 │   ├── config.py          # Configuration management
-│   ├── generate_vapid_keys.py # VAPID key generation utility (py-vapid)
-│   ├── vapid_private_key.pem # VAPID private key file (generated)
+│   ├── routes/            # Flask route blueprints
+│   │   ├── camera.py      # Camera control endpoints
+│   │   ├── motion.py      # Motion detection endpoints
+│   │   ├── push.py        # Push notification endpoints
+│   │   └── static.py      # Static file serving
+│   ├── generate_vapid_keys.py # VAPID key generation utility
 │   ├── requirements.txt   # Python dependencies
-│   ├── test_architecture.py # Architecture tests
-│   └── ui/                # PWA assets served by Flask
-│       ├── manifest.json  # PWA manifest
-│       └── service-worker.js # Service worker with push support
-└── ui/
-    ├── index.html         # Web interface with motion controls
-    └── js/
-        ├── api.js         # API client module
-        ├── controls.js    # UI control logic
-        └── motion.js      # Motion detection UI module
+│   └── test_architecture.py # Architecture tests
+└── ui/                    # React PWA frontend
+    ├── src/
+    │   ├── api/           # API client and hooks
+    │   ├── components/    # React components
+    │   │   ├── VideoStream.tsx
+    │   │   ├── ControlPanel.tsx
+    │   │   ├── CameraControls.tsx
+    │   │   └── MotionDetection.tsx
+    │   ├── types/         # TypeScript definitions
+    │   └── App.tsx        # Main application
+    ├── package.json       # Frontend dependencies
+    └── vite.config.ts     # Vite + PWA configuration
 ```
 
 ## Architecture
@@ -465,21 +484,51 @@ The server follows a layered architecture:
 
 ### UI
 
-Single HTML file containing:
-- Inline CSS styling
-- Vanilla JavaScript for API interaction
-- MJPEG stream display via img tag
-- Responsive control panel
+Modern React PWA with:
+- **React + TypeScript** for type-safe component architecture
+- **Tailwind CSS** for responsive, dark-themed design
+- **Vite** for fast builds and hot module replacement
+- **PWA Support** with service worker and offline capabilities
+- **Real-time streaming** with automatic reconnection
+- **Touch-optimized** controls for mobile devices
 
 #### Keyboard Shortcuts
 - **Space** - Toggle control panel
 - **Escape** - Close control panel
 
 #### Browser Compatibility
-Works in all modern browsers that support:
-- ES6 JavaScript (async/await)
-- CSS Flexbox
-- MJPEG streams via img tag
+Works in all modern browsers:
+- Chrome/Edge 90+
+- Safari 14+ (iOS 14+)
+- Firefox 88+
+- Full iOS PWA support (no module loading issues)
+
+## Frontend Development
+
+The UI is a modern React application with TypeScript and Tailwind CSS:
+
+```bash
+cd ui
+
+# Install dependencies
+npm install
+
+# Start development server (proxies to backend on port 8080)
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+```
+
+### Key Features
+- **VideoStream Component**: MJPEG streaming with auto-reconnection
+- **ControlPanel**: Tabbed interface for presets, controls, and motion detection
+- **CameraControls**: Dynamic control generation from API
+- **MotionDetection**: Push notification management and event display
+- **PWA Support**: Installable on iOS/Android with offline capabilities
 
 ## Testing
 
