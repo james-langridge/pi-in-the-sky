@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -439,6 +439,7 @@ async function testNotification() {
 }
 
 // Service Worker registration with update handling
+let newWorker;
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
         console.log('Service Workers not supported');
@@ -454,12 +455,12 @@ async function registerServiceWorker() {
 
         // Check for updates
         registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
+            newWorker = registration.installing;
             newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New service worker available
-                    console.log('New service worker available, refresh to update');
-                    showStatus('App update available - refresh to update');
+                    // New service worker available - show persistent notification
+                    console.log('New service worker available');
+                    showUpdateNotification();
                 }
             });
         });
@@ -468,10 +469,34 @@ async function registerServiceWorker() {
         setInterval(() => {
             registration.update();
         }, 60000); // Check every minute
+        
+        // Listen for controller change and reload
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('Service worker controller changed, reloading');
+            window.location.reload();
+        });
 
     } catch (error) {
         console.error('ServiceWorker registration failed:', error);
     }
+}
+
+// Show persistent update notification
+function showUpdateNotification() {
+    const notification = document.getElementById('update-notification');
+    if (notification) {
+        notification.style.display = 'block';
+    }
+}
+
+// Handle update button click
+function handleUpdate() {
+    if (newWorker) {
+        // Tell the new service worker to skip waiting
+        newWorker.postMessage({ type: 'SKIP_WAITING' });
+    }
+    // Reload the page
+    window.location.reload();
 }
 
 // Initialize app
@@ -539,6 +564,9 @@ function setupEventListeners() {
     document.getElementById('preset-low-light')?.addEventListener('click', () => applyPreset('low_light'));
     document.getElementById('preset-bright')?.addEventListener('click', () => applyPreset('bright'));
     document.getElementById('reset-all')?.addEventListener('click', resetControls);
+    
+    // Update notification button
+    document.getElementById('update-button')?.addEventListener('click', handleUpdate);
 
     // Manual reconnect
     document.getElementById('manual-reconnect')?.addEventListener('click', () => {
