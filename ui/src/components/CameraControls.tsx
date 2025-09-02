@@ -107,9 +107,9 @@ export function CameraControls() {
               className="w-full px-3 py-2 bg-gray-700 text-gray-200 rounded-lg border border-gray-600 
                        focus:border-blue-500 focus:outline-none"
             >
-              {control.options?.map((option: string) => (
-                <option key={option} value={option}>
-                  {option}
+              {control.options && Object.entries(control.options).map(([optionValue, optionLabel]) => (
+                <option key={optionValue} value={optionValue}>
+                  {String(optionLabel)}
                 </option>
               ))}
             </select>

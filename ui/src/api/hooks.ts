@@ -6,7 +6,8 @@ import type {
   MotionConfig,
   MotionEvent,
   AppInfo,
-  CameraPreset
+  CameraPreset,
+  CameraControl
 } from '../types';
 
 // Generic hook for API calls with loading and error states
@@ -94,7 +95,7 @@ export function useCameraPresets() {
 
 // Camera controls hook
 export function useCameraControls() {
-  const [controlsByCategory, setControlsByCategory] = useState<Record<string, any[]>>({});
+  const [controlsByCategory, setControlsByCategory] = useState<Record<string, CameraControl[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

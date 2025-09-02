@@ -7,7 +7,8 @@ import type {
   MotionEvent,
   PushSubscription,
   AppInfo,
-  CameraPreset
+  CameraPreset,
+  CameraControl
 } from '../types';
 
 export class CameraAPI {
@@ -55,8 +56,8 @@ export class CameraAPI {
   }
 
   // Camera Controls
-  async getControls(): Promise<Record<string, any[]>> {
-    return this.fetchJSON<Record<string, any[]>>('/controls');
+  async getControls(): Promise<Record<string, CameraControl[]>> {
+    return this.fetchJSON<Record<string, CameraControl[]>>('/controls');
   }
 
   async updateControl(controlName: string, value: number | boolean | string): Promise<ApiResponse> {

@@ -24,14 +24,15 @@ export interface PresetResponse {
 }
 
 export interface CameraControl {
-  id: string;
   name: string;
-  type: 'slider' | 'switch' | 'select';
-  value: number | boolean | string;
+  display_name: string;
+  type: 'slider' | 'toggle' | 'select';
+  default: number | boolean | string;
   min?: number;
   max?: number;
   step?: number;
-  options?: string[];
+  unit?: string;
+  options?: Record<string, string>;  // Object mapping values to labels
   category: string;
 }
 
