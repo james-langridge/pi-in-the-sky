@@ -95,33 +95,40 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+            position: relative;
+            z-index: 1; /* Ensure stream doesn't cover button */
         }
 
-        /* Controls toggle button - Positioned away from iOS gesture zones */
+        /* Controls toggle button - High z-index and simplified positioning */
         .toggle-controls {
             position: absolute;
-            bottom: 60px; /* MOVED UP to avoid iOS home gesture zone! */
-            bottom: calc(env(safe-area-inset-bottom) + 60px); /* Respect safe areas on newer iPhones */
+            bottom: 60px;
             left: 0;
             right: 0;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.9);
             border: 2px solid rgba(255, 255, 255, 1);
             border-radius: 50%;
-            width: 50px; /* Bigger touch target */
+            width: 50px;
             height: 50px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background 0.3s;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); /* More visible */
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 9999; /* Maximum z-index to ensure it's on top */
             -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation; /* Prevent delay */
+            touch-action: manipulation;
         }
 
         .toggle-controls:hover {
             background: rgba(255, 255, 255, 0.95);
+        }
+        
+        .toggle-controls:active {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(0.95);
         }
 
         .toggle-controls svg {

@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.0.5';
+const APP_VERSION = '1.0.6';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -455,12 +455,21 @@ async function registerServiceWorker() {
 
         // Check for updates
         registration.addEventListener('updatefound', () => {
+            console.log('Update found!');
             newWorker = registration.installing;
+            console.log('Installing worker:', newWorker);
+            
             newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New service worker available - show persistent notification
-                    console.log('New service worker available');
-                    showUpdateNotification();
+                console.log('Worker state changed to:', newWorker.state);
+                if (newWorker.state === 'installed') {
+                    if (navigator.serviceWorker.controller) {
+                        // New service worker available - show persistent notification
+                        console.log('New service worker installed and ready');
+                        showUpdateNotification();
+                    } else {
+                        // First install
+                        console.log('Service worker installed for the first time');
+                    }
                 }
             });
         });
@@ -558,8 +567,51 @@ function setupEventListeners() {
         saveState();
     });
 
-    // Control button - SIMPLE single event handler
-    document.getElementById('toggleBtn')?.addEventListener('click', toggleControls);
+    // Control button - Add debugging for PWA issue
+    const toggleBtn = document.getElementById('toggleBtn');
+    if (toggleBtn) {
+        console.log('Toggle button found in DOM');
+        
+        // Try ALL event types to see what fires in PWA
+        toggleBtn.addEventListener('click', (e) => {
+            console.log('CLICK fired', e);
+            toggleControls();
+        });
+        
+        toggleBtn.addEventListener('touchstart', (e) => {
+            console.log('TOUCHSTART fired', e);
+        }, { passive: true });
+        
+        toggleBtn.addEventListener('touchend', (e) => {
+            console.log('TOUCHEND fired', e);
+            e.preventDefault();
+            toggleControls();
+        }, { passive: false });
+        
+        toggleBtn.addEventListener('pointerdown', (e) => {
+            console.log('POINTERDOWN fired', e);
+        });
+        
+        // Check computed styles
+        const styles = window.getComputedStyle(toggleBtn);
+        console.log('Button computed styles:', {
+            position: styles.position,
+            zIndex: styles.zIndex,
+            pointerEvents: styles.pointerEvents,
+            display: styles.display,
+            visibility: styles.visibility,
+            opacity: styles.opacity
+        });
+        
+        // Check if anything is on top
+        toggleBtn.addEventListener('click', function(e) {
+            const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
+            console.log('Element at click point:', elementAtPoint);
+            console.log('Is it the button?', elementAtPoint === toggleBtn);
+        });
+    } else {
+        console.error('Toggle button NOT found in DOM!');
+    }
     document.getElementById('preset-default')?.addEventListener('click', () => applyPreset('default'));
     document.getElementById('preset-low-light')?.addEventListener('click', () => applyPreset('low_light'));
     document.getElementById('preset-bright')?.addEventListener('click', () => applyPreset('bright'));
