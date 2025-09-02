@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.0.7';
+const APP_VERSION = '1.0.8';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -513,13 +513,13 @@ async function initializeApp() {
     console.log('Initializing app version', APP_VERSION);
     
     // Display version with build time for debugging
-    const versionDisplay = document.getElementById('version-display');
-    if (versionDisplay) {
+    const versionText = document.getElementById('version-text');
+    if (versionText) {
         const buildTime = new Date().toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit' 
         });
-        versionDisplay.textContent = `v${APP_VERSION} (${buildTime})`;
+        versionText.textContent = `v${APP_VERSION} (${buildTime})`;
     }
 
     // Restore any saved state
@@ -619,6 +619,12 @@ function setupEventListeners() {
     
     // Update notification button
     document.getElementById('update-button')?.addEventListener('click', handleUpdate);
+    
+    // Refresh button
+    document.getElementById('refresh-btn')?.addEventListener('click', () => {
+        console.log('Manual refresh requested');
+        window.location.reload(true); // Force reload from server
+    });
 
     // Manual reconnect
     document.getElementById('manual-reconnect')?.addEventListener('click', () => {

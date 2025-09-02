@@ -17,7 +17,34 @@
             font-size: 12px;
             font-family: monospace;
             z-index: 10000;
-            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #10b981;
+            cursor: pointer;
+            padding: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            transform: rotate(180deg);
+        }
+        
+        .refresh-btn:active {
+            transform: rotate(180deg) scale(0.9);
+        }
+        
+        .refresh-btn svg {
+            width: 14px;
+            height: 14px;
         }
         
         /* Update notification */
