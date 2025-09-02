@@ -34,7 +34,7 @@ export default defineConfig({
     srcDir: 'public',
     filename: 'sw.js',
     registerType: 'autoUpdate',
-    injectRegister: false,
+    injectRegister: 'auto',
 
     pwaAssets: {
       disabled: false,

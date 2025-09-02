@@ -3,18 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-// Register service worker for PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('ServiceWorker registration successful:', registration);
-      })
-      .catch(err => {
-        console.log('ServiceWorker registration failed:', err);
-      });
-  });
-}
+// VitePWA handles service worker registration with auto-update
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

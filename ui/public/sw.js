@@ -2,6 +2,8 @@ import { clientsClaim } from 'workbox-core';
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
 import { createHandlerBoundToURL } from 'workbox-precaching';
+import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 // Take control of all pages immediately
 clientsClaim();
@@ -15,12 +17,41 @@ cleanupOutdatedCaches();
 // Handle navigation requests
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
 
-// Skip waiting when requested
+// Cache API calls with Network First strategy (network優先, fallback to cache)
+registerRoute(
+  ({ url }) => url.pathname.startsWith('/api/'),
+  new NetworkFirst({
+    cacheName: 'api-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 50,
+        maxAgeSeconds: 5 * 60, // 5 minutes
+      }),
+    ],
+  })
+);
+
+// Cache images with Stale While Revalidate strategy
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new StaleWhileRevalidate({
+    cacheName: 'image-cache',
+    plugins: [
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+      }),
+    ],
+  })
+);
+
+// Skip waiting when requested (for auto-update)
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
+
 
 // Push notification handling - matching the old implementation
 self.addEventListener('push', event => {
