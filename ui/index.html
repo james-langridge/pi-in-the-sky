@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-    <!-- Version display for debugging -->
+    <!-- Version display -->
     <div class="version-display" id="version-display">
         <span id="version-text">v0.0.0</span>
         <button class="refresh-btn" id="refresh-btn" title="Refresh app">
@@ -31,17 +31,6 @@
                 <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
             </svg>
         </button>
-    </div>
-    
-    <!-- Big test button for iOS PWA debugging -->
-    <div class="test-button-container" id="test-button-container">
-        <button class="test-button" id="test-button" onclick="window.testButtonClick()">
-            TEST BUTTON
-        </button>
-        <span class="test-counter" id="test-counter">0</span>
-        <div style="margin-top: 10px; color: red; font-size: 14px;">
-            JS Status: <span id="js-status">NOT RUNNING</span>
-        </div>
     </div>
     
     <!-- Update notification -->
@@ -110,10 +99,18 @@
 
     <div class="status" id="status"></div>
 
-    <!-- Non-module script for iOS PWA compatibility -->
-    <script src="/app-compat.js"></script>
+    <!-- Conditional loading for iOS PWA compatibility -->
+    <script>
+        // Only load compat mode for iOS PWA (standalone mode)
+        if (window.navigator.standalone === true || 
+            window.matchMedia('(display-mode: standalone)').matches) {
+            var script = document.createElement('script');
+            script.src = '/app-compat.js';
+            document.head.appendChild(script);
+        }
+    </script>
     
-    <!-- External JavaScript modules (may not work in iOS PWA) -->
+    <!-- External JavaScript modules -->
     <script type="module" src="/app.js"></script>
     <!-- Prevent iOS from killing the app -->
     <script>

@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.1.3';
+const APP_VERSION = '1.1.5';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -527,20 +527,10 @@ function handleUpdate() {
 async function initializeApp() {
     console.log('Initializing app version', APP_VERSION);
     
-    // CRITICAL: Add visual indicator that JS is running
-    document.body.style.borderTop = '5px solid green';
-    
-    // Display version with build time for debugging
+    // Display version
     const versionText = document.getElementById('version-text');
     if (versionText) {
-        const buildTime = new Date().toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-        versionText.textContent = `v${APP_VERSION} (${buildTime})`;
-        
-        // Visual confirmation JS is working
-        versionText.style.color = '#00ff00';
+        versionText.textContent = `v${APP_VERSION}`;
     }
 
     // Restore any saved state
@@ -588,51 +578,8 @@ function setupEventListeners() {
         saveState();
     });
 
-    // Control button - Add debugging for PWA issue
-    const toggleBtn = document.getElementById('toggleBtn');
-    if (toggleBtn) {
-        console.log('Toggle button found in DOM');
-        
-        // Try ALL event types to see what fires in PWA
-        toggleBtn.addEventListener('click', (e) => {
-            console.log('CLICK fired', e);
-            toggleControls();
-        });
-        
-        toggleBtn.addEventListener('touchstart', (e) => {
-            console.log('TOUCHSTART fired', e);
-        }, { passive: true });
-        
-        toggleBtn.addEventListener('touchend', (e) => {
-            console.log('TOUCHEND fired', e);
-            e.preventDefault();
-            toggleControls();
-        }, { passive: false });
-        
-        toggleBtn.addEventListener('pointerdown', (e) => {
-            console.log('POINTERDOWN fired', e);
-        });
-        
-        // Check computed styles
-        const styles = window.getComputedStyle(toggleBtn);
-        console.log('Button computed styles:', {
-            position: styles.position,
-            zIndex: styles.zIndex,
-            pointerEvents: styles.pointerEvents,
-            display: styles.display,
-            visibility: styles.visibility,
-            opacity: styles.opacity
-        });
-        
-        // Check if anything is on top
-        toggleBtn.addEventListener('click', function(e) {
-            const elementAtPoint = document.elementFromPoint(e.clientX, e.clientY);
-            console.log('Element at click point:', elementAtPoint);
-            console.log('Is it the button?', elementAtPoint === toggleBtn);
-        });
-    } else {
-        console.error('Toggle button NOT found in DOM!');
-    }
+    // Control buttons
+    document.getElementById('toggleBtn')?.addEventListener('click', toggleControls);
     document.getElementById('preset-default')?.addEventListener('click', () => applyPreset('default'));
     document.getElementById('preset-low-light')?.addEventListener('click', () => applyPreset('low_light'));
     document.getElementById('preset-bright')?.addEventListener('click', () => applyPreset('bright'));
@@ -646,50 +593,6 @@ function setupEventListeners() {
         console.log('Manual refresh requested');
         window.location.reload(true); // Force reload from server
     });
-    
-    // Test button for iOS PWA debugging
-    let testCounter = 0;
-    const testButton = document.getElementById('test-button');
-    const testCounterEl = document.getElementById('test-counter');
-    const jsStatus = document.getElementById('js-status');
-    
-    // Update JS status indicator
-    if (jsStatus) {
-        jsStatus.textContent = 'RUNNING';
-        jsStatus.style.color = 'green';
-    }
-    
-    // Global function for inline onclick
-    window.testButtonClick = function() {
-        console.log('INLINE ONCLICK FIRED!');
-        testCounter++;
-        if (testCounterEl) testCounterEl.textContent = testCounter;
-        alert('Button clicked! Count: ' + testCounter);
-    };
-    
-    if (testButton) {
-        console.log('Test button found, adding handlers');
-        
-        // Remove touch-action which might be causing issues
-        testButton.style.touchAction = 'auto';
-        
-        // Try multiple event types
-        testButton.addEventListener('click', (e) => {
-            console.log('TEST BUTTON: click event fired');
-            testCounter++;
-            if (testCounterEl) testCounterEl.textContent = testCounter;
-        });
-        
-        testButton.addEventListener('touchstart', (e) => {
-            console.log('TEST BUTTON: touchstart event fired');
-        }, { passive: true });
-        
-        testButton.addEventListener('touchend', (e) => {
-            console.log('TEST BUTTON: touchend event fired');
-            testCounter++;
-            if (testCounterEl) testCounterEl.textContent = testCounter;
-        }, { passive: true });
-    }
 
     // Manual reconnect
     document.getElementById('manual-reconnect')?.addEventListener('click', () => {
