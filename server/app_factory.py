@@ -2,7 +2,7 @@
 
 import logging
 import os
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 from config import AppConfig
 from services import CameraService, StreamingService, ControlManager
@@ -139,6 +139,12 @@ def create_app(config: AppConfig) -> Flask:
     app.register_blueprint(motion_bp)
     app.register_blueprint(push_bp)
     app.register_blueprint(static_bp)
+    
+    # Serve app-compat.js for iOS PWA compatibility
+    @app.route('/app-compat.js')
+    def serve_app_compat():
+        """Serve the iOS PWA compatibility script."""
+        return send_file('../ui/app-compat.js', mimetype='application/javascript')
 
     @app.after_request
     def add_smart_caching(response):

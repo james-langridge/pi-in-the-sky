@@ -110,24 +110,10 @@
 
     <div class="status" id="status"></div>
 
-    <!-- Test if inline script works in PWA -->
-    <script>
-        console.log('INLINE SCRIPT RUNNING');
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM READY - INLINE SCRIPT');
-            // Simple test without modules
-            var simpleButton = document.getElementById('test-button');
-            if (simpleButton) {
-                console.log('Found button in inline script');
-                simpleButton.addEventListener('click', function() {
-                    console.log('SIMPLE CLICK FROM INLINE SCRIPT!');
-                    alert('Inline script click worked!');
-                });
-            }
-        });
-    </script>
+    <!-- Non-module script for iOS PWA compatibility -->
+    <script src="/app-compat.js"></script>
     
-    <!-- External JavaScript modules -->
+    <!-- External JavaScript modules (may not work in iOS PWA) -->
     <script type="module" src="/app.js"></script>
     <!-- Prevent iOS from killing the app -->
     <script>
