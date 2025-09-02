@@ -5,7 +5,8 @@ import { createHandlerBoundToURL } from 'workbox-precaching';
 import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 
-// Take control of all pages immediately
+// Auto-update behavior - immediately activate and take control
+self.skipWaiting();
 clientsClaim();
 
 // Precache all assets
@@ -45,7 +46,7 @@ registerRoute(
   })
 );
 
-// Skip waiting when requested (for auto-update)
+// Handle skip waiting message (for manual update if needed)
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -56,7 +57,7 @@ self.addEventListener('message', (event) => {
 // Push notification handling - matching the old implementation
 self.addEventListener('push', event => {
   console.log('[ServiceWorker] Push notification received', event);
-  
+
   const options = {
     body: 'Motion detected!',
     icon: '/pwa-192x192.png',
