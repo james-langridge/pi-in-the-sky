@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.1.2';
+const APP_VERSION = '1.1.3';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -527,6 +527,9 @@ function handleUpdate() {
 async function initializeApp() {
     console.log('Initializing app version', APP_VERSION);
     
+    // CRITICAL: Add visual indicator that JS is running
+    document.body.style.borderTop = '5px solid green';
+    
     // Display version with build time for debugging
     const versionText = document.getElementById('version-text');
     if (versionText) {
@@ -535,6 +538,9 @@ async function initializeApp() {
             minute: '2-digit' 
         });
         versionText.textContent = `v${APP_VERSION} (${buildTime})`;
+        
+        // Visual confirmation JS is working
+        versionText.style.color = '#00ff00';
     }
 
     // Restore any saved state
@@ -645,9 +651,27 @@ function setupEventListeners() {
     let testCounter = 0;
     const testButton = document.getElementById('test-button');
     const testCounterEl = document.getElementById('test-counter');
+    const jsStatus = document.getElementById('js-status');
+    
+    // Update JS status indicator
+    if (jsStatus) {
+        jsStatus.textContent = 'RUNNING';
+        jsStatus.style.color = 'green';
+    }
+    
+    // Global function for inline onclick
+    window.testButtonClick = function() {
+        console.log('INLINE ONCLICK FIRED!');
+        testCounter++;
+        if (testCounterEl) testCounterEl.textContent = testCounter;
+        alert('Button clicked! Count: ' + testCounter);
+    };
     
     if (testButton) {
         console.log('Test button found, adding handlers');
+        
+        // Remove touch-action which might be causing issues
+        testButton.style.touchAction = 'auto';
         
         // Try multiple event types
         testButton.addEventListener('click', (e) => {
@@ -658,25 +682,13 @@ function setupEventListeners() {
         
         testButton.addEventListener('touchstart', (e) => {
             console.log('TEST BUTTON: touchstart event fired');
-        });
+        }, { passive: true });
         
         testButton.addEventListener('touchend', (e) => {
             console.log('TEST BUTTON: touchend event fired');
-            e.preventDefault();
             testCounter++;
             if (testCounterEl) testCounterEl.textContent = testCounter;
-        }, { passive: false });
-        
-        testButton.addEventListener('pointerdown', (e) => {
-            console.log('TEST BUTTON: pointerdown event fired');
-        });
-        
-        // Also try onclick attribute
-        testButton.onclick = function() {
-            console.log('TEST BUTTON: onclick attribute fired');
-            testCounter++;
-            if (testCounterEl) testCounterEl.textContent = testCounter;
-        };
+        }, { passive: true });
     }
 
     // Manual reconnect

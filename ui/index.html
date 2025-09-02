@@ -35,10 +35,13 @@
     
     <!-- Big test button for iOS PWA debugging -->
     <div class="test-button-container" id="test-button-container">
-        <button class="test-button" id="test-button">
+        <button class="test-button" id="test-button" onclick="window.testButtonClick()">
             TEST BUTTON
         </button>
         <span class="test-counter" id="test-counter">0</span>
+        <div style="margin-top: 10px; color: red; font-size: 14px;">
+            JS Status: <span id="js-status">NOT RUNNING</span>
+        </div>
     </div>
     
     <!-- Update notification -->
@@ -107,6 +110,23 @@
 
     <div class="status" id="status"></div>
 
+    <!-- Test if inline script works in PWA -->
+    <script>
+        console.log('INLINE SCRIPT RUNNING');
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM READY - INLINE SCRIPT');
+            // Simple test without modules
+            var simpleButton = document.getElementById('test-button');
+            if (simpleButton) {
+                console.log('Found button in inline script');
+                simpleButton.addEventListener('click', function() {
+                    console.log('SIMPLE CLICK FROM INLINE SCRIPT!');
+                    alert('Inline script click worked!');
+                });
+            }
+        });
+    </script>
+    
     <!-- External JavaScript modules -->
     <script type="module" src="/app.js"></script>
     <!-- Prevent iOS from killing the app -->
