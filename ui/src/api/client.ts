@@ -88,9 +88,29 @@ export class CameraAPI {
   }
 
   // Push Notifications
-  async getVapidKey(): Promise<string> {
+  async getVapidKey(): Promise<Uint8Array> {
     const response = await fetch(`${this.baseUrl}/api/push/vapid-key`);
-    return response.text();
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    // Convert base64 string to Uint8Array for applicationServerKey
+    return this.base64ToUint8Array(data.publicKey);
+  }
+
+  private base64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+    
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
   }
 
   async subscribeToPush(subscription: PushSubscription): Promise<ApiResponse> {
