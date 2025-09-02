@@ -210,13 +210,13 @@ def set_control(control_name):
             "message": "No value specified"
         }), 400
 
-    result = control_manager.set_control_value(control_name, value)
+    result = control_manager.update_control(control_name, value)
 
     if result["success"]:
         return jsonify({
             "status": "success",
             "message": result.get("message", "Control updated"),
-            "actual_value": result.get("actual_value", value)
+            "actual_value": result.get("value", value)
         })
     else:
         return jsonify({

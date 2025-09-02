@@ -4,6 +4,7 @@ CLAUDE.md
 .env
 *.db
 server/vapid_private_key.pem
+server/vapid_private.pem
 server/private_key.pem
 server/public_key.pem
 server/ssl/
