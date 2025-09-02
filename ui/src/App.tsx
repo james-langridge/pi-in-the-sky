@@ -128,33 +128,24 @@ function App() {
         </div>
       )}
 
-      {/* Status indicators */}
+      {/* Unified status indicator */}
       <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
-        {/* Server health */}
+        {/* Connection status */}
         <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
-          isHealthy ? 'bg-green-500/20' : 'bg-red-500/20'
+          !isHealthy ? 'bg-red-500/20' : 
+          streamConnected ? 'bg-green-500/20' : 'bg-yellow-500/20'
         }`}>
           <div className={`w-2 h-2 rounded-full ${
-            isHealthy ? 'bg-green-500' : 'bg-red-500'
+            !isHealthy ? 'bg-red-500' : 
+            streamConnected ? 'bg-green-500' : 'bg-yellow-500'
           } animate-pulse`}></div>
           <span className="text-xs text-white">
-            Server {isHealthy ? 'Online' : 'Offline'}
+            {!isHealthy ? 'Server Offline' : 
+             streamConnected ? 'Connected' : 'Connecting...'}
           </span>
         </div>
         
-        {/* Stream connection */}
-        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
-          streamConnected ? 'bg-blue-500/20' : 'bg-yellow-500/20'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${
-            streamConnected ? 'bg-blue-500' : 'bg-yellow-500'
-          } animate-pulse`}></div>
-          <span className="text-xs text-white">
-            Stream {streamConnected ? 'Connected' : 'Connecting'}
-          </span>
-        </div>
-        
-        {/* Frame timestamp */}
+        {/* Frame timestamp - always show when available */}
         {streamTimestamp && (
           <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-gray-700/50">
             <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
