@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.0.1';
+const APP_VERSION = '1.0.2';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -533,7 +533,7 @@ function setupEventListeners() {
         saveState();
     });
 
-    // Control buttons - add both click and touchend for iOS PWA compatibility
+    // Control buttons - comprehensive event handling for iOS PWA
     const toggleBtn = document.getElementById('toggleBtn');
     if (toggleBtn) {
         // Debug: Check if we're in standalone mode
@@ -541,17 +541,30 @@ function setupEventListeners() {
                             window.navigator.standalone || 
                             document.referrer.includes('android-app://');
         
-        if (isStandalone) {
-            console.log('Running in PWA standalone mode');
-            // For PWA, use touchstart with preventDefault
-            toggleBtn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleControls();
-            }, { passive: false });
-        } else {
-            console.log('Running in browser mode');
-            toggleBtn.addEventListener('click', toggleControls);
+        console.log('Running in', isStandalone ? 'PWA standalone' : 'browser', 'mode');
+        
+        // Add multiple event handlers to ensure it works
+        toggleBtn.addEventListener('click', (e) => {
+            console.log('Click event fired');
+            toggleControls();
+        });
+        
+        toggleBtn.addEventListener('touchend', (e) => {
+            console.log('Touchend event fired');
+            e.preventDefault();
+            toggleControls();
+        }, { passive: false });
+        
+        // Also add to parent wrapper as fallback
+        const wrapper = document.querySelector('.toggle-wrapper');
+        if (wrapper) {
+            wrapper.style.pointerEvents = 'auto'; // Override CSS
+            wrapper.addEventListener('click', (e) => {
+                console.log('Wrapper click event fired');
+                if (e.target.closest('.toggle-controls')) {
+                    toggleControls();
+                }
+            });
         }
     }
     document.getElementById('preset-default')?.addEventListener('click', () => applyPreset('default'));

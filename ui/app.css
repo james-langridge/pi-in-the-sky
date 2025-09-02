@@ -44,11 +44,21 @@
             object-fit: contain;
         }
 
+        /* Toggle button wrapper */
+        .toggle-wrapper {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            pointer-events: none; /* Let events pass through except button */
+            z-index: 9999;
+        }
+        
         /* Controls toggle button */
         .toggle-controls {
-            position: fixed; /* Use fixed positioning for better iOS PWA support */
-            bottom: 20px;
-            left: calc(50% - 22px); /* Center without transform (44px / 2) */
+            position: relative; /* Relative since wrapper handles positioning */
             background: rgba(255, 255, 255, 0.9); /* More opaque for visibility */
             border: 2px solid rgba(255, 255, 255, 1); /* Add border for better visibility */
             border-radius: 50%;
@@ -59,10 +69,9 @@
             align-items: center;
             justify-content: center;
             transition: background 0.3s;
-            z-index: 9999; /* Maximum z-index */
             -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
             touch-action: manipulation; /* Improve touch responsiveness */
-            pointer-events: auto; /* Ensure pointer events work */
+            pointer-events: auto; /* Enable pointer events on button itself */
             -webkit-user-select: none; /* Prevent selection */
             user-select: none;
         }
