@@ -7,13 +7,12 @@ import './App.css';
 
 function App() {
   const [controlsOpen, setControlsOpen] = useState(false);
-  const [streamConnected, setStreamConnected] = useState(false);
   const { isHealthy } = useHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
 
   // Keep-alive mechanism for iOS PWA
   useEffect(() => {
-    let keepAliveInterval: NodeJS.Timeout;
+    let keepAliveInterval: number;
 
     const startKeepAlive = () => {
       keepAliveInterval = setInterval(() => {
@@ -113,7 +112,7 @@ function App() {
       </div>
 
       {/* Main video stream */}
-      <VideoStream onStreamStatusChange={setStreamConnected} />
+      <VideoStream onStreamStatusChange={() => {}} />
 
       {/* Control panel */}
       <ControlPanel

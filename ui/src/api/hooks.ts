@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from './client';
 import type {
   HealthResponse,
-  PresetResponse,
   CameraControl,
   MotionStatus,
   MotionConfig,

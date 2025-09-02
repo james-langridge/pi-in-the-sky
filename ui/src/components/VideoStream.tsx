@@ -10,7 +10,7 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
         const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
         setError(`Connection lost. Retrying in ${delay / 1000}s...`);
         
-        reconnectTimeoutRef.current = setTimeout(() => {
+        reconnectTimeoutRef.current = window.setTimeout(() => {
           reconnectAttemptsRef.current++;
           img.src = streamUrl + '?t=' + Date.now(); // Add timestamp to force reload
         }, delay);
