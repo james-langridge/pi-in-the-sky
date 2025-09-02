@@ -44,7 +44,7 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch event - network first for API, cache first for assets
+// Fetch event - network first for critical resources
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -56,7 +56,32 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Cache-first strategy for app shell
+  // Network-first strategy for CSS/JS files to ensure updates are applied
+  if (url.pathname.endsWith('.css') || url.pathname.endsWith('.js')) {
+    event.respondWith(
+        fetch(event.request)
+            .then(fetchResponse => {
+              // Clone the response as it can only be consumed once
+              const responseToCache = fetchResponse.clone();
+              
+              // Update cache with new version
+              if (fetchResponse.status === 200) {
+                caches.open(CACHE_NAME).then(cache => {
+                  cache.put(event.request, responseToCache);
+                });
+              }
+              
+              return fetchResponse;
+            })
+            .catch(() => {
+              // Fall back to cache if network fails
+              return caches.match(event.request);
+            })
+    );
+    return;
+  }
+
+  // Cache-first strategy for other assets (manifest, icons)
   event.respondWith(
       caches.match(event.request)
           .then(response => {
