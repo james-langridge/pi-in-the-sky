@@ -290,7 +290,7 @@ class NotificationService:
         
         if not subscription:
             logger.error(f"No subscription found for endpoint: {endpoint}")
-            return False
+            return Result.failure(f"No subscription found for endpoint: {endpoint}")
         
         payload = json.dumps({
             "title": "Test Notification",
