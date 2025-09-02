@@ -55,6 +55,10 @@ The setup script will:
 git clone https://github.com/jamesrobertsjr/pi-in-the-sky.git
 cd pi-in-the-sky
 
+# Install Node.js dependencies and build frontend
+npm install
+npm run build
+
 # Use existing virtual environment (already configured with system packages)
 cd server
 source venv/bin/activate
@@ -79,9 +83,14 @@ The server includes a mock camera mode for development on non-Pi systems:
 ```bash
 # Clone repository
 git clone https://github.com/james-langridge/pi-in-the-sky.git
-cd pi-in-the-sky/server
+cd pi-in-the-sky
 
-# Create virtual environment
+# Build frontend
+npm install
+npm run build
+
+# Set up Python environment
+cd server
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
@@ -127,6 +136,43 @@ pip install -r requirements.txt
 # If running as a systemd service, restart it:
 sudo systemctl restart pi-camera-stream.service
 ```
+
+## Deployment
+
+### Production Deployment (After Updates)
+
+When deploying updates to the Raspberry Pi:
+
+```bash
+# On the Pi, pull latest code
+cd ~/pi-in-the-sky
+git pull
+
+# Run the deployment script
+./deploy.sh
+
+# Or manually:
+npm install
+npm run build
+sudo systemctl restart pi-camera-stream
+```
+
+The deployment script will:
+1. Install/update npm dependencies
+2. Build the frontend with Vite
+3. Restart the systemd service
+
+### First-Time Production Setup
+
+1. **Install Node.js on Raspberry Pi:**
+```bash
+curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+2. **Follow manual installation steps** (including `npm install` and `npm run build`)
+
+3. **Configure systemd service** as described in the Raspberry Pi Setup section
 
 ## Configuration
 
