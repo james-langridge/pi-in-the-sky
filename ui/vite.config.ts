@@ -30,6 +30,9 @@ export default defineConfig({
     }
   },
   plugins: [react(), tailwindcss(), VitePWA({
+    strategies: 'injectManifest',
+    srcDir: 'public',
+    filename: 'sw.js',
     registerType: 'autoUpdate',
     injectRegister: false,
 
@@ -37,7 +40,6 @@ export default defineConfig({
       disabled: false,
       config: true,
     },
-
     manifest: {
       name: 'Pi Camera Stream',
       short_name: 'PiCam',
@@ -60,12 +62,6 @@ export default defineConfig({
           type: 'image/png'
         }
       ]
-    },
-
-    workbox: {
-      globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
-      cleanupOutdatedCaches: true,
-      clientsClaim: true,
     },
 
     devOptions: {
