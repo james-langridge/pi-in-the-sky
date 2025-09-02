@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.1.0';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -116,8 +116,10 @@ function initStream(forceReconnect = false) {
         // Set the new source
         stream.src = newSrc;
     } else if (stream.complete && stream.naturalHeight > 0) {
-        // Stream appears to be working
-        handleStreamLoad();
+        // Stream appears to be working - only call handleStreamLoad if not already connected
+        if (!AppState.streamConnected) {
+            handleStreamLoad();
+        }
     } else {
         // Stream source is same but not working, force refresh
         stream.src = newSrc;
