@@ -2,6 +2,11 @@ import { CameraAPI } from './js/api.js';
 import { CameraControls } from './js/controls.js';
 import { motionDetection } from './js/motion.js';
 
+// App version - INCREMENT THIS WHEN MAKING CHANGES
+// Also update version in service-worker.js to force SW update
+// Format: major.minor.patch (e.g., 1.0.1)
+const APP_VERSION = '1.0.1';
+
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
     ? 'http://localhost:8080'
@@ -471,7 +476,17 @@ async function registerServiceWorker() {
 
 // Initialize app
 async function initializeApp() {
-    console.log('Initializing app');
+    console.log('Initializing app version', APP_VERSION);
+    
+    // Display version with build time for debugging
+    const versionDisplay = document.getElementById('version-display');
+    if (versionDisplay) {
+        const buildTime = new Date().toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        versionDisplay.textContent = `v${APP_VERSION} (${buildTime})`;
+    }
 
     // Restore any saved state
     restoreState();

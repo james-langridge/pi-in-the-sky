@@ -1,8 +1,9 @@
 // Minimal service worker - no caching, just for PWA installation and push notifications
+// Version: 1.0.1 - Update this to force service worker update
 
 // Install event
 self.addEventListener('install', event => {
-  console.log('[ServiceWorker] Installing');
+  console.log('[ServiceWorker] Installing v1.0.1');
   // Skip waiting to activate immediately
   self.skipWaiting();
 });
