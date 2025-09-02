@@ -30,10 +30,9 @@
 
         /* Controls toggle button */
         .toggle-controls {
-            position: absolute;
+            position: fixed; /* Use fixed positioning for better iOS PWA support */
             bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            left: calc(50% - 20px); /* Center without transform */
             background: rgba(255, 255, 255, 0.8);
             border: none;
             border-radius: 50%;
@@ -44,13 +43,13 @@
             align-items: center;
             justify-content: center;
             transition: background 0.3s;
-            will-change: background; /* Optimize for background changes only */
-            z-index: 10; /* Ensure button is clickable above other elements */
+            z-index: 100; /* Higher z-index for iOS PWA */
+            -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
+            touch-action: manipulation; /* Improve touch responsiveness */
         }
 
         .toggle-controls:hover {
             background: rgba(255, 255, 255, 0.95);
-            transform: translateX(-50%); /* Maintain centering on hover */
         }
 
         .toggle-controls svg {

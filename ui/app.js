@@ -518,8 +518,16 @@ function setupEventListeners() {
         saveState();
     });
 
-    // Control buttons
-    document.getElementById('toggleBtn')?.addEventListener('click', toggleControls);
+    // Control buttons - add both click and touchend for iOS PWA compatibility
+    const toggleBtn = document.getElementById('toggleBtn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleControls);
+        // Fallback for iOS PWA
+        toggleBtn.addEventListener('touchend', (e) => {
+            e.preventDefault(); // Prevent double firing
+            toggleControls();
+        });
+    }
     document.getElementById('preset-default')?.addEventListener('click', () => applyPreset('default'));
     document.getElementById('preset-low-light')?.addEventListener('click', () => applyPreset('low_light'));
     document.getElementById('preset-bright')?.addEventListener('click', () => applyPreset('bright'));
