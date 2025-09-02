@@ -160,16 +160,12 @@ def create_app(config: AppConfig) -> Flask:
             response.headers['Cache-Control'] = 'no-store'
             return response
 
-        # JavaScript and CSS - no cache to ensure updates are immediate
-        if any(ext in request.path for ext in ['.js', '.css']):
-            response.headers['Cache-Control'] = 'no-cache, must-revalidate'
-            response.headers['Pragma'] = 'no-cache'
-            return response
-        
-        # Images - can cache
-        if any(ext in request.path for ext in ['.png', '.jpg', '.svg']):
+        # Static files - use ETags for automatic cache invalidation
+        if any(ext in request.path for ext in ['.js', '.css', '.png', '.jpg', '.svg']):
+            # Generate ETag from file content
             response.make_conditional(request)
-            response.headers['Cache-Control'] = 'public, max-age=3600'
+            # must-revalidate forces check with server when max-age expires
+            response.headers['Cache-Control'] = 'public, max-age=300, must-revalidate'
             return response
 
         return response
