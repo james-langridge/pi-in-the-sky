@@ -99,18 +99,7 @@
 
     <div class="status" id="status"></div>
 
-    <!-- Conditional loading for iOS PWA compatibility -->
-    <script>
-        // Only load compat mode for iOS PWA (standalone mode)
-        if (window.navigator.standalone === true || 
-            window.matchMedia('(display-mode: standalone)').matches) {
-            var script = document.createElement('script');
-            script.src = '/app-compat.js';
-            document.head.appendChild(script);
-        }
-    </script>
-    
-    <!-- External JavaScript modules -->
+    <!-- Main application JavaScript -->
     <script type="module" src="/app.js"></script>
     <!-- Prevent iOS from killing the app -->
     <script>

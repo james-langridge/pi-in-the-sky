@@ -11,3 +11,5 @@ __pycache__/
 *.pyc
 venv/
 server/venv/
+node_modules/
+dist/
