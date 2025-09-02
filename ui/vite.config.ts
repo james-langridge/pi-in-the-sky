@@ -35,6 +35,9 @@ export default defineConfig({
     filename: 'sw.js',
     registerType: 'autoUpdate',
     injectRegister: 'auto',
+    injectManifest: {
+      injectionPoint: undefined // No precaching needed
+    },
 
     pwaAssets: {
       disabled: false,

@@ -1,50 +1,10 @@
 import { clientsClaim } from 'workbox-core';
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
-import { registerRoute, NavigationRoute } from 'workbox-routing';
-import { createHandlerBoundToURL } from 'workbox-precaching';
-import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
-import { ExpirationPlugin } from 'workbox-expiration';
 
 // Auto-update behavior - immediately activate and take control
 self.skipWaiting();
 clientsClaim();
 
-// Precache all assets
-precacheAndRoute(self.__WB_MANIFEST);
-
-// Clean up old caches
-cleanupOutdatedCaches();
-
-// Handle navigation requests
-registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')));
-
-// Cache API calls with Network First strategy (network優先, fallback to cache)
-registerRoute(
-  ({ url }) => url.pathname.startsWith('/api/'),
-  new NetworkFirst({
-    cacheName: 'api-cache',
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 50,
-        maxAgeSeconds: 5 * 60, // 5 minutes
-      }),
-    ],
-  })
-);
-
-// Cache images with Stale While Revalidate strategy
-registerRoute(
-  ({ request }) => request.destination === 'image',
-  new StaleWhileRevalidate({
-    cacheName: 'image-cache',
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 60,
-        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-      }),
-    ],
-  })
-);
+// No caching - service worker exists only for PWA installation and push notifications
 
 // Handle skip waiting message (for manual update if needed)
 self.addEventListener('message', (event) => {
