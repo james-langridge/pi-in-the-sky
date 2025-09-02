@@ -242,6 +242,34 @@ class CameraService:
         except Exception as e:
             logger.error(f"Error capturing frame with timestamp: {e}")
             return Result.failure(f"Failed to capture frame: {str(e)}")
+    
+    def capture_frame_without_overlay(self) -> Result[Frame, str]:
+        """
+        Capture frame without timestamp overlay but include timestamp in metadata.
+        
+        Returns:
+            Result containing Frame object or error message
+        """
+        try:
+            # Action: Capture raw frame
+            raw_jpeg = self.capture_raw_frame()
+            
+            if not raw_jpeg:
+                return Result.failure("Failed to capture raw frame")
+            
+            # Create timestamp but don't overlay
+            timestamp = create_timestamp()
+            
+            # Return immutable result with raw frame
+            return Result.success(Frame(
+                data=raw_jpeg,
+                timestamp=timestamp,
+                width=1920,
+                height=1080
+            ))
+        except Exception as e:
+            logger.error(f"Error capturing frame: {e}")
+            return Result.failure(f"Failed to capture frame: {str(e)}")
 
 
 class StreamingService:
@@ -257,6 +285,7 @@ class StreamingService:
         """
         self._camera_service = camera_service
         self._frame_delay = frame_delay
+        self._last_frame_timestamp = None
     
     def generate_mjpeg_stream(self) -> Generator[bytes, None, None]:
         """
@@ -267,8 +296,51 @@ class StreamingService:
         """
         while True:
             try:
-                # Capture and process frame
-                frame_result = self._camera_service.capture_frame_with_timestamp()
+                # Capture frame without overlay
+                frame_result = self._camera_service.capture_frame_without_overlay()
+                
+                if frame_result.is_failure:
+                    logger.error(f"Failed to capture frame: {frame_result.error}")
+                    time.sleep(1)
+                    continue
+                
+                # Update last frame timestamp
+                self._last_frame_timestamp = frame_result.value.timestamp
+                
+                # Create MJPEG chunk
+                chunk = create_mjpeg_chunk(frame_result.value.data)
+                
+                yield chunk
+                
+                # Control frame rate
+                time.sleep(self._frame_delay)
+                
+            except Exception as e:
+                logger.error(f"Error generating frame: {e}")
+                # Could yield error frame or break
+                # For now, wait and retry
+                time.sleep(1)
+    
+    def get_last_frame_timestamp(self) -> Optional[str]:
+        """
+        Get the timestamp of the last generated frame.
+        
+        Returns:
+            Timestamp string or None if no frames have been generated
+        """
+        return self._last_frame_timestamp
+    
+    def generate_mjpeg_stream_with_metadata(self) -> Generator[Tuple[bytes, str], None, None]:
+        """
+        Generate MJPEG stream chunks with timestamp metadata.
+        
+        Yields:
+            Tuple of (MJPEG formatted frame chunk, timestamp)
+        """
+        while True:
+            try:
+                # Capture frame without overlay
+                frame_result = self._camera_service.capture_frame_without_overlay()
                 
                 if frame_result.is_failure:
                     logger.error(f"Failed to capture frame: {frame_result.error}")
@@ -278,7 +350,7 @@ class StreamingService:
                 # Create MJPEG chunk
                 chunk = create_mjpeg_chunk(frame_result.value.data)
                 
-                yield chunk
+                yield (chunk, frame_result.value.timestamp)
                 
                 # Control frame rate
                 time.sleep(self._frame_delay)

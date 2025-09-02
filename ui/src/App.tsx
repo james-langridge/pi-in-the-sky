@@ -9,6 +9,7 @@ import './App.css';
 function App() {
   const [controlsOpen, setControlsOpen] = useState(false);
   const [streamConnected, setStreamConnected] = useState(false);
+  const [streamTimestamp, setStreamTimestamp] = useState<string>('');
   const { isHealthy } = useHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
 
@@ -47,6 +48,34 @@ function App() {
       stopKeepAlive();
     };
   }, []);
+
+  // Poll for frame timestamp when stream is connected
+  useEffect(() => {
+    if (!streamConnected) {
+      setStreamTimestamp('');
+      return;
+    }
+
+    const fetchTimestamp = async () => {
+      try {
+        const response = await fetch('/api/stream/timestamp');
+        const data = await response.json();
+        if (data.timestamp) {
+          setStreamTimestamp(data.timestamp);
+        }
+      } catch (error) {
+        console.error('Failed to fetch timestamp:', error);
+      }
+    };
+
+    // Fetch immediately
+    fetchTimestamp();
+
+    // Then poll every 500ms to get more responsive updates
+    const interval = setInterval(fetchTimestamp, 500);
+
+    return () => clearInterval(interval);
+  }, [streamConnected]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -124,6 +153,18 @@ function App() {
             Stream {streamConnected ? 'Connected' : 'Connecting'}
           </span>
         </div>
+        
+        {/* Frame timestamp */}
+        {streamTimestamp && (
+          <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-gray-700/50">
+            <svg className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-xs text-white font-mono">
+              {streamTimestamp}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Main video stream */}

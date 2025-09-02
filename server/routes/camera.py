@@ -244,3 +244,20 @@ def health():
             "cors_origins": config.cors_origins
         }
     })
+
+
+@camera_bp.route('/api/stream/timestamp')
+def stream_timestamp():
+    """
+    Get last frame timestamp from the stream.
+
+    Returns:
+        JSON response with last frame timestamp
+    """
+    streaming_service = current_app.config['services']['streaming_service']
+    timestamp = streaming_service.get_last_frame_timestamp()
+    
+    return jsonify({
+        "timestamp": timestamp,
+        "status": "streaming" if timestamp else "waiting"
+    })
