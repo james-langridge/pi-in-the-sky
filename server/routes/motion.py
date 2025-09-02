@@ -19,9 +19,19 @@ def motion_status():
         JSON response with motion detection status
     """
     motion_service = current_app.config['services']['motion_service']
+    status = motion_service.get_status()
+    
+    # Format response to match frontend expectations
     return jsonify({
-        "enabled": motion_service.is_enabled(),
-        "current_event": motion_service.get_current_event()
+        "enabled": status["enabled"],
+        "config": {
+            "enabled": status["enabled"],
+            "sensitivity": status["config"]["sensitivity"],
+            "min_area": status["config"]["min_area"],
+            "cooldown_seconds": status["config"]["cooldown_seconds"]
+        },
+        "recent_events": status["recent_events"],
+        "triggered_events": status["triggered_events"]
     })
 
 
@@ -126,21 +136,17 @@ def get_motion_events():
     
     events = motion_service.get_recent_events(limit)
     
-    # Convert events to JSON-serializable format
+    # Convert events to JSON-serializable format matching frontend expectations
     events_data = []
     for event in events:
         events_data.append({
             "timestamp": event.timestamp,
-            "motion_score": event.motion_score,
-            "total_area": event.total_area,
-            "triggered": event.triggered,
-            "frame_diff_percentage": event.frame_diff_percentage
+            "area": event.area,  # Use the correct field name
+            "contours": 1 if event.triggered else 0,  # Frontend expects contours count
+            "triggered": event.triggered
         })
     
-    return jsonify({
-        "events": events_data,
-        "count": len(events_data)
-    })
+    return jsonify(events_data)  # Return just the array, not wrapped in object
 
 
 @motion_bp.route('/presets')
