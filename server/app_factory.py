@@ -2,7 +2,7 @@
 
 import logging
 import os
-from flask import Flask
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from config import AppConfig
 from services import CameraService, StreamingService, ControlManager
@@ -19,17 +19,17 @@ def load_vapid_keys():
     """
     vapid_private_key_file = os.environ.get('VAPID_PRIVATE_KEY_FILE', 'vapid_private.pem')
     vapid_email = os.environ.get('VAPID_EMAIL', 'admin@example.com')
-    
+
     # Use file-based approach only (simpler and cleaner)
     key_file_path = os.path.join(os.path.dirname(__file__), vapid_private_key_file)
-    
+
     try:
         import base64
         from cryptography.hazmat.primitives import serialization
         from py_vapid import Vapid
-        
+
         vapid_obj = Vapid.from_file(key_file_path)
-        
+
         # Get public key in application server format (URL-safe base64)
         # This matches how generate_vapid_keys.py does it
         public_key_obj = vapid_obj.public_key
@@ -38,7 +38,7 @@ def load_vapid_keys():
             format=serialization.PublicFormat.UncompressedPoint
         )
         vapid_public_key = base64.urlsafe_b64encode(public_bytes).decode('utf-8').rstrip('=')
-        
+
         logger.info(f"Loaded VAPID from file: {key_file_path}")
         return vapid_obj, vapid_public_key, vapid_email
     except FileNotFoundError:
@@ -47,7 +47,7 @@ def load_vapid_keys():
         logger.info(f"VAPID dependencies not available: {e} - push notifications disabled")
     except Exception as e:
         logger.error(f"Failed to load VAPID from file {key_file_path}: {e}")
-    
+
     return None, None, vapid_email
 
 
@@ -60,15 +60,15 @@ def create_services(config: AppConfig):
     camera_service = CameraService()
     streaming_service = StreamingService(camera_service, config.frame_delay)
     control_manager = ControlManager(camera_service)
-    
+
     # Motion detection
     motion_service = MotionDetectionService()
     subscription_storage = SubscriptionStorage()
-    
+
     # Push notifications
     vapid_obj, vapid_public_key, vapid_email = load_vapid_keys()
     notification_service = None
-    
+
     if vapid_obj and vapid_public_key:
         try:
             notification_service = NotificationService(
@@ -82,7 +82,7 @@ def create_services(config: AppConfig):
             logger.error(f"Failed to initialize notification service: {e}")
     else:
         logger.warning("VAPID keys not configured - push notifications disabled")
-    
+
     return {
         'camera_service': camera_service,
         'streaming_service': streaming_service,
@@ -96,25 +96,25 @@ def create_services(config: AppConfig):
 def create_app(config: AppConfig) -> Flask:
     """
     Factory function to create Flask app with dependency injection.
-    
+
     Args:
         config: Application configuration
-        
+
     Returns:
         Configured Flask application
     """
     app = Flask(__name__)
-    
+
     # Configure CORS
     CORS(app, resources={r"/*": {"origins": config.cors_origins}})
-    
+
     # Initialize services
     services = create_services(config)
-    
+
     # Store services in app config for route access
     app.config['services'] = services
     app.config['app_config'] = config
-    
+
     # Initialize camera on app startup
     with app.app_context():
         result = services['camera_service'].initialize()
@@ -122,22 +122,83 @@ def create_app(config: AppConfig) -> Flask:
             logger.info("Camera initialized on startup")
         else:
             logger.error(f"Failed to initialize camera: {result.error}")
-    
+
     @app.teardown_appcontext
     def cleanup_camera(error=None):
         """Clean up camera resources on shutdown."""
         if error:
             logger.error(f"App teardown due to error: {error}")
-    
+
     # Register blueprints
     from routes.camera import camera_bp
     from routes.motion import motion_bp
     from routes.push import push_bp
     from routes.static import static_bp
-    
+
     app.register_blueprint(camera_bp)
     app.register_blueprint(motion_bp)
     app.register_blueprint(push_bp)
     app.register_blueprint(static_bp)
-    
+
+    @app.after_request
+    def add_smart_caching(response):
+        """Professional caching with ETags - no manual versioning needed!"""
+
+        # Service worker must never be cached
+        if request.path == '/service-worker.js':
+            response.headers['Cache-Control'] = 'no-cache, must-revalidate, max-age=0'
+            return response
+
+        # HTML files - no cache
+        if response.content_type and 'text/html' in response.content_type:
+            response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            return response
+
+        # API and streams - no cache
+        if '/api/' in request.path or '/video_feed' in request.path:
+            response.headers['Cache-Control'] = 'no-store'
+            return response
+
+        # Static files - use ETags for automatic cache invalidation
+        if any(ext in request.path for ext in ['.js', '.css', '.png', '.jpg', '.svg']):
+            # Generate ETag from file content
+            response.make_conditional(request)
+            response.headers['Cache-Control'] = 'public, max-age=3600, must-revalidate'
+            return response
+
+        return response
+
+    # Simple version endpoint
+    @app.route('/api/app-info')
+    def app_info():
+        """Return app version and update info."""
+        import subprocess
+        from datetime import datetime
+
+        try:
+            # Get git commit if available
+            git_hash = subprocess.check_output(
+                ['git', 'rev-parse', '--short', 'HEAD'],
+                stderr=subprocess.DEVNULL
+            ).decode('utf-8').strip()
+        except:
+            git_hash = 'unknown'
+
+        # Get last modified time of key files
+        key_files = ['server.py', 'app.js', 'index.html']
+        last_modified = 0
+        for filename in key_files:
+            for root, dirs, files in os.walk('.'):
+                if filename in files:
+                    filepath = os.path.join(root, filename)
+                    mtime = os.path.getmtime(filepath)
+                    last_modified = max(last_modified, mtime)
+
+        return jsonify({
+            'version': git_hash,
+            'last_modified': datetime.fromtimestamp(last_modified).isoformat(),
+            'timestamp': datetime.now().isoformat()
+        })
+
     return app
