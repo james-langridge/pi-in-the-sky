@@ -7,6 +7,7 @@ import './App.css';
 
 function App() {
   const [controlsOpen, setControlsOpen] = useState(false);
+  const [streamConnected, setStreamConnected] = useState(false);
   const { isHealthy } = useHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
 
@@ -97,8 +98,9 @@ function App() {
         </div>
       )}
 
-      {/* Server health indicator */}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Status indicators */}
+      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
+        {/* Server health */}
         <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
           isHealthy ? 'bg-green-500/20' : 'bg-red-500/20'
         }`}>
@@ -106,13 +108,25 @@ function App() {
             isHealthy ? 'bg-green-500' : 'bg-red-500'
           } animate-pulse`}></div>
           <span className="text-xs text-white">
-            {isHealthy ? 'Server Online' : 'Server Offline'}
+            Server {isHealthy ? 'Online' : 'Offline'}
+          </span>
+        </div>
+        
+        {/* Stream connection */}
+        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
+          streamConnected ? 'bg-blue-500/20' : 'bg-yellow-500/20'
+        }`}>
+          <div className={`w-2 h-2 rounded-full ${
+            streamConnected ? 'bg-blue-500' : 'bg-yellow-500'
+          } animate-pulse`}></div>
+          <span className="text-xs text-white">
+            Stream {streamConnected ? 'Connected' : 'Connecting'}
           </span>
         </div>
       </div>
 
       {/* Main video stream */}
-      <VideoStream onStreamStatusChange={() => {}} />
+      <VideoStream onStreamStatusChange={setStreamConnected} />
 
       {/* Control panel */}
       <ControlPanel

@@ -112,19 +112,6 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
         style={{ display: connected ? 'block' : 'none' }}
       />
 
-      {/* Connection indicator */}
-      <div className="absolute top-4 right-4">
-        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
-          connected ? 'bg-green-500/20' : 'bg-red-500/20'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${
-            connected ? 'bg-green-500' : 'bg-red-500'
-          } animate-pulse`}></div>
-          <span className="text-xs text-white">
-            {connected ? 'Connected' : 'Disconnected'}
-          </span>
-        </div>
-      </div>
     </div>
   );
 }
