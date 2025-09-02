@@ -441,7 +441,8 @@ async function registerServiceWorker() {
     }
 
     try {
-        const registration = await navigator.serviceWorker.register('/service-worker.js');
+        // Version 2 - increment this to force service worker update
+        const registration = await navigator.serviceWorker.register('/service-worker.js?v=2');
         console.log('ServiceWorker registered:', registration.scope);
 
         // Check for updates
