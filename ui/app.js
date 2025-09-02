@@ -521,12 +521,23 @@ function setupEventListeners() {
     // Control buttons - add both click and touchend for iOS PWA compatibility
     const toggleBtn = document.getElementById('toggleBtn');
     if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleControls);
-        // Fallback for iOS PWA
-        toggleBtn.addEventListener('touchend', (e) => {
-            e.preventDefault(); // Prevent double firing
-            toggleControls();
-        });
+        // Debug: Check if we're in standalone mode
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                            window.navigator.standalone || 
+                            document.referrer.includes('android-app://');
+        
+        if (isStandalone) {
+            console.log('Running in PWA standalone mode');
+            // For PWA, use touchstart with preventDefault
+            toggleBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleControls();
+            }, { passive: false });
+        } else {
+            console.log('Running in browser mode');
+            toggleBtn.addEventListener('click', toggleControls);
+        }
     }
     document.getElementById('preset-default')?.addEventListener('click', () => applyPreset('default'));
     document.getElementById('preset-low-light')?.addEventListener('click', () => applyPreset('low_light'));

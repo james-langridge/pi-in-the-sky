@@ -16,6 +16,7 @@
         .video-container {
             flex: 1;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             position: relative;
@@ -32,20 +33,23 @@
         .toggle-controls {
             position: fixed; /* Use fixed positioning for better iOS PWA support */
             bottom: 20px;
-            left: calc(50% - 20px); /* Center without transform */
-            background: rgba(255, 255, 255, 0.8);
-            border: none;
+            left: calc(50% - 22px); /* Center without transform (44px / 2) */
+            background: rgba(255, 255, 255, 0.9); /* More opaque for visibility */
+            border: 2px solid rgba(255, 255, 255, 1); /* Add border for better visibility */
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 44px; /* Larger touch target (Apple recommends 44px minimum) */
+            height: 44px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: background 0.3s;
-            z-index: 100; /* Higher z-index for iOS PWA */
+            z-index: 9999; /* Maximum z-index */
             -webkit-tap-highlight-color: transparent; /* Remove iOS tap highlight */
             touch-action: manipulation; /* Improve touch responsiveness */
+            pointer-events: auto; /* Ensure pointer events work */
+            -webkit-user-select: none; /* Prevent selection */
+            user-select: none;
         }
 
         .toggle-controls:hover {
