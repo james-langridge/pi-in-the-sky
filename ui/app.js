@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.1.1';
+const APP_VERSION = '1.1.2';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -640,6 +640,44 @@ function setupEventListeners() {
         console.log('Manual refresh requested');
         window.location.reload(true); // Force reload from server
     });
+    
+    // Test button for iOS PWA debugging
+    let testCounter = 0;
+    const testButton = document.getElementById('test-button');
+    const testCounterEl = document.getElementById('test-counter');
+    
+    if (testButton) {
+        console.log('Test button found, adding handlers');
+        
+        // Try multiple event types
+        testButton.addEventListener('click', (e) => {
+            console.log('TEST BUTTON: click event fired');
+            testCounter++;
+            if (testCounterEl) testCounterEl.textContent = testCounter;
+        });
+        
+        testButton.addEventListener('touchstart', (e) => {
+            console.log('TEST BUTTON: touchstart event fired');
+        });
+        
+        testButton.addEventListener('touchend', (e) => {
+            console.log('TEST BUTTON: touchend event fired');
+            e.preventDefault();
+            testCounter++;
+            if (testCounterEl) testCounterEl.textContent = testCounter;
+        }, { passive: false });
+        
+        testButton.addEventListener('pointerdown', (e) => {
+            console.log('TEST BUTTON: pointerdown event fired');
+        });
+        
+        // Also try onclick attribute
+        testButton.onclick = function() {
+            console.log('TEST BUTTON: onclick attribute fired');
+            testCounter++;
+            if (testCounterEl) testCounterEl.textContent = testCounter;
+        };
+    }
 
     // Manual reconnect
     document.getElementById('manual-reconnect')?.addEventListener('click', () => {
