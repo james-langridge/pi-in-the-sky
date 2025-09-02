@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
+import { ErrorBoundary } from './ErrorBoundary';
 import { useCameraPresets } from '../api/hooks';
 import type { CameraPreset } from '../types';
 
@@ -182,9 +183,17 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
             </div>
           )}
 
-          {activeTab === 'controls' && <CameraControls />}
+          {activeTab === 'controls' && (
+            <ErrorBoundary>
+              <CameraControls />
+            </ErrorBoundary>
+          )}
           
-          {activeTab === 'motion' && <MotionDetection />}
+          {activeTab === 'motion' && (
+            <ErrorBoundary>
+              <MotionDetection />
+            </ErrorBoundary>
+          )}
         </div>
       </div>
     </>

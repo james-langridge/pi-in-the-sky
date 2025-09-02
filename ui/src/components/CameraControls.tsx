@@ -123,33 +123,38 @@ export function CameraControls() {
 
   return (
     <div className="space-y-4">
-      {Object.entries(controlsByCategory).map(([category, categoryControls]) => (
-        <div key={category} className="border border-gray-700 rounded-lg overflow-hidden">
-          <button
-            onClick={() => toggleCategory(category)}
-            className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-750 transition-colors 
-                     flex justify-between items-center text-left"
-          >
-            <span className="font-medium text-gray-200">{category}</span>
-            <svg
-              className={`w-5 h-5 text-gray-400 transition-transform ${
-                expandedCategories.has(category) ? 'rotate-180' : ''
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+      {Object.entries(controlsByCategory).map(([category, categoryControls]) => {
+        // Ensure categoryControls is an array
+        const controls = Array.isArray(categoryControls) ? categoryControls : [];
+        
+        return (
+          <div key={category} className="border border-gray-700 rounded-lg overflow-hidden">
+            <button
+              onClick={() => toggleCategory(category)}
+              className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-750 transition-colors 
+                       flex justify-between items-center text-left"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+              <span className="font-medium text-gray-200">{category}</span>
+              <svg
+                className={`w-5 h-5 text-gray-400 transition-transform ${
+                  expandedCategories.has(category) ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
 
-          {expandedCategories.has(category) && (
-            <div className="p-4 space-y-4 bg-gray-800/50">
-              {categoryControls.map(control => renderControl(control))}
-            </div>
-          )}
-        </div>
-      ))}
+            {expandedCategories.has(category) && controls.length > 0 && (
+              <div className="p-4 space-y-4 bg-gray-800/50">
+                {controls.map(control => renderControl(control))}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {Object.keys(controlsByCategory).length === 0 && (
         <div className="text-center py-8 text-gray-400">

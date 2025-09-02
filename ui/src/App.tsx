@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { VideoStream } from './components/VideoStream';
 import { ControlPanel } from './components/ControlPanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useHealthCheck, useAppInfo } from './api/hooks';
 import PWABadge from './PWABadge';
 import './App.css';
@@ -126,13 +127,17 @@ function App() {
       </div>
 
       {/* Main video stream */}
-      <VideoStream onStreamStatusChange={setStreamConnected} />
+      <ErrorBoundary>
+        <VideoStream onStreamStatusChange={setStreamConnected} />
+      </ErrorBoundary>
 
       {/* Control panel */}
-      <ControlPanel
-        isOpen={controlsOpen}
-        onToggle={() => setControlsOpen(prev => !prev)}
-      />
+      <ErrorBoundary>
+        <ControlPanel
+          isOpen={controlsOpen}
+          onToggle={() => setControlsOpen(prev => !prev)}
+        />
+      </ErrorBoundary>
 
       {/* PWA install badge */}
       <PWABadge />
