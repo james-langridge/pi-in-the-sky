@@ -213,6 +213,8 @@ The server can be configured via environment variables:
 | `FRAME_DELAY` | `0.1` | Delay between frames (seconds) |
 | `VAPID_PRIVATE_KEY_FILE` | `vapid_private.pem` | Path to VAPID private key file |
 | `VAPID_EMAIL` | `admin@example.com` | Contact email for push service |
+| `CERT_FILE` | `cert.pem` | Path to SSL certificate file |
+| `KEY_FILE` | `key.pem` | Path to SSL private key file |
 
 ## Running
 
@@ -303,10 +305,55 @@ The PWA runs in standalone mode without browser UI, providing an app-like experi
 
 ## API Endpoints
 
-### Camera Endpoints
+### Core Endpoints
+
+#### `GET /`
+Serves the React application build.
 
 #### `GET /video_feed`
 Returns MJPEG video stream with timestamp overlay and optional motion detection.
+
+#### `GET /health`
+Server health check.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01 12:00:00",
+  "config": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "debug": false,
+    "cors_origins": ["http://localhost:3000"]
+  }
+}
+```
+
+#### `GET /api/app-info`
+Application version and update information.
+
+**Response:**
+```json
+{
+  "version": "abc1234",
+  "last_modified": "2024-01-01T12:00:00",
+  "timestamp": "2024-01-01T12:00:00"
+}
+```
+
+### Camera Endpoints
+
+#### `GET /presets`
+List available camera presets.
+
+**Response:**
+```json
+{
+  "presets": ["default", "low_light"],
+  "current": null
+}
+```
 
 #### `POST /apply_preset`
 Apply camera preset configuration.
@@ -326,34 +373,6 @@ Apply camera preset configuration.
 }
 ```
 
-### `GET /health`
-Server health check.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01 12:00:00",
-  "config": {
-    "host": "0.0.0.0",
-    "port": 8080,
-    "debug": false,
-    "cors_origins": ["http://localhost:3000"]
-  }
-}
-```
-
-### `GET /presets`
-List available camera presets.
-
-**Response:**
-```json
-{
-  "presets": ["default", "low_light"],
-  "current": null
-}
-```
-
 ### Motion Detection Endpoints 🆕
 
 #### `GET /api/motion/status`
@@ -366,7 +385,9 @@ Get current motion detection status.
   "config": {
     "sensitivity": 0.02,
     "min_area": 500,
-    "cooldown_seconds": 30
+    "cooldown_seconds": 30,
+    "blur_size": 21,
+    "threshold": 25
   },
   "recent_events": 5,
   "triggered_events": 2
@@ -382,7 +403,35 @@ Update motion detection configuration.
   "enabled": true,
   "sensitivity": 0.02,
   "min_area": 500,
-  "cooldown_seconds": 30
+  "cooldown_seconds": 30,
+  "blur_size": 21,
+  "threshold": 25
+}
+```
+
+#### `GET /api/motion/presets`
+Get available motion detection presets.
+
+**Response:**
+```json
+{
+  "presets": {
+    "sensitive": "High sensitivity for indoor monitoring",
+    "normal": "Balanced settings for general use",
+    "outdoor": "Reduced sensitivity for outdoor environments",
+    "security": "Optimized for security monitoring",
+    "disabled": "Motion detection disabled"
+  }
+}
+```
+
+#### `POST /api/motion/preset`
+Apply a motion detection preset.
+
+**Request:**
+```json
+{
+  "preset": "outdoor"
 }
 ```
 
@@ -422,20 +471,27 @@ Optimized for low-light conditions with:
 ```
 pi-in-the-sky/
 ├── server/
-│   ├── server.py          # Flask application with motion detection
+│   ├── server.py          # Flask application entry point
+│   ├── app_factory.py     # Flask application factory with DI
 │   ├── services.py         # Camera and streaming services
 │   ├── motion_services.py # Motion detection and notifications
 │   ├── storage.py         # SQLite subscription storage
 │   ├── calculations.py     # Image processing and motion detection
 │   ├── models.py          # Data models including motion events
+│   ├── result.py          # Result type for error handling
 │   ├── config.py          # Configuration management
+│   ├── motion_presets.py  # Motion detection preset configurations
+│   ├── mock_camera.py     # Mock camera for development
 │   ├── routes/            # Flask route blueprints
+│   │   ├── __init__.py    # Blueprint initialization
 │   │   ├── camera.py      # Camera control endpoints
 │   │   ├── motion.py      # Motion detection endpoints
 │   │   ├── push.py        # Push notification endpoints
 │   │   └── static.py      # Static file serving
 │   ├── generate_vapid_keys.py # VAPID key generation utility
+│   ├── generate_ssl_cert.py   # SSL certificate generation
 │   ├── requirements.txt   # Python dependencies
+│   ├── run_tests.py      # Test runner
 │   └── test_architecture.py # Architecture tests
 └── ui/                    # React PWA frontend
     ├── src/
@@ -444,11 +500,17 @@ pi-in-the-sky/
     │   │   ├── VideoStream.tsx
     │   │   ├── ControlPanel.tsx
     │   │   ├── CameraControls.tsx
-    │   │   └── MotionDetection.tsx
+    │   │   ├── MotionDetection.tsx
+    │   │   └── ErrorBoundary.tsx
     │   ├── types/         # TypeScript definitions
-    │   └── App.tsx        # Main application
+    │   ├── App.tsx        # Main application
+    │   ├── main.tsx       # React entry point
+    │   └── PWABadge.tsx   # PWA installation prompt
+    ├── public/
+    │   └── sw.js          # Service worker
     ├── package.json       # Frontend dependencies
-    └── vite.config.ts     # Vite + PWA configuration
+    ├── vite.config.ts     # Vite + PWA configuration
+    └── pwa-assets.config.ts # PWA asset generation config
 ```
 
 ## Architecture
@@ -476,11 +538,14 @@ The server follows a layered architecture:
                     └──────────────┘
 ```
 
-- **HTTP Layer** (`server.py`): Flask endpoints
-- **Service Layer** (`services.py`): Camera operations and streaming
+- **HTTP Layer** (`server.py`, `app_factory.py`): Flask endpoints and application factory
+- **Route Layer** (`routes/`): Organized blueprints for different API concerns
+- **Service Layer** (`services.py`, `motion_services.py`): Camera operations and streaming
 - **Calculation Layer** (`calculations.py`): Pure functions for image processing
 - **Data Layer** (`models.py`): Immutable data structures
+- **Result Type** (`result.py`): Functional error handling with Result monad
 - **Configuration** (`config.py`): Environment-based settings
+- **Motion Presets** (`motion_presets.py`): Predefined motion detection configurations
 
 ### UI
 
