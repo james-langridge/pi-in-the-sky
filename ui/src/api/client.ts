@@ -2,7 +2,6 @@ import type {
   ApiResponse,
   HealthResponse,
   PresetResponse,
-  CameraControl,
   MotionStatus,
   MotionConfig,
   MotionEvent,
@@ -56,14 +55,14 @@ export class CameraAPI {
   }
 
   // Camera Controls
-  async getControls(): Promise<CameraControl[]> {
-    return this.fetchJSON<CameraControl[]>('/api/controls');
+  async getControls(): Promise<Record<string, any[]>> {
+    return this.fetchJSON<Record<string, any[]>>('/controls');
   }
 
-  async updateControl(controlId: string, value: number | boolean | string): Promise<ApiResponse> {
-    return this.fetchJSON<ApiResponse>('/api/controls', {
+  async updateControl(controlName: string, value: number | boolean | string): Promise<ApiResponse> {
+    return this.fetchJSON<ApiResponse>(`/control/${controlName}`, {
       method: 'POST',
-      body: JSON.stringify({ id: controlId, value }),
+      body: JSON.stringify({ value }),
     });
   }
 

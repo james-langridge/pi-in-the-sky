@@ -1,20 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useCameraControls } from '../api/hooks';
-import type { CameraControl } from '../types';
 
 export function CameraControls() {
-  const { controls, loading, updateControl } = useCameraControls();
+  const { controlsByCategory, loading, updateControl } = useCameraControls();
   const [localValues, setLocalValues] = useState<Record<string, any>>({});
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['Image Quality']));
-
-  // Initialize local values when controls load
-  useEffect(() => {
-    const values: Record<string, any> = {};
-    controls.forEach(control => {
-      values[control.id] = control.value;
-    });
-    setLocalValues(values);
-  }, [controls]);
 
   if (loading) {
     return (
@@ -24,32 +14,23 @@ export function CameraControls() {
     );
   }
 
-  // Group controls by category
-  const categories = controls.reduce((acc, control) => {
-    if (!acc[control.category]) {
-      acc[control.category] = [];
-    }
-    acc[control.category].push(control);
-    return acc;
-  }, {} as Record<string, CameraControl[]>);
-
-  const handleSliderChange = (control: CameraControl, value: number) => {
-    setLocalValues(prev => ({ ...prev, [control.id]: value }));
+  const handleSliderChange = (controlName: string, value: number) => {
+    setLocalValues(prev => ({ ...prev, [controlName]: value }));
   };
 
-  const handleSliderRelease = async (control: CameraControl) => {
-    const value = localValues[control.id];
-    await updateControl(control.id, value);
+  const handleSliderRelease = async (controlName: string) => {
+    const value = localValues[controlName];
+    await updateControl(controlName, value);
   };
 
-  const handleSwitchChange = async (control: CameraControl, checked: boolean) => {
-    setLocalValues(prev => ({ ...prev, [control.id]: checked }));
-    await updateControl(control.id, checked);
+  const handleSwitchChange = async (controlName: string, checked: boolean) => {
+    setLocalValues(prev => ({ ...prev, [controlName]: checked }));
+    await updateControl(controlName, checked);
   };
 
-  const handleSelectChange = async (control: CameraControl, value: string) => {
-    setLocalValues(prev => ({ ...prev, [control.id]: value }));
-    await updateControl(control.id, value);
+  const handleSelectChange = async (controlName: string, value: string) => {
+    setLocalValues(prev => ({ ...prev, [controlName]: value }));
+    await updateControl(controlName, value);
   };
 
   const toggleCategory = (category: string) => {
@@ -64,26 +45,28 @@ export function CameraControls() {
     });
   };
 
-  const renderControl = (control: CameraControl) => {
-    const value = localValues[control.id] ?? control.value;
+  const renderControl = (control: any) => {
+    const value = localValues[control.name] ?? control.default;
 
     switch (control.type) {
       case 'slider':
         return (
-          <div key={control.id} className="space-y-2">
+          <div key={control.name} className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-sm text-gray-300">{control.name}</label>
-              <span className="text-sm text-gray-400 font-mono">{value}</span>
+              <label className="text-sm text-gray-300">{control.display_name || control.name}</label>
+              <span className="text-sm text-gray-400 font-mono">
+                {value}{control.unit ? ` ${control.unit}` : ''}
+              </span>
             </div>
             <input
               type="range"
               min={control.min}
               max={control.max}
-              step={control.step}
+              step={control.step || 1}
               value={value}
-              onChange={(e) => handleSliderChange(control, parseFloat(e.target.value))}
-              onMouseUp={() => handleSliderRelease(control)}
-              onTouchEnd={() => handleSliderRelease(control)}
+              onChange={(e) => handleSliderChange(control.name, parseFloat(e.target.value))}
+              onMouseUp={() => handleSliderRelease(control.name)}
+              onTouchEnd={() => handleSliderRelease(control.name)}
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer 
                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 
                        [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500 
@@ -95,12 +78,12 @@ export function CameraControls() {
           </div>
         );
 
-      case 'switch':
+      case 'toggle':
         return (
-          <div key={control.id} className="flex justify-between items-center">
-            <label className="text-sm text-gray-300">{control.name}</label>
+          <div key={control.name} className="flex justify-between items-center">
+            <label className="text-sm text-gray-300">{control.display_name || control.name}</label>
             <button
-              onClick={() => handleSwitchChange(control, !value)}
+              onClick={() => handleSwitchChange(control.name, !value)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                 value ? 'bg-blue-500' : 'bg-gray-600'
               }`}
@@ -116,15 +99,15 @@ export function CameraControls() {
 
       case 'select':
         return (
-          <div key={control.id} className="space-y-2">
-            <label className="text-sm text-gray-300">{control.name}</label>
+          <div key={control.name} className="space-y-2">
+            <label className="text-sm text-gray-300">{control.display_name || control.name}</label>
             <select
               value={value}
-              onChange={(e) => handleSelectChange(control, e.target.value)}
+              onChange={(e) => handleSelectChange(control.name, e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 text-gray-200 rounded-lg border border-gray-600 
                        focus:border-blue-500 focus:outline-none"
             >
-              {control.options?.map(option => (
+              {control.options?.map((option: string) => (
                 <option key={option} value={option}>
                   {option}
                 </option>
@@ -140,7 +123,7 @@ export function CameraControls() {
 
   return (
     <div className="space-y-4">
-      {Object.entries(categories).map(([category, categoryControls]) => (
+      {Object.entries(controlsByCategory).map(([category, categoryControls]) => (
         <div key={category} className="border border-gray-700 rounded-lg overflow-hidden">
           <button
             onClick={() => toggleCategory(category)}
@@ -168,7 +151,7 @@ export function CameraControls() {
         </div>
       ))}
 
-      {Object.keys(categories).length === 0 && (
+      {Object.keys(controlsByCategory).length === 0 && (
         <div className="text-center py-8 text-gray-400">
           <p>No camera controls available</p>
           <p className="text-sm mt-2">Camera may not be connected</p>

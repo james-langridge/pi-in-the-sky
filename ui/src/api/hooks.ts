@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from './client';
 import type {
   HealthResponse,
-  CameraControl,
   MotionStatus,
   MotionConfig,
   MotionEvent,
@@ -95,14 +94,14 @@ export function useCameraPresets() {
 
 // Camera controls hook
 export function useCameraControls() {
-  const [controls, setControls] = useState<CameraControl[]>([]);
+  const [controlsByCategory, setControlsByCategory] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchControls = async () => {
       try {
         const data = await api.getControls();
-        setControls(data);
+        setControlsByCategory(data);
       } catch (error) {
         console.error('Failed to fetch controls:', error);
       } finally {
@@ -113,15 +112,11 @@ export function useCameraControls() {
     fetchControls();
   }, []);
 
-  const updateControl = useCallback(async (controlId: string, value: number | boolean | string) => {
+  const updateControl = useCallback(async (controlName: string, value: number | boolean | string) => {
     try {
-      await api.updateControl(controlId, value);
-      // Update local state optimistically
-      setControls(prev =>
-        prev.map(control =>
-          control.id === controlId ? { ...control, value } : control
-        )
-      );
+      await api.updateControl(controlName, value);
+      // Note: Backend doesn't return the full control data, so we can't update optimistically
+      // Would need to refetch or track values separately
       return true;
     } catch (error) {
       console.error('Failed to update control:', error);
@@ -129,7 +124,7 @@ export function useCameraControls() {
     }
   }, []);
 
-  return { controls, loading, updateControl };
+  return { controlsByCategory, loading, updateControl };
 }
 
 // Motion detection hook
