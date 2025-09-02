@@ -5,7 +5,7 @@ import { motionDetection } from './js/motion.js';
 // App version - INCREMENT THIS WHEN MAKING CHANGES
 // Also update version in service-worker.js to force SW update
 // Format: major.minor.patch (e.g., 1.0.1)
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 
 // Configuration
 const BASE_URL = window.location.protocol === 'file:'
@@ -104,6 +104,9 @@ function initStream(forceReconnect = false) {
     // Only update src if it's different or forced
     if (stream.src !== newSrc || forceReconnect) {
         console.log('Initializing stream connection');
+        
+        // Reset connection state when actually reconnecting
+        AppState.streamConnected = false;
 
         // Remove old event listeners to prevent memory leaks
         stream.onload = null;
@@ -132,12 +135,22 @@ function initStream(forceReconnect = false) {
 
 // Handle successful stream load
 function handleStreamLoad() {
+    // Prevent multiple calls for MJPEG stream
+    if (AppState.streamConnected) {
+        return;
+    }
+
     const stream = document.getElementById('stream');
     const loading = document.getElementById('loading');
     const loadingText = document.getElementById('loading-text');
     const manualReconnectBtn = document.getElementById('manual-reconnect');
 
     console.log('Stream connected successfully');
+
+    // Remove onload handler to prevent repeated calls (MJPEG fires onload for each frame)
+    if (stream) {
+        stream.onload = null;
+    }
 
     loading.style.display = 'none';
     stream.style.display = 'block';
