@@ -41,10 +41,11 @@ chmod +x setup.sh
 ```
 
 The setup script will:
-- Install all system dependencies
+- Install all system dependencies including Node.js
 - Clone the repository
 - Set up Python virtual environment
 - Install Python packages
+- Build the React frontend
 - Configure systemd service (optional)
 - Provide access URLs
 
