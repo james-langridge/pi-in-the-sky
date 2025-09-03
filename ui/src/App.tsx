@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Settings } from 'lucide-react';
+import { Settings, Images } from 'lucide-react';
 import { VideoStream } from './components/VideoStream';
 import { ControlPanel } from './components/ControlPanel';
+import { PhotoGallery } from './components/PhotoGallery';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useHealthCheck, useAppInfo } from './api/hooks';
 import PWABadge from './PWABadge';
@@ -11,6 +12,7 @@ import './App.css';
 
 function App() {
   const [controlsOpen, setControlsOpen] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [streamConnected, setStreamConnected] = useState(false);
   const [streamTimestamp, setStreamTimestamp] = useState<string>('');
   const { isHealthy } = useHealthCheck();
@@ -154,6 +156,17 @@ function App() {
         <VideoStream onStreamStatusChange={setStreamConnected} />
       </ErrorBoundary>
 
+      {/* Gallery button - bottom left */}
+      <button
+        onClick={() => setGalleryOpen(true)}
+        className="absolute bottom-8 left-8 z-20 w-12 h-12 bg-gray-700 hover:bg-gray-600 
+                   text-white rounded-full shadow-lg transition-all duration-200 
+                   flex items-center justify-center"
+        aria-label="Open photo gallery"
+      >
+        <Images className="w-6 h-6" />
+      </button>
+
       {/* Settings toggle button - only show when panel is closed */}
       {!controlsOpen && (
         <button
@@ -172,6 +185,14 @@ function App() {
         <ControlPanel
           isOpen={controlsOpen}
           onToggle={() => setControlsOpen(prev => !prev)}
+        />
+      </ErrorBoundary>
+
+      {/* Photo gallery */}
+      <ErrorBoundary>
+        <PhotoGallery
+          isOpen={galleryOpen}
+          onClose={() => setGalleryOpen(false)}
         />
       </ErrorBoundary>
 

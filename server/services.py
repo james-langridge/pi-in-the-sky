@@ -14,7 +14,7 @@ except ImportError:
     logger.warning("PiCamera2 not available, using mock camera")
     from mock_camera import MockPicamera2 as Picamera2
 
-from models import CameraPreset, Frame, CameraControls, ControlMetadata
+from models import CameraPreset, Frame, CameraControls, ControlMetadata, PhotoMetadata
 from calculations import camera_preset_to_controls_dict
 from result import Result, StringResult
 from calculations import (
@@ -24,7 +24,9 @@ from calculations import (
     decode_jpeg_to_frame,
     create_mjpeg_chunk,
     validate_control_value,
-    parse_colour_gains
+    parse_colour_gains,
+    parse_photo_timestamp,
+    sort_photos_by_date
 )
 
 logger = logging.getLogger(__name__)
@@ -307,6 +309,60 @@ class CameraService:
         except Exception as e:
             logger.error(f"Error capturing photo: {e}")
             return Result.failure(f"Failed to capture photo: {str(e)}")
+    
+    def list_photos(self, photos_dir: str = "photos") -> Result[list, str]:
+        """
+        List all photos in the photos directory with metadata.
+        
+        Args:
+            photos_dir: Directory containing photos (default: "photos")
+            
+        Returns:
+            Result containing list of PhotoMetadata objects or error message
+        """
+        try:
+            # Check if photos directory exists
+            if not os.path.exists(photos_dir):
+                return Result.success([])
+            
+            photos = []
+            
+            # Iterate through files in photos directory
+            for filename in os.listdir(photos_dir):
+                if filename.endswith('.jpg'):
+                    filepath = os.path.join(photos_dir, filename)
+                    
+                    # Extract timestamp from filename
+                    photo_dt = parse_photo_timestamp(filename)
+                    if photo_dt:
+                        timestamp = photo_dt.isoformat()
+                    else:
+                        # Fallback to file modification time
+                        timestamp = datetime.fromtimestamp(
+                            os.path.getmtime(filepath)
+                        ).isoformat()
+                    
+                    # Get file size
+                    file_size = os.path.getsize(filepath)
+                    
+                    # Create immutable PhotoMetadata
+                    photo = PhotoMetadata(
+                        filename=filename,
+                        timestamp=timestamp,
+                        file_size=file_size,
+                        path=f"/photos/{filename}"
+                    )
+                    photos.append(photo)
+            
+            # Sort photos by date (newest first)
+            sorted_photos = sort_photos_by_date(photos)
+            
+            logger.info(f"Listed {len(sorted_photos)} photos")
+            return Result.success(sorted_photos)
+            
+        except Exception as e:
+            logger.error(f"Error listing photos: {e}")
+            return Result.failure(f"Failed to list photos: {str(e)}")
 
 
 class StreamingService:

@@ -1,10 +1,10 @@
 """Pure functions for frame processing and calculations."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Union, Tuple, Optional, List, Dict, Any
 import cv2
 import numpy as np
-from models import MotionDetectionConfig, MotionEvent, CameraControls, CameraPreset
+from models import MotionDetectionConfig, MotionEvent, CameraControls, CameraPreset, PhotoMetadata
 
 
 def create_timestamp() -> str:
@@ -449,3 +449,96 @@ def camera_preset_to_controls_dict(preset: CameraPreset) -> Dict[str, Any]:
             result[control_name] = value
             
     return result
+
+
+def parse_photo_timestamp(filename: str) -> Optional[datetime]:
+    """
+    Extract timestamp from photo filename.
+    
+    Args:
+        filename: Photo filename (e.g., 'photo_20240103_143022.jpg')
+        
+    Returns:
+        datetime object or None if parsing fails
+    """
+    try:
+        # Expected format: photo_YYYYMMDD_HHMMSS.jpg
+        if not filename.startswith('photo_') or not filename.endswith('.jpg'):
+            return None
+        
+        # Extract timestamp portion
+        timestamp_str = filename[6:-4]  # Remove 'photo_' and '.jpg'
+        
+        # Parse timestamp
+        return datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
+    except (ValueError, IndexError):
+        return None
+
+
+def sort_photos_by_date(photos: List[PhotoMetadata], newest_first: bool = True) -> List[PhotoMetadata]:
+    """
+    Sort photos by timestamp (newest first by default).
+    
+    Args:
+        photos: List of PhotoMetadata objects
+        newest_first: If True, sort newest to oldest
+        
+    Returns:
+        New sorted list (does not mutate input)
+    """
+    # Create copy to avoid mutation
+    sorted_photos = list(photos)
+    
+    # Sort by timestamp
+    sorted_photos.sort(
+        key=lambda p: p.timestamp,
+        reverse=newest_first
+    )
+    
+    return sorted_photos
+
+
+def format_file_size(size_bytes: int) -> str:
+    """
+    Format file size in human-readable format.
+    
+    Args:
+        size_bytes: File size in bytes
+        
+    Returns:
+        Human-readable size string
+    """
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    elif size_bytes < 1024 * 1024 * 1024:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    else:
+        return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+
+def format_photo_date(timestamp_str: str) -> str:
+    """
+    Format ISO timestamp to human-readable date.
+    
+    Args:
+        timestamp_str: ISO format timestamp
+        
+    Returns:
+        Human-readable date string
+    """
+    try:
+        dt = datetime.fromisoformat(timestamp_str)
+        # Check if today
+        today = datetime.now().date()
+        if dt.date() == today:
+            return dt.strftime("Today %I:%M %p")
+        # Check if yesterday
+        yesterday = datetime.now().date() - timedelta(days=1)
+        if dt.date() == yesterday:
+            return dt.strftime("Yesterday %I:%M %p")
+        # Otherwise show full date
+        return dt.strftime("%b %d, %Y %I:%M %p")
+    except (ValueError, AttributeError):
+        return timestamp_str

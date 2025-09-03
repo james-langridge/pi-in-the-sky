@@ -134,11 +134,13 @@ def create_app(config: AppConfig) -> Flask:
     from routes.motion import motion_bp
     from routes.push import push_bp
     from routes.static import static_bp
+    from routes.photos import photos_bp
 
     app.register_blueprint(camera_bp)
     app.register_blueprint(motion_bp)
     app.register_blueprint(push_bp)
     app.register_blueprint(static_bp)
+    app.register_blueprint(photos_bp)
 
     @app.after_request
     def add_smart_caching(response):

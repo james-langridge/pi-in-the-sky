@@ -173,3 +173,13 @@ class PushSubscription:
     auth: str  # Authentication secret
     created_at: str  # ISO format timestamp
     user_agent: Optional[str] = None  # Browser user agent
+
+
+@dataclass(frozen=True)
+class PhotoMetadata:
+    """Immutable photo metadata."""
+    
+    filename: str
+    timestamp: str  # ISO format timestamp
+    file_size: int  # Size in bytes
+    path: str  # Relative path for serving
