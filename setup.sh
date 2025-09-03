@@ -157,8 +157,33 @@ fi
 
 print_success "Python environment configured"
 
-# Step 4: Test the server
-print_header "Step 4: Testing Server"
+# Step 4: Build React Frontend
+print_header "Step 4: Building React Frontend"
+
+# Check if Node.js is installed
+if ! command -v node &> /dev/null; then
+    print_info "Node.js not found. Installing Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    print_success "Node.js installed"
+else
+    print_success "Node.js found: $(node --version)"
+fi
+
+# Build the frontend
+cd "$INSTALL_DIR/ui"
+print_info "Installing frontend dependencies..."
+npm ci -q  # Clean install from package-lock.json
+print_success "Frontend dependencies installed"
+
+print_info "Building React application..."
+npm run build -q
+print_success "Frontend build complete"
+
+cd "$INSTALL_DIR/server"
+
+# Step 5: Test the server
+print_header "Step 5: Testing Server"
 
 print_info "Running quick server test..."
 timeout 5 python server.py --test 2>/dev/null || true
@@ -169,9 +194,9 @@ else
     print_info "Server test completed"
 fi
 
-# Step 5: Configure systemd service (optional for Pi)
+# Step 6: Configure systemd service (optional for Pi)
 if [ "$IS_PI" = true ]; then
-    print_header "Step 5: Configuring Systemd Service"
+    print_header "Step 6: Configuring Systemd Service"
     
     read -p "Would you like to install as a systemd service? (y/n) " -n 1 -r
     echo
@@ -224,7 +249,7 @@ EOF
     fi
 fi
 
-# Step 6: Display access information
+# Step 7: Display access information
 print_header "Setup Complete!"
 
 # Get IP address
