@@ -27,6 +27,10 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/photos': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     }
   },
   plugins: [react(), tailwindcss(), VitePWA({
