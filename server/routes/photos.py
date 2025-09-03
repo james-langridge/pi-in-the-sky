@@ -1,5 +1,6 @@
 """Photo gallery routes."""
 
+import os
 import logging
 from flask import Blueprint, jsonify, current_app, send_from_directory
 from calculations import format_file_size, format_photo_date
@@ -58,5 +59,8 @@ def serve_photo(filename):
     Returns:
         Photo file or 404 error
     """
+    # Get the absolute path to the photos directory (at project root)
+    photos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'photos'))
+    
     # Serve photo from photos directory
-    return send_from_directory('../photos', filename)
+    return send_from_directory(photos_dir, filename)
