@@ -12,14 +12,18 @@ except ImportError:
         class AwbModeEnum:
             Auto = 0
             Tungsten = 2
+            Daylight = 5
         class HdrModeEnum:
             Off = 0
             Night = 1
+            SingleExposure = 2
         class AeExposureModeEnum:
             Normal = 0
+            Short = 1
             Long = 2
         class AeMeteringModeEnum:
             CentreWeighted = 0
+            Spot = 1
             Matrix = 2
     controls = MockControls()
 
@@ -94,5 +98,18 @@ def get_default_presets() -> Dict[str, CameraPreset]:
             hdr_mode=controls.HdrModeEnum.Night,
             ae_exposure_mode=controls.AeExposureModeEnum.Long,
             ae_metering_mode=controls.AeMeteringModeEnum.Matrix
+        ),
+        'bright': CameraPreset(
+            name='bright',
+            exposure_time=10000,
+            analogue_gain=1.0,
+            awb_mode=controls.AwbModeEnum.Daylight,
+            brightness=-0.1,
+            contrast=1.1,
+            saturation=1.2,
+            sharpness=1.1,
+            hdr_mode=controls.HdrModeEnum.SingleExposure,
+            ae_exposure_mode=controls.AeExposureModeEnum.Short,
+            ae_metering_mode=controls.AeMeteringModeEnum.Spot
         )
     }
