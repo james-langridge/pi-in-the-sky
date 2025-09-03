@@ -2,7 +2,7 @@
 
 import os
 import logging
-from flask import Blueprint, jsonify, current_app, send_from_directory
+from flask import Blueprint, jsonify, current_app, send_from_directory, request
 from calculations import format_file_size, format_photo_date
 
 logger = logging.getLogger(__name__)
@@ -64,3 +64,35 @@ def serve_photo(filename):
     
     # Serve photo from photos directory
     return send_from_directory(photos_dir, filename)
+
+
+@photos_bp.route('/api/photos/<filename>', methods=['DELETE'])
+def delete_photo(filename):
+    """
+    Delete a photo file.
+    
+    Args:
+        filename: Name of the photo file to delete
+        
+    Returns:
+        JSON response indicating success or failure
+    """
+    camera_service = current_app.config['services']['camera_service']
+    
+    # Get the absolute path to the photos directory (at project root)
+    photos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'photos'))
+    
+    result = camera_service.delete_photo(filename, photos_dir)
+    
+    if result.is_success:
+        logger.info(f"Photo deleted successfully: {filename}")
+        return jsonify({
+            'status': 'success',
+            'message': f'Photo {filename} deleted successfully'
+        })
+    else:
+        logger.error(f"Failed to delete photo {filename}: {result.error}")
+        return jsonify({
+            'status': 'error',
+            'message': result.error
+        }), 400

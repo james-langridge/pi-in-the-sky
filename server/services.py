@@ -371,6 +371,44 @@ class CameraService:
         except Exception as e:
             logger.error(f"Error listing photos: {e}")
             return Result.failure(f"Failed to list photos: {str(e)}")
+    
+    def delete_photo(self, filename: str, photos_dir: str = "photos") -> Result[bool, str]:
+        """
+        Delete a photo from the photos directory.
+        
+        Args:
+            filename: Name of the photo file to delete
+            photos_dir: Directory containing photos (default: "photos")
+            
+        Returns:
+            Result containing success status or error message
+        """
+        try:
+            # Validate filename - prevent path traversal attacks
+            if "/" in filename or "\\" in filename or ".." in filename:
+                return Result.failure("Invalid filename")
+            
+            # Ensure filename ends with .jpg
+            if not filename.endswith('.jpg'):
+                return Result.failure("Invalid file type - only .jpg files can be deleted")
+            
+            filepath = os.path.join(photos_dir, filename)
+            
+            # Check if file exists
+            if not os.path.exists(filepath):
+                return Result.failure(f"Photo {filename} not found")
+            
+            # Delete the file
+            os.remove(filepath)
+            logger.info(f"Deleted photo: {filename}")
+            return Result.success(True)
+            
+        except PermissionError:
+            logger.error(f"Permission denied deleting photo: {filename}")
+            return Result.failure("Permission denied - unable to delete photo")
+        except Exception as e:
+            logger.error(f"Error deleting photo {filename}: {e}")
+            return Result.failure(f"Failed to delete photo: {str(e)}")
 
 
 class StreamingService:
