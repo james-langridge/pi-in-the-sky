@@ -56,6 +56,39 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     };
   }, [streamHealthy]);
 
+  // Handle page visibility changes to refresh stream after phone unlock/app resume
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      // When page becomes visible again (e.g., after phone unlock)
+      if (!document.hidden && imgRef.current && streamHealthy) {
+        // Force refresh the stream by resetting the image source
+        const streamUrl = api.getStreamUrl();
+        imgRef.current.src = streamUrl + '?t=' + Date.now();
+        setLoading(true);
+        setError(null);
+      }
+    };
+
+    // Also handle pageshow event for iOS PWA
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // Persisted means the page was restored from bfcache
+      if (event.persisted && imgRef.current && streamHealthy) {
+        const streamUrl = api.getStreamUrl();
+        imgRef.current.src = streamUrl + '?t=' + Date.now();
+        setLoading(true);
+        setError(null);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
+  }, [streamHealthy]);
+
   // React to external stream status changes
   useEffect(() => {
     if (!streamConnected || !streamHealthy) {
