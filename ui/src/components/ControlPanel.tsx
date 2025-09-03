@@ -15,6 +15,7 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion'>('presets');
   const { applyPreset } = useCameraPresets();
   const [applyingPreset, setApplyingPreset] = useState<CameraPreset | null>(null);
+  const [activePreset, setActivePreset] = useState<CameraPreset | null>('default');
 
   // Close panel with Escape key
   useEffect(() => {
@@ -36,6 +37,7 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
                         preset === 'low_light' ? 'Low Light' : 
                         preset === 'bright' ? 'Bright' : preset;
       toast.success(`Applied ${presetName} preset`);
+      setActivePreset(preset);
       setTimeout(() => setApplyingPreset(null), 1000);
     } else {
       toast.error(`Failed to apply preset`);
@@ -121,7 +123,9 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
                   onClick={() => handlePresetClick('default')}
                   disabled={applyingPreset !== null}
                   className={`p-4 rounded-lg border transition-all ${
-                    applyingPreset === 'default'
+                    activePreset === 'default'
+                      ? 'bg-green-600 border-green-500 text-white'
+                      : applyingPreset === 'default'
                       ? 'bg-blue-500 border-blue-400 text-white'
                       : 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
                   } disabled:opacity-50`}
@@ -138,7 +142,9 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
                   onClick={() => handlePresetClick('low_light')}
                   disabled={applyingPreset !== null}
                   className={`p-4 rounded-lg border transition-all ${
-                    applyingPreset === 'low_light'
+                    activePreset === 'low_light'
+                      ? 'bg-green-600 border-green-500 text-white'
+                      : applyingPreset === 'low_light'
                       ? 'bg-blue-500 border-blue-400 text-white'
                       : 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
                   } disabled:opacity-50`}
@@ -155,7 +161,9 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
                   onClick={() => handlePresetClick('bright')}
                   disabled={applyingPreset !== null}
                   className={`p-4 rounded-lg border transition-all ${
-                    applyingPreset === 'bright'
+                    activePreset === 'bright'
+                      ? 'bg-green-600 border-green-500 text-white'
+                      : applyingPreset === 'bright'
                       ? 'bg-blue-500 border-blue-400 text-white'
                       : 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-600'
                   } disabled:opacity-50`}
