@@ -261,3 +261,36 @@ def stream_timestamp():
         "timestamp": timestamp,
         "status": "streaming" if timestamp else "waiting"
     })
+
+
+@camera_bp.route('/api/capture-photo', methods=['POST'])
+def capture_photo():
+    """
+    Capture a photo and save it to the photos directory.
+    
+    Returns:
+        JSON response with filename or error
+    """
+    camera_service = current_app.config['services']['camera_service']
+    
+    try:
+        result = camera_service.capture_photo()
+        
+        if result.is_success:
+            return jsonify({
+                "status": "success",
+                "filename": result.value,
+                "message": f"Photo saved as {result.value}"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": result.error
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Error capturing photo: {e}")
+        return jsonify({
+            "status": "error",
+            "message": f"Failed to capture photo: {str(e)}"
+        }), 500

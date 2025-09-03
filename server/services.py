@@ -1,8 +1,10 @@
 """Service layer for camera and streaming operations."""
 
 import io
+import os
 import time
 import logging
+from datetime import datetime
 from typing import Optional, Generator, Union, Tuple
 
 try:
@@ -270,6 +272,41 @@ class CameraService:
         except Exception as e:
             logger.error(f"Error capturing frame: {e}")
             return Result.failure(f"Failed to capture frame: {str(e)}")
+    
+    def capture_photo(self, photos_dir: str = "photos") -> Result[str, str]:
+        """
+        Capture a photo and save it to the photos directory.
+        
+        Args:
+            photos_dir: Directory to save photos (default: "photos")
+            
+        Returns:
+            Result containing the filename or error message
+        """
+        try:
+            # Ensure photos directory exists
+            os.makedirs(photos_dir, exist_ok=True)
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"photo_{timestamp}.jpg"
+            filepath = os.path.join(photos_dir, filename)
+            
+            # Capture frame without overlay
+            frame_result = self.capture_frame_without_overlay()
+            if frame_result.is_failure:
+                return Result.failure(f"Failed to capture photo: {frame_result.error}")
+            
+            # Save the photo
+            with open(filepath, 'wb') as f:
+                f.write(frame_result.value.data)
+            
+            logger.info(f"Photo saved: {filename}")
+            return Result.success(filename)
+            
+        except Exception as e:
+            logger.error(f"Error capturing photo: {e}")
+            return Result.failure(f"Failed to capture photo: {str(e)}")
 
 
 class StreamingService:
