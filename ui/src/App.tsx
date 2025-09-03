@@ -176,9 +176,9 @@ function App() {
       {/* PWA install badge */}
       <PWABadge />
 
-      {/* Keyboard shortcut hint */}
+      {/* Keyboard shortcut hint - only show on desktop */}
       {!controlsOpen && (
-        <div className="absolute bottom-20 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
+        <div className="hidden sm:block absolute bottom-20 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
           Press Space to toggle controls
         </div>
       )}
