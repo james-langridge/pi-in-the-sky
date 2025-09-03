@@ -28,7 +28,7 @@ export function MotionDetection() {
         await toggleMotion();
         toast.success('Motion detection enabled');
         
-        // Subscribe to push notifications if not already
+        // Subscribe to push notifications
         if (!subscribed && 'Notification' in window) {
           if (Notification.permission === 'granted') {
             await subscribe();
@@ -38,13 +38,27 @@ export function MotionDetection() {
             if (permission === 'granted') {
               await subscribe();
               toast.success('Push notifications enabled');
+            } else {
+              toast.info('Push notifications require permission');
             }
+          } else if (Notification.permission === 'denied') {
+            toast.info('Push notifications blocked by browser');
           }
         }
       } else {
         // Disable motion detection
         await toggleMotion();
         toast.info('Motion detection disabled');
+        
+        // Unsubscribe from push notifications
+        if (subscribed) {
+          try {
+            await unsubscribe();
+            toast.info('Push notifications disabled');
+          } catch (error) {
+            console.error('Failed to unsubscribe:', error);
+          }
+        }
       }
     } catch (error) {
       toast.error('Failed to toggle motion detection');
@@ -117,57 +131,27 @@ export function MotionDetection() {
 
       {/* Push Notifications Status */}
       <div className="p-4 bg-gray-700 rounded-lg">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between">
           <span className="text-gray-200 font-medium">Push Notifications</span>
           <div className="flex items-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${
               subscribed ? 'bg-green-500' : 'bg-gray-500'
             }`}></div>
             <span className="text-sm text-gray-400">
-              {subscribed ? 'Subscribed' : 'Not subscribed'}
+              {subscribed ? 'Active' : status?.enabled ? 'Requesting...' : 'Inactive'}
             </span>
           </div>
         </div>
 
-        {subscribed ? (
-          <div className="flex space-x-2">
-            <button
-              onClick={handleTestNotification}
-              disabled={isTestingNotification}
-              className="flex-1 px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded 
-                       transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isTestingNotification ? 'Sending...' : 'Test Notification'}
-            </button>
-            <button
-              onClick={async () => {
-                try {
-                  await unsubscribe();
-                  toast.info('Push notifications disabled');
-                } catch (error) {
-                  toast.error('Failed to unsubscribe');
-                  console.error('Unsubscribe error:', error);
-                }
-              }}
-              className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
-            >
-              Unsubscribe
-            </button>
-          </div>
-        ) : (
+        {/* Only show test notification button in development */}
+        {import.meta.env.DEV && subscribed && (
           <button
-            onClick={async () => {
-              try {
-                await subscribe();
-                toast.success('Push notifications enabled');
-              } catch (error) {
-                toast.error('Failed to enable push notifications');
-                console.error('Subscribe error:', error);
-              }
-            }}
-            className="w-full px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+            onClick={handleTestNotification}
+            disabled={isTestingNotification}
+            className="mt-3 w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded 
+                     transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Enable Push Notifications
+            {isTestingNotification ? 'Sending Test...' : 'Test Notification'}
           </button>
         )}
       </div>
