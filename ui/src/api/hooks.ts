@@ -7,7 +7,8 @@ import type {
   MotionEvent,
   AppInfo,
   CameraPreset,
-  CameraControl
+  CameraControl,
+  StreamStatus
 } from '../types';
 
 // Generic hook for API calls with loading and error states
@@ -272,6 +273,45 @@ export function usePushNotifications() {
     subscribe,
     unsubscribe,
     testNotification
+  };
+}
+
+// Stream status hook with unified connection and timestamp management
+export function useStreamStatus(interval = 1000) {
+  const [streamStatus, setStreamStatus] = useState<StreamStatus | null>(null);
+  const [streamConnected, setStreamConnected] = useState(false);
+
+  useEffect(() => {
+    const checkStreamStatus = async () => {
+      try {
+        const status = await api.getStreamStatus();
+        setStreamStatus(status);
+        
+        // Update connection state based on comprehensive health check
+        const connected = status.healthy && status.status === 'streaming';
+        setStreamConnected(connected);
+      } catch (error) {
+        console.error('Failed to fetch stream status:', error);
+        // On error, assume disconnected
+        setStreamConnected(false);
+        setStreamStatus(prev => prev ? { ...prev, healthy: false, status: 'waiting' } : null);
+      }
+    };
+
+    // Check immediately
+    checkStreamStatus();
+    
+    // Set up polling
+    const timer = setInterval(checkStreamStatus, interval);
+
+    return () => clearInterval(timer);
+  }, [interval]);
+
+  return { 
+    streamStatus, 
+    streamConnected,
+    timestamp: streamStatus?.timestamp || '',
+    streamHealthy: streamStatus?.healthy || false
   };
 }
 

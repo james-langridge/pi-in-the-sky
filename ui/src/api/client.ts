@@ -8,7 +8,8 @@ import type {
   PushSubscription,
   AppInfo,
   CameraPreset,
-  CameraControl
+  CameraControl,
+  StreamStatus
 } from '../types';
 
 export class CameraAPI {
@@ -41,6 +42,11 @@ export class CameraAPI {
 
   async getAppInfo(): Promise<AppInfo> {
     return this.fetchJSON<AppInfo>('/api/app-info');
+  }
+
+  // Stream Status
+  async getStreamStatus(): Promise<StreamStatus> {
+    return this.fetchJSON<StreamStatus>('/api/stream/timestamp');
   }
 
   // Camera Presets

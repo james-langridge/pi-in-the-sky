@@ -4,7 +4,7 @@ import { VideoStream } from './components/VideoStream';
 import { ControlPanel } from './components/ControlPanel';
 import { PhotoGallery } from './components/PhotoGallery';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { useHealthCheck, useAppInfo } from './api/hooks';
+import { useHealthCheck, useAppInfo, useStreamStatus } from './api/hooks';
 import PWABadge from './PWABadge';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -13,10 +13,9 @@ import './App.css';
 function App() {
   const [controlsOpen, setControlsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [streamConnected, setStreamConnected] = useState(false);
-  const [streamTimestamp, setStreamTimestamp] = useState<string>('');
   const { isHealthy } = useHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
+  const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy } = useStreamStatus();
 
   // Keep-alive mechanism for iOS PWA
   useEffect(() => {
@@ -54,33 +53,7 @@ function App() {
     };
   }, []);
 
-  // Poll for frame timestamp when stream is connected
-  useEffect(() => {
-    if (!streamConnected) {
-      setStreamTimestamp('');
-      return;
-    }
-
-    const fetchTimestamp = async () => {
-      try {
-        const response = await fetch('/api/stream/timestamp');
-        const data = await response.json();
-        if (data.timestamp) {
-          setStreamTimestamp(data.timestamp);
-        }
-      } catch (error) {
-        console.error('Failed to fetch timestamp:', error);
-      }
-    };
-
-    // Fetch immediately
-    fetchTimestamp();
-
-    // Then poll every 500ms to get more responsive updates
-    const interval = setInterval(fetchTimestamp, 500);
-
-    return () => clearInterval(interval);
-  }, [streamConnected]);
+  // Stream status is now handled by useStreamStatus hook
 
 
   const handleRefresh = () => {
@@ -126,15 +99,24 @@ function App() {
         {/* Connection status */}
         <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
           !isHealthy ? 'bg-red-500/20' : 
-          streamConnected ? 'bg-green-500/20' : 'bg-yellow-500/20'
+          streamHealthy ? 'bg-green-500/20' : 
+          streamStatus?.status === 'degraded' ? 'bg-orange-500/20' :
+          streamStatus?.status === 'stale' ? 'bg-red-500/20' :
+          'bg-yellow-500/20'
         }`}>
           <div className={`w-2 h-2 rounded-full ${
             !isHealthy ? 'bg-red-500' : 
-            streamConnected ? 'bg-green-500' : 'bg-yellow-500'
+            streamHealthy ? 'bg-green-500' : 
+            streamStatus?.status === 'degraded' ? 'bg-orange-500' :
+            streamStatus?.status === 'stale' ? 'bg-red-500' :
+            'bg-yellow-500'
           } animate-pulse`}></div>
           <span className="text-xs text-white">
             {!isHealthy ? 'Server Offline' : 
-             streamConnected ? 'Connected' : 'Connecting...'}
+             streamHealthy ? 'Streaming' : 
+             streamStatus?.status === 'degraded' ? 'Stream Issues' :
+             streamStatus?.status === 'stale' ? 'Stream Stale' :
+             'Connecting...'}
           </span>
         </div>
         
@@ -153,7 +135,14 @@ function App() {
 
       {/* Main video stream */}
       <ErrorBoundary>
-        <VideoStream onStreamStatusChange={setStreamConnected} />
+        <VideoStream 
+          streamConnected={streamConnected}
+          streamHealthy={streamHealthy}
+          onRetryNeeded={() => {
+            // Force a refresh of stream status when manual retry is requested
+            window.location.reload();
+          }}
+        />
       </ErrorBoundary>
 
       {/* Gallery button - bottom left */}

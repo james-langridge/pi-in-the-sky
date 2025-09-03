@@ -3,14 +3,16 @@ import { api } from '../api/client';
 import { toast } from 'react-toastify';
 
 interface VideoStreamProps {
-  onStreamStatusChange?: (connected: boolean) => void;
+  streamConnected: boolean;
+  streamHealthy: boolean;
+  onRetryNeeded?: () => void;
 }
 
-export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
+export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: VideoStreamProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [connected, setConnected] = useState(false);
   const [capturing, setCapturing] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
@@ -22,33 +24,20 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
     const streamUrl = api.getStreamUrl();
 
     const handleLoad = () => {
-      // MJPEG streams fire onload for every frame, only handle first connection
-      if (!connected) {
-        setConnected(true);
-        setLoading(false);
-        setError(null);
-        reconnectAttemptsRef.current = 0;
-        onStreamStatusChange?.(true);
-      }
+      // MJPEG streams fire onload for every frame
+      setImgLoaded(true);
+      setLoading(false);
+      setError(null);
+      reconnectAttemptsRef.current = 0;
     };
 
     const handleError = () => {
-      setConnected(false);
+      setImgLoaded(false);
       setLoading(false);
-      onStreamStatusChange?.(false);
-
-      // Implement exponential backoff for reconnection
-      const attempts = reconnectAttemptsRef.current;
-      if (attempts < 10) {
-        const delay = Math.min(1000 * Math.pow(2, attempts), 30000);
-        setError(`Connection lost. Retrying in ${delay / 1000}s...`);
-        
-        reconnectTimeoutRef.current = window.setTimeout(() => {
-          reconnectAttemptsRef.current++;
-          img.src = streamUrl + '?t=' + Date.now(); // Add timestamp to force reload
-        }, delay);
-      } else {
-        setError('Unable to connect to camera stream');
+      
+      // Don't auto-retry - let the unified stream status handle reconnection logic
+      if (!streamHealthy) {
+        setError('Stream connection lost');
       }
     };
 
@@ -56,7 +45,7 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
     img.addEventListener('error', handleError);
     
     // Start loading stream
-    img.src = streamUrl;
+    img.src = streamUrl + '?t=' + Date.now();
 
     return () => {
       img.removeEventListener('load', handleLoad);
@@ -65,7 +54,26 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [connected, onStreamStatusChange]);
+  }, [streamHealthy]);
+
+  // React to external stream status changes
+  useEffect(() => {
+    if (!streamConnected || !streamHealthy) {
+      setImgLoaded(false);
+      if (!streamConnected) {
+        setError('Waiting for stream connection...');
+      } else if (!streamHealthy) {
+        setError('Stream quality issues detected');
+      }
+    } else if (error && streamConnected && streamHealthy) {
+      // Clear error when stream becomes healthy
+      setError(null);
+      // Refresh the image when stream becomes healthy
+      if (imgRef.current) {
+        imgRef.current.src = api.getStreamUrl() + '?t=' + Date.now();
+      }
+    }
+  }, [streamConnected, streamHealthy, error]);
 
   const handleManualReconnect = () => {
     if (imgRef.current) {
@@ -74,6 +82,8 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
       setError(null);
       imgRef.current.src = api.getStreamUrl() + '?t=' + Date.now();
     }
+    // Notify parent that retry was requested
+    onRetryNeeded?.();
   };
 
   const handleCapturePhoto = async () => {
@@ -138,11 +148,11 @@ export function VideoStream({ onStreamStatusChange }: VideoStreamProps) {
         ref={imgRef}
         alt="Camera stream"
         className="w-full h-full object-contain"
-        style={{ display: connected ? 'block' : 'none' }}
+        style={{ display: imgLoaded && streamConnected ? 'block' : 'none' }}
       />
 
-      {/* Capture button - only show when connected */}
-      {connected && (
+      {/* Capture button - only show when stream is healthy */}
+      {imgLoaded && streamHealthy && (
         <button
           onClick={handleCapturePhoto}
           disabled={capturing}

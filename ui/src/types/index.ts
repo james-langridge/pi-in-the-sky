@@ -71,6 +71,14 @@ export interface AppInfo {
   timestamp: string;
 }
 
+export interface StreamStatus {
+  timestamp: string | null;
+  status: 'streaming' | 'waiting' | 'degraded' | 'stale';
+  healthy: boolean;
+  active_streams: number;
+  frame_age_seconds: number | null;
+}
+
 // Motion Detection Presets
 export interface MotionPreset {
   name: string;

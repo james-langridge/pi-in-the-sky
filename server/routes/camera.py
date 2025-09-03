@@ -249,17 +249,31 @@ def health():
 @camera_bp.route('/api/stream/timestamp')
 def stream_timestamp():
     """
-    Get last frame timestamp from the stream.
+    Get comprehensive stream status including timestamp and health.
 
     Returns:
-        JSON response with last frame timestamp
+        JSON response with stream status and timestamp
     """
     streaming_service = current_app.config['services']['streaming_service']
-    timestamp = streaming_service.get_last_frame_timestamp()
+    stream_status = streaming_service.get_stream_status()
+    
+    # Determine overall status based on stream health
+    if stream_status["healthy"]:
+        status = "streaming"
+    elif stream_status["timestamp"] and stream_status["frame_age_seconds"] is not None:
+        if stream_status["frame_age_seconds"] > 10:
+            status = "stale"
+        else:
+            status = "degraded"
+    else:
+        status = "waiting"
     
     return jsonify({
-        "timestamp": timestamp,
-        "status": "streaming" if timestamp else "waiting"
+        "timestamp": stream_status["timestamp"],
+        "status": status,
+        "healthy": stream_status["healthy"],
+        "active_streams": stream_status["active_streams"],
+        "frame_age_seconds": stream_status["frame_age_seconds"]
     })
 
 

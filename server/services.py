@@ -429,6 +429,9 @@ class StreamingService:
         self._camera_service = camera_service
         self._frame_delay = frame_delay
         self._last_frame_timestamp = None
+        self._active_streams = 0
+        self._last_successful_frame_time = None
+        self._stream_healthy = False
     
     def generate_mjpeg_stream(self) -> Generator[bytes, None, None]:
         """
@@ -437,32 +440,43 @@ class StreamingService:
         Yields:
             MJPEG formatted frame chunks
         """
-        while True:
-            try:
-                # Capture frame without overlay
-                frame_result = self._camera_service.capture_frame_without_overlay()
-                
-                if frame_result.is_failure:
-                    logger.error(f"Failed to capture frame: {frame_result.error}")
+        # Track active stream
+        self._active_streams += 1
+        try:
+            while True:
+                try:
+                    # Capture frame without overlay
+                    frame_result = self._camera_service.capture_frame_without_overlay()
+                    
+                    if frame_result.is_failure:
+                        logger.error(f"Failed to capture frame: {frame_result.error}")
+                        self._stream_healthy = False
+                        time.sleep(1)
+                        continue
+                    
+                    # Update stream health and timestamps
+                    self._last_frame_timestamp = frame_result.value.timestamp
+                    self._last_successful_frame_time = time.time()
+                    self._stream_healthy = True
+                    
+                    # Create MJPEG chunk
+                    chunk = create_mjpeg_chunk(frame_result.value.data)
+                    
+                    yield chunk
+                    
+                    # Control frame rate
+                    time.sleep(self._frame_delay)
+                    
+                except Exception as e:
+                    logger.error(f"Error generating frame: {e}")
+                    self._stream_healthy = False
+                    # Wait and retry
                     time.sleep(1)
-                    continue
-                
-                # Update last frame timestamp
-                self._last_frame_timestamp = frame_result.value.timestamp
-                
-                # Create MJPEG chunk
-                chunk = create_mjpeg_chunk(frame_result.value.data)
-                
-                yield chunk
-                
-                # Control frame rate
-                time.sleep(self._frame_delay)
-                
-            except Exception as e:
-                logger.error(f"Error generating frame: {e}")
-                # Could yield error frame or break
-                # For now, wait and retry
-                time.sleep(1)
+        finally:
+            # Clean up when stream ends
+            self._active_streams = max(0, self._active_streams - 1)
+            if self._active_streams == 0:
+                self._stream_healthy = False
     
     def get_last_frame_timestamp(self) -> Optional[str]:
         """
@@ -472,6 +486,44 @@ class StreamingService:
             Timestamp string or None if no frames have been generated
         """
         return self._last_frame_timestamp
+    
+    def get_stream_status(self) -> dict:
+        """
+        Get comprehensive stream status information.
+        
+        Returns:
+            Dictionary containing stream health, timestamp, and connection info
+        """
+        now = time.time()
+        
+        # Consider stream stale if no successful frame in last 5 seconds
+        frame_age_seconds = None
+        if self._last_successful_frame_time:
+            frame_age_seconds = now - self._last_successful_frame_time
+            
+        is_stale = (
+            frame_age_seconds is None or 
+            frame_age_seconds > 5.0 or 
+            self._active_streams == 0
+        )
+        
+        # Stream is considered healthy if:
+        # - We have active streams
+        # - Recent successful frame
+        # - Internal health flag is true
+        stream_healthy = (
+            self._active_streams > 0 and 
+            not is_stale and 
+            self._stream_healthy
+        )
+        
+        return {
+            "timestamp": self._last_frame_timestamp,
+            "healthy": stream_healthy,
+            "active_streams": self._active_streams,
+            "frame_age_seconds": frame_age_seconds,
+            "last_frame_time": self._last_successful_frame_time
+        }
     
     def generate_mjpeg_stream_with_metadata(self) -> Generator[Tuple[bytes, str], None, None]:
         """
