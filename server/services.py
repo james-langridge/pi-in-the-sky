@@ -372,18 +372,22 @@ class CameraService:
             logger.error(f"Error listing photos: {e}")
             return Result.failure(f"Failed to list photos: {str(e)}")
     
-    def delete_photo(self, filename: str, photos_dir: str = "photos") -> Result[bool, str]:
+    def delete_photo(self, filename: str, photos_dir: str = None) -> Result[bool, str]:
         """
         Delete a photo from the photos directory.
         
         Args:
             filename: Name of the photo file to delete
-            photos_dir: Directory containing photos (default: "photos")
+            photos_dir: Directory containing photos (default: server/photos)
             
         Returns:
             Result containing success status or error message
         """
         try:
+            # Default to photos directory in server folder if not specified
+            if photos_dir is None:
+                photos_dir = os.path.join(os.path.dirname(__file__), 'photos')
+            
             # Validate filename - prevent path traversal attacks
             if "/" in filename or "\\" in filename or ".." in filename:
                 return Result.failure("Invalid filename")

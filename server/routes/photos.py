@@ -79,8 +79,8 @@ def delete_photo(filename):
     """
     camera_service = current_app.config['services']['camera_service']
     
-    # Get the absolute path to the photos directory (at project root)
-    photos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'photos'))
+    # Get the absolute path to the photos directory (in server folder)
+    photos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'photos'))
     
     result = camera_service.delete_photo(filename, photos_dir)
     
