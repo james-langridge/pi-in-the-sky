@@ -4,6 +4,8 @@ import { ControlPanel } from './components/ControlPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useHealthCheck, useAppInfo } from './api/hooks';
 import PWABadge from './PWABadge';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
 function App() {
@@ -180,6 +182,21 @@ function App() {
           Press Space to toggle controls
         </div>
       )}
+
+      {/* Toast notifications */}
+      <ToastContainer
+        position="bottom-center"
+        autoClose={3000}
+        hideProgressBar
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        toastClassName="!bg-gray-800 !text-white"
+      />
     </div>
   );
 }

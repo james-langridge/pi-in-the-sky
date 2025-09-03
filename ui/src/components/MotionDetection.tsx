@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMotionDetection, usePushNotifications } from '../api/hooks';
 import { MOTION_PRESETS } from '../types';
+import { toast } from 'react-toastify';
 
 export function MotionDetection() {
   const { status, events, loading, updateConfig, toggleMotion } = useMotionDetection();
@@ -21,24 +22,33 @@ export function MotionDetection() {
   const handleToggleMotion = async () => {
     if (!status) return;
 
-    if (!status.enabled) {
-      // Enable motion detection
-      await toggleMotion();
-      
-      // Subscribe to push notifications if not already
-      if (!subscribed && 'Notification' in window) {
-        if (Notification.permission === 'granted') {
-          await subscribe();
-        } else if (Notification.permission === 'default') {
-          const permission = await Notification.requestPermission();
-          if (permission === 'granted') {
+    try {
+      if (!status.enabled) {
+        // Enable motion detection
+        await toggleMotion();
+        toast.success('Motion detection enabled');
+        
+        // Subscribe to push notifications if not already
+        if (!subscribed && 'Notification' in window) {
+          if (Notification.permission === 'granted') {
             await subscribe();
+            toast.success('Push notifications enabled');
+          } else if (Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+              await subscribe();
+              toast.success('Push notifications enabled');
+            }
           }
         }
+      } else {
+        // Disable motion detection
+        await toggleMotion();
+        toast.info('Motion detection disabled');
       }
-    } else {
-      // Disable motion detection
-      await toggleMotion();
+    } catch (error) {
+      toast.error('Failed to toggle motion detection');
+      console.error('Toggle motion error:', error);
     }
   };
 
@@ -47,14 +57,28 @@ export function MotionDetection() {
     if (!preset) return;
 
     setIsApplyingPreset(true);
-    await updateConfig(preset.config);
-    setIsApplyingPreset(false);
+    try {
+      await updateConfig(preset.config);
+      toast.success(`Applied "${preset.name}" preset`);
+    } catch (error) {
+      toast.error('Failed to apply preset');
+      console.error('Apply preset error:', error);
+    } finally {
+      setIsApplyingPreset(false);
+    }
   };
 
   const handleTestNotification = async () => {
     setIsTestingNotification(true);
-    await testNotification();
-    setIsTestingNotification(false);
+    try {
+      await testNotification();
+      toast.success('Test notification sent');
+    } catch (error) {
+      toast.error('Failed to send test notification');
+      console.error('Test notification error:', error);
+    } finally {
+      setIsTestingNotification(false);
+    }
   };
 
   if (loading) {
@@ -116,7 +140,15 @@ export function MotionDetection() {
               {isTestingNotification ? 'Sending...' : 'Test Notification'}
             </button>
             <button
-              onClick={unsubscribe}
+              onClick={async () => {
+                try {
+                  await unsubscribe();
+                  toast.info('Push notifications disabled');
+                } catch (error) {
+                  toast.error('Failed to unsubscribe');
+                  console.error('Unsubscribe error:', error);
+                }
+              }}
               className="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
             >
               Unsubscribe
@@ -124,7 +156,15 @@ export function MotionDetection() {
           </div>
         ) : (
           <button
-            onClick={subscribe}
+            onClick={async () => {
+              try {
+                await subscribe();
+                toast.success('Push notifications enabled');
+              } catch (error) {
+                toast.error('Failed to enable push notifications');
+                console.error('Subscribe error:', error);
+              }
+            }}
             className="w-full px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
           >
             Enable Push Notifications

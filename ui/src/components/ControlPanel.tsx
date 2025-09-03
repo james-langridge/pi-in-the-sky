@@ -3,6 +3,7 @@ import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useCameraPresets } from '../api/hooks';
+import { toast } from 'react-toastify';
 import type { CameraPreset } from '../types';
 
 interface ControlPanelProps {
@@ -31,9 +32,13 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
     setApplyingPreset(preset);
     const success = await applyPreset(preset);
     if (success) {
-      // Show success feedback
+      const presetName = preset === 'default' ? 'Default' : 
+                        preset === 'low_light' ? 'Low Light' : 
+                        preset === 'bright' ? 'Bright' : preset;
+      toast.success(`Applied ${presetName} preset`);
       setTimeout(() => setApplyingPreset(null), 1000);
     } else {
+      toast.error(`Failed to apply preset`);
       setApplyingPreset(null);
     }
   };

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useCameraControls } from '../api/hooks';
+import { toast } from 'react-toastify';
 
 export function CameraControls() {
   const { controlsByCategory, loading, updateControl } = useCameraControls();
@@ -20,17 +21,32 @@ export function CameraControls() {
 
   const handleSliderRelease = async (controlName: string) => {
     const value = localValues[controlName];
-    await updateControl(controlName, value);
+    const success = await updateControl(controlName, value);
+    if (success) {
+      toast.success(`${controlName} updated to ${value}`);
+    } else {
+      toast.error(`Failed to update ${controlName}`);
+    }
   };
 
   const handleSwitchChange = async (controlName: string, checked: boolean) => {
     setLocalValues(prev => ({ ...prev, [controlName]: checked }));
-    await updateControl(controlName, checked);
+    const success = await updateControl(controlName, checked);
+    if (success) {
+      toast.success(`${controlName} ${checked ? 'enabled' : 'disabled'}`);
+    } else {
+      toast.error(`Failed to update ${controlName}`);
+    }
   };
 
   const handleSelectChange = async (controlName: string, value: string) => {
     setLocalValues(prev => ({ ...prev, [controlName]: value }));
-    await updateControl(controlName, value);
+    const success = await updateControl(controlName, value);
+    if (success) {
+      toast.success(`${controlName} changed to ${value}`);
+    } else {
+      toast.error(`Failed to update ${controlName}`);
+    }
   };
 
   const toggleCategory = (category: string) => {
