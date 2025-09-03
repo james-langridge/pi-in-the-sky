@@ -59,8 +59,8 @@ def serve_photo(filename):
     Returns:
         Photo file or 404 error
     """
-    # Get the absolute path to the photos directory (at project root)
-    photos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'photos'))
+    # Get the absolute path to the photos directory (in server folder)
+    photos_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'photos'))
     
     # Serve photo from photos directory
     return send_from_directory(photos_dir, filename)

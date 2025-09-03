@@ -275,7 +275,7 @@ class CameraService:
             logger.error(f"Error capturing frame: {e}")
             return Result.failure(f"Failed to capture frame: {str(e)}")
     
-    def capture_photo(self, photos_dir: str = "photos") -> Result[str, str]:
+    def capture_photo(self, photos_dir: str = None) -> Result[str, str]:
         """
         Capture a photo and save it to the photos directory.
         
@@ -286,6 +286,10 @@ class CameraService:
             Result containing the filename or error message
         """
         try:
+            # Default to photos directory in server folder if not specified
+            if photos_dir is None:
+                photos_dir = os.path.join(os.path.dirname(__file__), 'photos')
+            
             # Ensure photos directory exists
             os.makedirs(photos_dir, exist_ok=True)
             
@@ -310,7 +314,7 @@ class CameraService:
             logger.error(f"Error capturing photo: {e}")
             return Result.failure(f"Failed to capture photo: {str(e)}")
     
-    def list_photos(self, photos_dir: str = "photos") -> Result[list, str]:
+    def list_photos(self, photos_dir: str = None) -> Result[list, str]:
         """
         List all photos in the photos directory with metadata.
         
@@ -321,6 +325,10 @@ class CameraService:
             Result containing list of PhotoMetadata objects or error message
         """
         try:
+            # Default to photos directory in server folder if not specified
+            if photos_dir is None:
+                photos_dir = os.path.join(os.path.dirname(__file__), 'photos')
+            
             # Check if photos directory exists
             if not os.path.exists(photos_dir):
                 return Result.success([])
