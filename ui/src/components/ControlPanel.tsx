@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSwipeable } from 'react-swipeable';
 import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -45,34 +46,27 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
     }
   };
 
-  return (
-    <>
-      {/* Toggle button */}
-      <button
-        onClick={onToggle}
-        className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20 
-                   w-12 h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full 
-                   shadow-lg transition-all duration-200 flex items-center justify-center"
-        aria-label="Toggle controls"
-      >
-        <svg
-          className={`w-6 h-6 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-        </svg>
-      </button>
+  // Setup swipe handlers
+  const swipeHandlers = useSwipeable({
+    onSwipedDown: () => {
+      if (isOpen) {
+        onToggle();
+      }
+    },
+    trackMouse: false,
+    delta: 50,
+    swipeDuration: 500
+  });
 
-      {/* Control panel */}
-      <div
-        className={`absolute bottom-0 left-0 right-0 bg-gray-800 rounded-t-2xl shadow-2xl 
-                    transform transition-transform duration-300 ease-out z-10 ${
-                      isOpen ? 'translate-y-0' : 'translate-y-full'
-                    }`}
-        style={{ maxHeight: '70vh' }}
-      >
+  return (
+    <div
+      {...swipeHandlers}
+      className={`absolute bottom-0 left-0 right-0 bg-gray-800 rounded-t-2xl shadow-2xl 
+                  transform transition-transform duration-300 ease-out z-10 ${
+                    isOpen ? 'translate-y-0' : 'translate-y-full'
+                  }`}
+      style={{ maxHeight: '70vh' }}
+    >
         {/* Handle bar */}
         <div className="flex justify-center py-2">
           <div className="w-12 h-1 bg-gray-600 rounded-full"></div>
@@ -208,7 +202,6 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
             </ErrorBoundary>
           )}
         </div>
-      </div>
-    </>
+    </div>
   );
 }

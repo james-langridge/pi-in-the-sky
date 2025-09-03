@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
 import { VideoStream } from './components/VideoStream';
 import { ControlPanel } from './components/ControlPanel';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -79,18 +80,6 @@ function App() {
     return () => clearInterval(interval);
   }, [streamConnected]);
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && e.target === document.body) {
-        e.preventDefault();
-        setControlsOpen(prev => !prev);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const handleRefresh = () => {
     window.location.reload();
@@ -165,6 +154,19 @@ function App() {
         <VideoStream onStreamStatusChange={setStreamConnected} />
       </ErrorBoundary>
 
+      {/* Settings toggle button - only show when panel is closed */}
+      {!controlsOpen && (
+        <button
+          onClick={() => setControlsOpen(true)}
+          className="absolute bottom-8 right-8 z-20 w-12 h-12 bg-gray-700 hover:bg-gray-600 
+                     text-white rounded-full shadow-lg transition-all duration-200 
+                     flex items-center justify-center"
+          aria-label="Open settings"
+        >
+          <Settings className="w-6 h-6" />
+        </button>
+      )}
+
       {/* Control panel */}
       <ErrorBoundary>
         <ControlPanel
@@ -176,12 +178,6 @@ function App() {
       {/* PWA install badge */}
       <PWABadge />
 
-      {/* Keyboard shortcut hint - only show on desktop */}
-      {!controlsOpen && (
-        <div className="hidden sm:block absolute bottom-20 left-1/2 transform -translate-x-1/2 text-xs text-gray-500">
-          Press Space to toggle controls
-        </div>
-      )}
 
       {/* Toast notifications */}
       <ToastContainer
