@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Trash2 } from 'lucide-react';
+import { X, Trash2, Download, CheckSquare, Square } from 'lucide-react';
 
 interface Photo {
   filename: string;
@@ -22,6 +22,9 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Photo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch photos when gallery opens
   useEffect(() => {
@@ -82,12 +85,91 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
     setDeleteConfirm(photo);
   };
 
+  const toggleSelectionMode = () => {
+    setSelectionMode(!selectionMode);
+    if (selectionMode) {
+      setSelectedPhotos(new Set());
+    }
+  };
+
+  const togglePhotoSelection = (filename: string) => {
+    const newSelected = new Set(selectedPhotos);
+    if (newSelected.has(filename)) {
+      newSelected.delete(filename);
+    } else {
+      newSelected.add(filename);
+    }
+    setSelectedPhotos(newSelected);
+  };
+
+  const selectAll = () => {
+    const allFilenames = new Set(photos.map(p => p.filename));
+    setSelectedPhotos(allFilenames);
+  };
+
+  const clearSelection = () => {
+    setSelectedPhotos(new Set());
+  };
+
+  const saveSelectedPhotos = async () => {
+    if (selectedPhotos.size === 0) return;
+    
+    setIsSaving(true);
+    
+    // Create hidden anchor elements for each photo and trigger downloads
+    // iOS Safari will prompt to save each to Photos
+    const photosToSave = photos.filter(p => selectedPhotos.has(p.filename));
+    
+    for (const photo of photosToSave) {
+      try {
+        // Fetch the image as blob
+        const response = await fetch(photo.path);
+        const blob = await response.blob();
+        
+        // Create blob URL
+        const url = URL.createObjectURL(blob);
+        
+        // Create hidden anchor and trigger download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = photo.filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Small delay between downloads to avoid overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (err) {
+        console.error(`Failed to save ${photo.filename}:`, err);
+      }
+    }
+    
+    setIsSaving(false);
+    setSelectionMode(false);
+    setSelectedPhotos(new Set());
+  };
+
+  const handlePhotoClick = (photo: Photo) => {
+    if (selectionMode) {
+      togglePhotoSelection(photo.filename);
+    } else {
+      setSelectedPhoto(photo);
+    }
+  };
+
   // Handle escape key to close gallery
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (selectedPhoto) {
           setSelectedPhoto(null);
+        } else if (selectionMode) {
+          setSelectionMode(false);
+          setSelectedPhotos(new Set());
         } else {
           onClose();
         }
@@ -101,7 +183,7 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, selectedPhoto, onClose]);
+  }, [isOpen, selectedPhoto, selectionMode, onClose]);
 
   if (!isOpen) return null;
 
@@ -111,15 +193,66 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
       <div className="flex items-center justify-between p-4 bg-gray-900 bg-opacity-80">
         <h2 className="text-xl font-semibold text-white">
           Photos ({photos.length})
+          {selectionMode && selectedPhotos.size > 0 && (
+            <span className="ml-2 text-sm text-blue-400">
+              ({selectedPhotos.size} selected)
+            </span>
+          )}
         </h2>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
-          aria-label="Close gallery"
-        >
-          <X className="w-6 h-6 text-white" />
-        </button>
+        <div className="flex items-center gap-2">
+          {photos.length > 0 && (
+            <button
+              onClick={toggleSelectionMode}
+              className={`px-3 py-2 rounded-lg transition-colors ${
+                selectionMode 
+                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                  : 'text-white hover:bg-gray-700'
+              }`}
+            >
+              {selectionMode ? 'Cancel' : 'Select'}
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-700 transition-colors"
+            aria-label="Close gallery"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+        </div>
       </div>
+
+      {/* Selection toolbar */}
+      {selectionMode && (
+        <div className="flex items-center justify-between p-3 bg-gray-800 border-t border-gray-700">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={selectAll}
+              className="px-3 py-1.5 text-sm text-white hover:bg-gray-700 rounded transition-colors"
+            >
+              Select All
+            </button>
+            {selectedPhotos.size > 0 && (
+              <button
+                onClick={clearSelection}
+                className="px-3 py-1.5 text-sm text-white hover:bg-gray-700 rounded transition-colors"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {selectedPhotos.size > 0 && (
+            <button
+              onClick={saveSelectedPhotos}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              {isSaving ? 'Saving...' : `Save ${selectedPhotos.size} Photo${selectedPhotos.size > 1 ? 's' : ''}`}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4">
@@ -154,32 +287,59 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
 
         {!loading && !error && photos.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {photos.map((photo) => (
-              <div
-                key={photo.filename}
-                className="relative group cursor-pointer"
-                onClick={() => setSelectedPhoto(photo)}
-              >
-                <img
-                  src={photo.path}
-                  alt={photo.filename}
-                  className="w-full h-32 object-cover rounded-lg group-hover:opacity-90 transition-opacity"
-                  loading="lazy"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 rounded-b-lg">
-                  <p className="text-xs text-white truncate">{photo.displayDate}</p>
-                  <p className="text-xs text-gray-300">{photo.displaySize}</p>
-                </div>
-                {/* Delete button */}
-                <button
-                  onClick={(e) => handleDeleteClick(e, photo)}
-                  className="absolute top-2 right-2 p-1.5 bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
-                  aria-label="Delete photo"
+            {photos.map((photo) => {
+              const isSelected = selectedPhotos.has(photo.filename);
+              return (
+                <div
+                  key={photo.filename}
+                  className={`relative group cursor-pointer ${
+                    selectionMode && isSelected ? 'ring-2 ring-blue-500 rounded-lg' : ''
+                  }`}
+                  onClick={() => handlePhotoClick(photo)}
                 >
-                  <Trash2 className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            ))}
+                  <img
+                    src={photo.path}
+                    alt={photo.filename}
+                    className={`w-full h-32 object-cover rounded-lg transition-opacity ${
+                      selectionMode ? (isSelected ? 'opacity-100' : 'opacity-70 group-hover:opacity-85') : 'group-hover:opacity-90'
+                    }`}
+                    loading="lazy"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-2 rounded-b-lg">
+                    <p className="text-xs text-white truncate">{photo.displayDate}</p>
+                    <p className="text-xs text-gray-300">{photo.displaySize}</p>
+                  </div>
+                  
+                  {/* Selection checkbox */}
+                  {selectionMode && (
+                    <div
+                      className="absolute top-2 left-2 p-1 bg-black bg-opacity-50 rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePhotoSelection(photo.filename);
+                      }}
+                    >
+                      {isSelected ? (
+                        <CheckSquare className="w-5 h-5 text-blue-500" />
+                      ) : (
+                        <Square className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Delete button (hidden in selection mode) */}
+                  {!selectionMode && (
+                    <button
+                      onClick={(e) => handleDeleteClick(e, photo)}
+                      className="absolute top-2 right-2 p-1.5 bg-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                      aria-label="Delete photo"
+                    >
+                      <Trash2 className="w-4 h-4 text-white" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
