@@ -206,3 +206,26 @@ class AudioConfig:
     chunk_size: int = 4096  # Samples per chunk
     format: str = "pcm_s16le"
     buffer_size: int = 2048  # ALSA buffer size
+
+
+@dataclass(frozen=True)
+class AudioDetectionConfig:
+    """Immutable configuration for audio detection."""
+    
+    enabled: bool = False
+    threshold: float = 0.05  # RMS threshold (0-1 scale)
+    duration_threshold: float = 0.5  # Minimum duration in seconds
+    cooldown_seconds: int = 30  # Seconds between notifications
+    frequency_min: float = 100.0  # Min frequency Hz to detect
+    frequency_max: float = 8000.0  # Max frequency Hz to detect
+
+
+@dataclass(frozen=True)
+class AudioEvent:
+    """Immutable audio detection event."""
+    
+    timestamp: str
+    rms_level: float  # 0-1 scale
+    peak_level: float  # 0-1 scale
+    duration: float  # Duration in seconds
+    triggered: bool  # Whether this event triggered a notification

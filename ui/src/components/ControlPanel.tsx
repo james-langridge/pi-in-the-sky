@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSwipeable } from 'react-swipeable';
 import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
+import { AudioDetection } from './AudioDetection';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useCameraPresets } from '../api/hooks';
 import { toast } from 'react-toastify';
@@ -13,7 +14,7 @@ interface ControlPanelProps {
 }
 
 export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion'>('presets');
+  const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion' | 'audio'>('presets');
   const { applyPreset } = useCameraPresets();
   const [applyingPreset, setApplyingPreset] = useState<CameraPreset | null>(null);
   const [activePreset, setActivePreset] = useState<CameraPreset | null>('default');
@@ -103,6 +104,16 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
             }`}
           >
             Motion
+          </button>
+          <button
+            onClick={() => setActiveTab('audio')}
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+              activeTab === 'audio'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            Audio
           </button>
         </div>
 
@@ -199,6 +210,12 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
           {activeTab === 'motion' && (
             <ErrorBoundary>
               <MotionDetection />
+            </ErrorBoundary>
+          )}
+          
+          {activeTab === 'audio' && (
+            <ErrorBoundary>
+              <AudioDetection />
             </ErrorBoundary>
           )}
         </div>

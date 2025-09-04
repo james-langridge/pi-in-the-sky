@@ -8,7 +8,7 @@ from config import AppConfig
 from services import CameraService, StreamingService, ControlManager
 from motion_services import MotionDetectionService, NotificationService
 from storage import SubscriptionStorage
-from audio_services import create_audio_service, AudioStreamingService
+from audio_services import create_audio_service, AudioStreamingService, AudioDetectionService
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,12 @@ def create_services(config: AppConfig):
 
     # Audio services
     audio_capture_service = create_audio_service(use_mock=False)
-    audio_streaming_service = AudioStreamingService(audio_capture_service)
+    audio_detection_service = AudioDetectionService()
+    audio_streaming_service = AudioStreamingService(
+        audio_capture_service,
+        audio_detection_service,
+        notification_service
+    )
     
     return {
         'camera_service': camera_service,
@@ -96,7 +101,8 @@ def create_services(config: AppConfig):
         'subscription_storage': subscription_storage,
         'notification_service': notification_service,
         'audio_capture_service': audio_capture_service,
-        'audio_streaming_service': audio_streaming_service
+        'audio_streaming_service': audio_streaming_service,
+        'audio_detection_service': audio_detection_service
     }
 
 

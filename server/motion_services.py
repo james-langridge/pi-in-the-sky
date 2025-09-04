@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any, List
 from collections import deque
 from pywebpush import webpush, WebPushException
 
-from models import MotionDetectionConfig, MotionEvent
+from models import MotionDetectionConfig, MotionEvent, AudioEvent
 from calculations import (
     detect_motion_between_frames,
     should_trigger_motion_event,
@@ -274,6 +274,88 @@ class NotificationService:
         }
         
         logger.info(f"Notifications sent: {sent_count}/{len(subscriptions)}")
+        return Result.success(result)
+    
+    def send_audio_notification(self, audio_event: AudioEvent) -> Result[Dict[str, Any], str]:
+        """
+        Send audio detection notification to all subscribers.
+        
+        Args:
+            audio_event: Audio event to notify about
+            
+        Returns:
+            Result containing send statistics or error message
+        """
+        subscriptions = self._storage.get_all_subscriptions()
+        
+        if not subscriptions:
+            logger.info("No subscriptions to notify for audio event")
+            return Result.success({
+                "sent": 0,
+                "failed": 0,
+                "total": 0
+            })
+        
+        # Prepare notification payload
+        payload = json.dumps({
+            "title": "Audio Detected",
+            "body": f"Audio detected at {audio_event.timestamp}",
+            "icon": "/icon-192.png",
+            "badge": "/badge-72.png",
+            "timestamp": audio_event.timestamp,
+            "data": {
+                "rms_level": audio_event.rms_level,
+                "peak_level": audio_event.peak_level,
+                "duration": audio_event.duration
+            }
+        })
+        
+        sent_count = 0
+        failed_count = 0
+        
+        for subscription in subscriptions:
+            # Skip known failed endpoints
+            if subscription.endpoint in self._failed_endpoints:
+                continue
+            
+            try:
+                webpush(
+                    subscription_info={
+                        "endpoint": subscription.endpoint,
+                        "keys": {
+                            "p256dh": subscription.p256dh,
+                            "auth": subscription.auth
+                        }
+                    },
+                    data=payload,
+                    vapid_private_key=self._vapid_obj,
+                    vapid_claims=self._vapid_claims,
+                    ttl=86400  # 24 hours TTL required by Apple
+                )
+                sent_count += 1
+                logger.debug(f"Audio notification sent to {subscription.id}")
+                
+            except WebPushException as e:
+                logger.warning(f"Failed to send audio notification to {subscription.id}: {e}")
+                
+                # Mark endpoint as failed if gone or expired
+                if e.response and e.response.status_code == 410:
+                    self._failed_endpoints.add(subscription.endpoint)
+                    self._storage.delete_subscription(subscription.id)
+                    logger.info(f"Removed expired subscription {subscription.id}")
+                
+                failed_count += 1
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Unexpected error sending audio notification to {subscription.id}: {type(e).__name__}: {e}")
+        
+        result = {
+            "sent": sent_count,
+            "failed": failed_count,
+            "total": len(subscriptions)
+        }
+        
+        logger.info(f"Audio notifications sent: {sent_count}/{len(subscriptions)}")
         return Result.success(result)
     
     def test_notification(self, endpoint: str) -> Result[bool, str]:
