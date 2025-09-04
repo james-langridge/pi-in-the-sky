@@ -116,20 +116,57 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
     
     setIsSaving(true);
     
-    // Create hidden anchor elements for each photo and trigger downloads
-    // iOS Safari will prompt to save each to Photos
     const photosToSave = photos.filter(p => selectedPhotos.has(p.filename));
     
+    // Check if Web Share API is available and can share files
+    if (navigator.share && navigator.canShare) {
+      try {
+        // Fetch all images as blobs
+        const files: File[] = [];
+        for (const photo of photosToSave) {
+          const response = await fetch(photo.path);
+          const blob = await response.blob();
+          const file = new File([blob], photo.filename, { type: 'image/jpeg' });
+          files.push(file);
+        }
+        
+        // Check if we can share these files
+        if (navigator.canShare({ files })) {
+          await navigator.share({
+            files,
+            title: `${files.length} Photos`,
+          });
+          
+          // Success - clear selection
+          setSelectionMode(false);
+          setSelectedPhotos(new Set());
+        } else {
+          // Fallback to download method
+          await downloadPhotosAsFallback(photosToSave);
+        }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Share failed:', err);
+          // Fallback to download method
+          await downloadPhotosAsFallback(photosToSave);
+        }
+      }
+    } else {
+      // Fallback for browsers without Web Share API
+      await downloadPhotosAsFallback(photosToSave);
+    }
+    
+    setIsSaving(false);
+  };
+
+  const downloadPhotosAsFallback = async (photosToSave: Photo[]) => {
+    // Original download implementation as fallback
     for (const photo of photosToSave) {
       try {
-        // Fetch the image as blob
         const response = await fetch(photo.path);
         const blob = await response.blob();
-        
-        // Create blob URL
         const url = URL.createObjectURL(blob);
         
-        // Create hidden anchor and trigger download
         const a = document.createElement('a');
         a.href = url;
         a.download = photo.filename;
@@ -137,18 +174,15 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
         document.body.appendChild(a);
         a.click();
         
-        // Clean up
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        // Small delay between downloads to avoid overwhelming the browser
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (err) {
         console.error(`Failed to save ${photo.filename}:`, err);
       }
     }
     
-    setIsSaving(false);
     setSelectionMode(false);
     setSelectedPhotos(new Set());
   };
@@ -248,7 +282,7 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
               className="flex items-center gap-2 px-4 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
-              {isSaving ? 'Saving...' : `Save ${selectedPhotos.size} Photo${selectedPhotos.size > 1 ? 's' : ''}`}
+              {isSaving ? 'Preparing...' : `Share ${selectedPhotos.size} Photo${selectedPhotos.size > 1 ? 's' : ''}`}
             </button>
           )}
         </div>
