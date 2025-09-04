@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import { toast } from 'react-toastify';
+import { StreamingAudioPlayer } from '../utils/audioPlayer';
 
 interface VideoStreamProps {
   streamConnected: boolean;
@@ -13,9 +14,9 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
-  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [audioEnabled, setAudioEnabled] = useState(false); // Start muted to avoid autoplay issues
   const imgRef = useRef<HTMLImageElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioPlayerRef = useRef<StreamingAudioPlayer | null>(null);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
 
@@ -58,20 +59,37 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     };
   }, [streamHealthy]);
 
-  // Initialize audio stream
+  // Initialize audio player
   useEffect(() => {
-    if (audioRef.current && audioEnabled && streamHealthy) {
-      audioRef.current.src = '/audio_feed';
-      audioRef.current.play().catch(e => {
-        console.log('Audio autoplay failed (expected on first load):', e);
-      });
+    if (!audioPlayerRef.current) {
+      audioPlayerRef.current = new StreamingAudioPlayer();
     }
-    
+
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.cleanup();
+        audioPlayerRef.current = null;
       }
     };
+  }, []);
+
+  // Manage audio streaming
+  useEffect(() => {
+    const manageAudio = async () => {
+      if (!audioPlayerRef.current) return;
+
+      if (audioEnabled && streamHealthy) {
+        try {
+          await audioPlayerRef.current.start('/audio_feed');
+        } catch (e) {
+          console.error('Failed to start audio:', e);
+        }
+      } else {
+        audioPlayerRef.current.stop();
+      }
+    };
+
+    manageAudio();
   }, [audioEnabled, streamHealthy]);
 
   // Handle page visibility changes to refresh stream after phone unlock/app resume
@@ -87,8 +105,8 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
           setError(null);
         }
         // Restart audio stream
-        if (audioRef.current && audioEnabled) {
-          audioRef.current.play().catch(() => {});
+        if (audioPlayerRef.current && audioEnabled) {
+          audioPlayerRef.current.start('/audio_feed').catch(() => {});
         }
       }
     };
@@ -170,13 +188,20 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     }
   };
 
-  const toggleAudio = () => {
-    setAudioEnabled(prev => !prev);
-    if (audioRef.current) {
-      if (!audioEnabled) {
-        audioRef.current.play().catch(() => {});
+  const toggleAudio = async () => {
+    const newEnabled = !audioEnabled;
+    setAudioEnabled(newEnabled);
+    
+    if (audioPlayerRef.current && streamHealthy) {
+      if (newEnabled) {
+        try {
+          await audioPlayerRef.current.start('/audio_feed');
+        } catch (e) {
+          console.error('Failed to start audio:', e);
+          toast.error('Failed to enable audio');
+        }
       } else {
-        audioRef.current.pause();
+        audioPlayerRef.current.stop();
       }
     }
   };
@@ -219,14 +244,6 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
         style={{ display: imgLoaded && streamConnected ? 'block' : 'none' }}
       />
 
-      {/* Hidden audio element */}
-      <audio 
-        ref={audioRef}
-        autoPlay
-        playsInline
-        controls={false}
-        style={{ display: 'none' }}
-      />
 
       {/* Controls overlay - only show when stream is healthy */}
       {imgLoaded && streamHealthy && (

@@ -52,7 +52,7 @@ def video_feed():
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0',
-            'Connection': 'keep-alive',
+            'Connection': 'keep-alive',  # Required for continuous streaming
             'X-Accel-Buffering': 'no'  # Disable Nginx buffering if using reverse proxy
         }
     )
