@@ -304,6 +304,12 @@ The PWA runs in standalone mode without browser UI, providing an app-like experi
 - Real-time adjustments
 - Preset configurations for common scenarios
 
+### System Power Control 🆕
+- Remote shutdown and restart capabilities
+- Confirmation dialogs to prevent accidental power operations
+- Mock mode support for development without hardware
+- Visual power button in the UI top-left corner
+
 ## API Endpoints
 
 ### Core Endpoints
@@ -455,6 +461,59 @@ Subscribe to push notifications.
 }
 ```
 
+### System Endpoints 🆕
+
+#### `POST /api/system/shutdown`
+Shutdown the Raspberry Pi system.
+
+**Request:**
+```json
+{
+  "confirm": true
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "System shutdown initiated",
+  "timestamp": "2024-01-01 12:00:00"
+}
+```
+
+#### `POST /api/system/restart`
+Restart the Raspberry Pi system.
+
+**Request:**
+```json
+{
+  "confirm": true
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "System restart initiated",
+  "timestamp": "2024-01-01 12:00:00"
+}
+```
+
+#### `GET /api/system/status`
+Get current system status.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2024-01-01 12:00:00",
+  "mock_mode": false,
+  "platform": "raspberry-pi"
+}
+```
+
 ## Camera Presets
 
 ### Default
@@ -487,8 +546,10 @@ pi-in-the-sky/
 │   │   ├── __init__.py    # Blueprint initialization
 │   │   ├── camera.py      # Camera control endpoints
 │   │   ├── motion.py      # Motion detection endpoints
+│   │   ├── photos.py      # Photo gallery endpoints
 │   │   ├── push.py        # Push notification endpoints
-│   │   └── static.py      # Static file serving
+│   │   ├── static.py      # Static file serving
+│   │   └── system.py      # System power control endpoints
 │   ├── generate_vapid_keys.py # VAPID key generation utility
 │   ├── generate_ssl_cert.py   # SSL certificate generation
 │   ├── requirements.txt   # Python dependencies
