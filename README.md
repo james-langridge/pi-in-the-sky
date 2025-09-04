@@ -286,13 +286,13 @@ The PWA runs in standalone mode without browser UI, providing an app-like experi
 - Adjustable frame rate and quality
 - Works on any device with a web browser
 
-### Motion Detection 🆕
+### Motion Detection
 - Frame differencing algorithm for motion detection
 - Configurable sensitivity and detection zones
 - Cooldown periods to prevent notification spam
 - Visual indicators in the UI
 
-### Push Notifications 🆕
+### Push Notifications
 - Browser push notifications for motion events
 - Works when browser is closed or phone is locked
 - No registration or API keys required
@@ -304,7 +304,7 @@ The PWA runs in standalone mode without browser UI, providing an app-like experi
 - Real-time adjustments
 - Preset configurations for common scenarios
 
-### System Power Control 🆕
+### System Power Control
 - Remote shutdown and restart capabilities
 - Confirmation dialogs to prevent accidental power operations
 - Mock mode support for development without hardware
@@ -380,7 +380,7 @@ Apply camera preset configuration.
 }
 ```
 
-### Motion Detection Endpoints 🆕
+### Motion Detection Endpoints
 
 #### `GET /api/motion/status`
 Get current motion detection status.
@@ -442,7 +442,7 @@ Apply a motion detection preset.
 }
 ```
 
-### Push Notification Endpoints 🆕
+### Push Notification Endpoints
 
 #### `GET /api/push/vapid-key`
 Get VAPID public key for push subscriptions.
@@ -461,7 +461,7 @@ Subscribe to push notifications.
 }
 ```
 
-### System Endpoints 🆕
+### System Endpoints
 
 #### `POST /api/system/shutdown`
 Shutdown the Raspberry Pi system.
