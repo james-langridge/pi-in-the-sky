@@ -8,6 +8,7 @@ from config import AppConfig
 from services import CameraService, StreamingService, ControlManager
 from motion_services import MotionDetectionService, NotificationService
 from storage import SubscriptionStorage
+from audio_services import create_audio_service, AudioStreamingService
 
 logger = logging.getLogger(__name__)
 
@@ -83,13 +84,19 @@ def create_services(config: AppConfig):
     else:
         logger.warning("VAPID keys not configured - push notifications disabled")
 
+    # Audio services
+    audio_capture_service = create_audio_service(use_mock=False)
+    audio_streaming_service = AudioStreamingService(audio_capture_service)
+    
     return {
         'camera_service': camera_service,
         'streaming_service': streaming_service,
         'control_manager': control_manager,
         'motion_service': motion_service,
         'subscription_storage': subscription_storage,
-        'notification_service': notification_service
+        'notification_service': notification_service,
+        'audio_capture_service': audio_capture_service,
+        'audio_streaming_service': audio_streaming_service
     }
 
 
@@ -136,6 +143,7 @@ def create_app(config: AppConfig) -> Flask:
     from routes.static import static_bp
     from routes.photos import photos_bp
     from routes.system import system_bp
+    from routes.audio import audio_bp
 
     app.register_blueprint(camera_bp)
     app.register_blueprint(motion_bp)
@@ -143,6 +151,7 @@ def create_app(config: AppConfig) -> Flask:
     app.register_blueprint(static_bp)
     app.register_blueprint(photos_bp)
     app.register_blueprint(system_bp)
+    app.register_blueprint(audio_bp)
 
     @app.after_request
     def add_smart_caching(response):

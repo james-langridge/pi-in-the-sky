@@ -13,7 +13,9 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [imgLoaded, setImgLoaded] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
   const imgRef = useRef<HTMLImageElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
 
@@ -56,16 +58,38 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     };
   }, [streamHealthy]);
 
+  // Initialize audio stream
+  useEffect(() => {
+    if (audioRef.current && audioEnabled && streamHealthy) {
+      audioRef.current.src = '/audio_feed';
+      audioRef.current.play().catch(e => {
+        console.log('Audio autoplay failed (expected on first load):', e);
+      });
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [audioEnabled, streamHealthy]);
+
   // Handle page visibility changes to refresh stream after phone unlock/app resume
   useEffect(() => {
     const handleVisibilityChange = () => {
       // When page becomes visible again (e.g., after phone unlock)
-      if (!document.hidden && imgRef.current && streamHealthy) {
-        // Force refresh the stream by resetting the image source
-        const streamUrl = api.getStreamUrl();
-        imgRef.current.src = streamUrl + '?t=' + Date.now();
-        setLoading(true);
-        setError(null);
+      if (!document.hidden && streamHealthy) {
+        // Refresh video stream
+        if (imgRef.current) {
+          const streamUrl = api.getStreamUrl();
+          imgRef.current.src = streamUrl + '?t=' + Date.now();
+          setLoading(true);
+          setError(null);
+        }
+        // Restart audio stream
+        if (audioRef.current && audioEnabled) {
+          audioRef.current.play().catch(() => {});
+        }
       }
     };
 
@@ -146,6 +170,17 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     }
   };
 
+  const toggleAudio = () => {
+    setAudioEnabled(prev => !prev);
+    if (audioRef.current) {
+      if (!audioEnabled) {
+        audioRef.current.play().catch(() => {});
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  };
+
   return (
     <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
       {/* Loading state */}
@@ -184,18 +219,55 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
         style={{ display: imgLoaded && streamConnected ? 'block' : 'none' }}
       />
 
-      {/* Capture button - only show when stream is healthy */}
+      {/* Hidden audio element */}
+      <audio 
+        ref={audioRef}
+        autoPlay
+        playsInline
+        controls={false}
+        style={{ display: 'none' }}
+      />
+
+      {/* Controls overlay - only show when stream is healthy */}
       {imgLoaded && streamHealthy && (
-        <button
-          onClick={handleCapturePhoto}
-          disabled={capturing}
-          className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 p-4 rounded-full transition-all ${
-            capturing 
-              ? 'bg-gray-600 cursor-not-allowed' 
-              : 'bg-blue-500 hover:bg-blue-600 active:scale-95'
-          } shadow-lg`}
-          title="Capture photo"
-        >
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center space-x-4">
+          {/* Audio toggle button */}
+          <button
+            onClick={toggleAudio}
+            className={`p-3 rounded-full transition-all ${
+              audioEnabled 
+                ? 'bg-green-500 hover:bg-green-600' 
+                : 'bg-gray-500 hover:bg-gray-600'
+            } shadow-lg`}
+            title={audioEnabled ? 'Mute audio' : 'Unmute audio'}
+          >
+            {audioEnabled ? (
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+              </svg>
+            ) : (
+              <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" 
+                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                  d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+              </svg>
+            )}
+          </button>
+
+          {/* Capture button */}
+          <button
+            onClick={handleCapturePhoto}
+            disabled={capturing}
+            className={`p-4 rounded-full transition-all ${
+              capturing 
+                ? 'bg-gray-600 cursor-not-allowed' 
+                : 'bg-blue-500 hover:bg-blue-600 active:scale-95'
+            } shadow-lg`}
+            title="Capture photo"
+          >
           <svg 
             className="w-8 h-8 text-white" 
             fill="none" 
@@ -220,7 +292,8 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             </div>
           )}
-        </button>
+          </button>
+        </div>
       )}
 
     </div>

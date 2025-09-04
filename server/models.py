@@ -183,3 +183,26 @@ class PhotoMetadata:
     timestamp: str  # ISO format timestamp
     file_size: int  # Size in bytes
     path: str  # Relative path for serving
+
+
+@dataclass(frozen=True)
+class AudioFrame:
+    """Immutable audio frame data."""
+    
+    samples: bytes  # Raw PCM audio samples
+    timestamp: float  # Unix timestamp
+    sample_rate: int = 44100
+    channels: int = 1
+    format: str = "pcm_s16le"  # PCM signed 16-bit little-endian
+
+
+@dataclass(frozen=True)
+class AudioConfig:
+    """Immutable audio capture configuration."""
+    
+    device: str = "hw:2,0"  # ALSA device (USB mic on card 2)
+    sample_rate: int = 44100
+    channels: int = 1  # Mono
+    chunk_size: int = 4096  # Samples per chunk
+    format: str = "pcm_s16le"
+    buffer_size: int = 2048  # ALSA buffer size
