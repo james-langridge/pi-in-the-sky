@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Settings, Images } from 'lucide-react';
 import { VideoStream } from './components/VideoStream';
 import { ControlPanel } from './components/ControlPanel';
@@ -129,7 +129,7 @@ function App() {
     }
   };
 
-  const handleMotionDetected = () => {
+  const handleMotionDetected = useCallback(() => {
     if (motionVisualAlertsEnabled) {
       triggerDetectionPulse();
     }
@@ -141,9 +141,9 @@ function App() {
         playMotionAlert();
       }
     }
-  };
+  }, [motionVisualAlertsEnabled, motionSoundAlertsEnabled, lastPulseTime]);
 
-  const handleAudioDetected = () => {
+  const handleAudioDetected = useCallback(() => {
     if (audioVisualAlertsEnabled) {
       triggerDetectionPulse();
     }
@@ -155,7 +155,7 @@ function App() {
         playAudioAlert();
       }
     }
-  };
+  }, [audioVisualAlertsEnabled, audioSoundAlertsEnabled, lastPulseTime]);
 
   const handleMotionVisualAlertsToggle = (enabled: boolean) => {
     setMotionVisualAlertsEnabled(enabled);
