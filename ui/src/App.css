@@ -67,10 +67,27 @@
   }
 }
 
+/* Detection alert pulse animation - single pulse */
+@keyframes pulse-detection {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .pulse-warning-overlay {
   animation: pulse-warning 2s ease-in-out infinite;
 }
 
 .pulse-danger-overlay {
   animation: pulse-danger 1.5s ease-in-out infinite;
+}
+
+.pulse-detection-overlay {
+  animation: pulse-detection 1s ease-out;
 }

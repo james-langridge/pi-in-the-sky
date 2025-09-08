@@ -3,12 +3,19 @@ import { useMotionDetection, usePushNotifications } from '../api/hooks';
 import { MOTION_PRESETS } from '../types';
 import { toast } from 'react-toastify';
 
-export function MotionDetection() {
+interface MotionDetectionProps {
+  onMotionDetected?: () => void;
+  visualAlertsEnabled: boolean;
+  onVisualAlertsToggle: (enabled: boolean) => void;
+}
+
+export function MotionDetection({ onMotionDetected, visualAlertsEnabled, onVisualAlertsToggle }: MotionDetectionProps) {
   const { status, events, loading, updateConfig, toggleMotion } = useMotionDetection();
   const { subscribed, subscribe, unsubscribe, testNotification } = usePushNotifications();
   const [selectedPreset, setSelectedPreset] = useState('normal');
   const [isApplyingPreset, setIsApplyingPreset] = useState(false);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
+  const [lastEventTime, setLastEventTime] = useState<number>(0);
 
   // Request notification permission when enabling motion detection
   useEffect(() => {
@@ -18,6 +25,20 @@ export function MotionDetection() {
       }
     }
   }, [status?.enabled, subscribed]);
+
+  // Track motion events and trigger visual pulse
+  useEffect(() => {
+    if (!status?.enabled || !visualAlertsEnabled || events.length === 0) return;
+    
+    const latestEvent = events.find(e => e.triggered);
+    if (latestEvent) {
+      const eventTime = new Date(latestEvent.timestamp).getTime();
+      if (eventTime > lastEventTime) {
+        setLastEventTime(eventTime);
+        onMotionDetected?.();
+      }
+    }
+  }, [events, status?.enabled, visualAlertsEnabled, lastEventTime, onMotionDetected]);
 
   const handleToggleMotion = async () => {
     if (!status) return;
@@ -107,6 +128,28 @@ export function MotionDetection() {
 
   return (
     <div className="space-y-6">
+      {/* Visual Alert Toggle */}
+      <div className="p-4 bg-gray-700 rounded-lg">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-200 font-medium">Visual Screen Alerts</span>
+          <button
+            onClick={() => onVisualAlertsToggle(!visualAlertsEnabled)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              visualAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                visualAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">
+          Flash yellow screen when motion is detected
+        </p>
+      </div>
+
       {/* Status Header */}
       <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
         <div className="flex items-center space-x-3">

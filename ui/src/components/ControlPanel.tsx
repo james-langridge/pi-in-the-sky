@@ -11,9 +11,24 @@ import type { CameraPreset } from '../types';
 interface ControlPanelProps {
   isOpen: boolean;
   onToggle: () => void;
+  onMotionDetected?: () => void;
+  onAudioDetected?: () => void;
+  motionVisualAlertsEnabled: boolean;
+  onMotionVisualAlertsToggle: (enabled: boolean) => void;
+  audioVisualAlertsEnabled: boolean;
+  onAudioVisualAlertsToggle: (enabled: boolean) => void;
 }
 
-export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
+export function ControlPanel({ 
+  isOpen, 
+  onToggle,
+  onMotionDetected,
+  onAudioDetected,
+  motionVisualAlertsEnabled,
+  onMotionVisualAlertsToggle,
+  audioVisualAlertsEnabled,
+  onAudioVisualAlertsToggle
+}: ControlPanelProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion' | 'audio'>('presets');
   const { applyPreset } = useCameraPresets();
   const [applyingPreset, setApplyingPreset] = useState<CameraPreset | null>(null);
@@ -209,13 +224,21 @@ export function ControlPanel({ isOpen, onToggle }: ControlPanelProps) {
           
           {activeTab === 'motion' && (
             <ErrorBoundary>
-              <MotionDetection />
+              <MotionDetection 
+                onMotionDetected={onMotionDetected}
+                visualAlertsEnabled={motionVisualAlertsEnabled}
+                onVisualAlertsToggle={onMotionVisualAlertsToggle}
+              />
             </ErrorBoundary>
           )}
           
           {activeTab === 'audio' && (
             <ErrorBoundary>
-              <AudioDetection />
+              <AudioDetection 
+                onAudioDetected={onAudioDetected}
+                visualAlertsEnabled={audioVisualAlertsEnabled}
+                onVisualAlertsToggle={onAudioVisualAlertsToggle}
+              />
             </ErrorBoundary>
           )}
         </div>

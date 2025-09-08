@@ -49,6 +49,15 @@ function calculateTimestampSyncStatus(frameAgeSeconds: number | null): {
 function App() {
   const [controlsOpen, setControlsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [showDetectionPulse, setShowDetectionPulse] = useState(false);
+  const [lastPulseTime, setLastPulseTime] = useState(0);
+  const [motionVisualAlertsEnabled, setMotionVisualAlertsEnabled] = useState(() => {
+    return localStorage.getItem('motionVisualAlerts') !== 'false';
+  });
+  const [audioVisualAlertsEnabled, setAudioVisualAlertsEnabled] = useState(() => {
+    return localStorage.getItem('audioVisualAlerts') !== 'false';
+  });
+  
   const { isHealthy } = useHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
   const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy } = useStreamStatus();
@@ -96,6 +105,45 @@ function App() {
     window.location.reload();
   };
 
+  // Handle detection pulses with 5-second cooldown
+  const triggerDetectionPulse = () => {
+    const now = Date.now();
+    const timeSinceLastPulse = now - lastPulseTime;
+    
+    // Only pulse if 5 seconds have passed since last pulse
+    if (timeSinceLastPulse >= 5000) {
+      setShowDetectionPulse(true);
+      setLastPulseTime(now);
+      
+      // Remove pulse after animation completes
+      setTimeout(() => {
+        setShowDetectionPulse(false);
+      }, 1000);
+    }
+  };
+
+  const handleMotionDetected = () => {
+    if (motionVisualAlertsEnabled) {
+      triggerDetectionPulse();
+    }
+  };
+
+  const handleAudioDetected = () => {
+    if (audioVisualAlertsEnabled) {
+      triggerDetectionPulse();
+    }
+  };
+
+  const handleMotionVisualAlertsToggle = (enabled: boolean) => {
+    setMotionVisualAlertsEnabled(enabled);
+    localStorage.setItem('motionVisualAlerts', enabled.toString());
+  };
+
+  const handleAudioVisualAlertsToggle = (enabled: boolean) => {
+    setAudioVisualAlertsEnabled(enabled);
+    localStorage.setItem('audioVisualAlerts', enabled.toString());
+  };
+
   const syncStatus = calculateTimestampSyncStatus(streamStatus?.frame_age_seconds || null);
 
   return (
@@ -106,6 +154,11 @@ function App() {
       )}
       {syncStatus.status === 'danger' && (
         <div className="absolute inset-0 bg-red-500 pulse-danger-overlay pointer-events-none z-10"></div>
+      )}
+      
+      {/* Detection pulse overlay - single pulse for motion/audio detection */}
+      {showDetectionPulse && (
+        <div className="absolute inset-0 bg-yellow-400 pulse-detection-overlay pointer-events-none z-10"></div>
       )}
       
       {/* Top controls */}
@@ -234,6 +287,12 @@ function App() {
         <ControlPanel
           isOpen={controlsOpen}
           onToggle={() => setControlsOpen(prev => !prev)}
+          onMotionDetected={handleMotionDetected}
+          onAudioDetected={handleAudioDetected}
+          motionVisualAlertsEnabled={motionVisualAlertsEnabled}
+          onMotionVisualAlertsToggle={handleMotionVisualAlertsToggle}
+          audioVisualAlertsEnabled={audioVisualAlertsEnabled}
+          onAudioVisualAlertsToggle={handleAudioVisualAlertsToggle}
         />
       </ErrorBoundary>
 
