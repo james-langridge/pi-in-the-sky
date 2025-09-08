@@ -285,15 +285,39 @@ The PWA runs in standalone mode without browser UI, providing an app-like experi
 - Real-time MJPEG stream with timestamp overlay
 - Adjustable frame rate and quality
 - Works on any device with a web browser
+- Stream sync status indicator with color-coded timestamps:
+  - Green (< 5s delay): Stream is in sync
+  - Yellow (5-10s delay): Minor delay warning with yellow screen pulse
+  - Red (10+ seconds): Significant delay with red screen pulse
 
 ### Motion Detection
 - Frame differencing algorithm for motion detection
 - Configurable sensitivity and detection zones
 - Cooldown periods to prevent notification spam
 - Visual indicators in the UI
+- Optional visual alerts (yellow screen pulse) when motion detected
+- Optional sound alerts (double beep at 440Hz) when motion detected
+- Independent toggles for visual and sound alerts
+
+### Audio Detection
+- Real-time audio level monitoring from USB microphone
+- Configurable sensitivity threshold and duration
+- Optional visual alerts (yellow screen pulse) when audio detected
+- Optional sound alerts (single beep at 523Hz) when audio detected
+- Independent toggles for visual and sound alerts
+- Cooldown periods to prevent alert spam
+- Push notifications for audio events
+
+### Alert System
+- Unified alert system for motion and audio detection
+- Visual alerts: Yellow screen pulse effect
+- Sound alerts: Web Audio API generated tones (no files needed)
+- 5-second cooldown between alerts to prevent spam
+- Settings persist in browser localStorage
+- All alerts are optional and independently configurable
 
 ### Push Notifications
-- Browser push notifications for motion events
+- Browser push notifications for motion and audio events
 - Works when browser is closed or phone is locked
 - No registration or API keys required
 - Uses Web Push Protocol with VAPID authentication
