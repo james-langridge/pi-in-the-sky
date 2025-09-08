@@ -96,8 +96,18 @@ function App() {
     window.location.reload();
   };
 
+  const syncStatus = calculateTimestampSyncStatus(streamStatus?.frame_age_seconds || null);
+
   return (
     <div className="relative w-screen h-screen bg-gray-900 overflow-hidden">
+      {/* Sync warning overlay - pulses when out of sync */}
+      {syncStatus.status === 'warning' && (
+        <div className="absolute inset-0 bg-yellow-500 pulse-warning-overlay pointer-events-none z-10"></div>
+      )}
+      {syncStatus.status === 'danger' && (
+        <div className="absolute inset-0 bg-red-500 pulse-danger-overlay pointer-events-none z-10"></div>
+      )}
+      
       {/* Top controls */}
       <div className="absolute top-4 left-4 z-20 flex items-center space-x-3">
         {/* Power control */}
@@ -165,7 +175,6 @@ function App() {
         {/* Frame timestamp - always show when available */}
         {streamTimestamp && (() => {
           const frameAge = streamStatus?.frame_age_seconds || null;
-          const syncStatus = calculateTimestampSyncStatus(frameAge);
           const ageText = frameAge !== null ? `${frameAge.toFixed(1)}s delay` : 'No delay info';
           
           return (

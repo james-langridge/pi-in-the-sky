@@ -47,3 +47,30 @@
     padding-right: env(safe-area-inset-right);
   }
 }
+
+/* Sync warning pulse animations */
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+
+@keyframes pulse-danger {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.pulse-warning-overlay {
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+.pulse-danger-overlay {
+  animation: pulse-danger 1.5s ease-in-out infinite;
+}
