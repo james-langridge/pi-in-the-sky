@@ -7,9 +7,17 @@ interface MotionDetectionProps {
   onMotionDetected?: () => void;
   visualAlertsEnabled: boolean;
   onVisualAlertsToggle: (enabled: boolean) => void;
+  soundAlertsEnabled: boolean;
+  onSoundAlertsToggle: (enabled: boolean) => void;
 }
 
-export function MotionDetection({ onMotionDetected, visualAlertsEnabled, onVisualAlertsToggle }: MotionDetectionProps) {
+export function MotionDetection({ 
+  onMotionDetected, 
+  visualAlertsEnabled, 
+  onVisualAlertsToggle,
+  soundAlertsEnabled,
+  onSoundAlertsToggle 
+}: MotionDetectionProps) {
   const { status, events, loading, updateConfig, toggleMotion } = useMotionDetection();
   const { subscribed, subscribe, unsubscribe, testNotification } = usePushNotifications();
   const [selectedPreset, setSelectedPreset] = useState('normal');
@@ -128,26 +136,51 @@ export function MotionDetection({ onMotionDetected, visualAlertsEnabled, onVisua
 
   return (
     <div className="space-y-6">
-      {/* Visual Alert Toggle */}
-      <div className="p-4 bg-gray-700 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-200 font-medium">Visual Screen Alerts</span>
-          <button
-            onClick={() => onVisualAlertsToggle(!visualAlertsEnabled)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              visualAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                visualAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+      {/* Alert Settings */}
+      <div className="space-y-3">
+        {/* Visual Alert Toggle */}
+        <div className="p-4 bg-gray-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-200 font-medium">Visual Screen Alerts</span>
+            <button
+              onClick={() => onVisualAlertsToggle(!visualAlertsEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                visualAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  visualAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Flash yellow screen when motion is detected
+          </p>
         </div>
-        <p className="text-xs text-gray-400 mt-1">
-          Flash yellow screen when motion is detected
-        </p>
+
+        {/* Sound Alert Toggle */}
+        <div className="p-4 bg-gray-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-200 font-medium">Sound Alerts</span>
+            <button
+              onClick={() => onSoundAlertsToggle(!soundAlertsEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                soundAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  soundAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Play double beep when motion is detected
+          </p>
+        </div>
       </div>
 
       {/* Status Header */}

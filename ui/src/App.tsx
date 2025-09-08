@@ -6,6 +6,7 @@ import { PhotoGallery } from './components/PhotoGallery';
 import { PowerControl } from './components/PowerControl';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useHealthCheck, useAppInfo, useStreamStatus } from './api/hooks';
+import { playMotionAlert, playAudioAlert, isAudioSupported } from './utils/alertSounds';
 import PWABadge from './PWABadge';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -56,6 +57,12 @@ function App() {
   });
   const [audioVisualAlertsEnabled, setAudioVisualAlertsEnabled] = useState(() => {
     return localStorage.getItem('audioVisualAlerts') !== 'false';
+  });
+  const [motionSoundAlertsEnabled, setMotionSoundAlertsEnabled] = useState(() => {
+    return localStorage.getItem('motionSoundAlerts') === 'true';
+  });
+  const [audioSoundAlertsEnabled, setAudioSoundAlertsEnabled] = useState(() => {
+    return localStorage.getItem('audioSoundAlerts') === 'true';
   });
   
   const { isHealthy } = useHealthCheck();
@@ -126,11 +133,27 @@ function App() {
     if (motionVisualAlertsEnabled) {
       triggerDetectionPulse();
     }
+    if (motionSoundAlertsEnabled && isAudioSupported()) {
+      const now = Date.now();
+      const timeSinceLastPulse = now - lastPulseTime;
+      // Use same cooldown for sound as visual pulse
+      if (timeSinceLastPulse >= 5000) {
+        playMotionAlert();
+      }
+    }
   };
 
   const handleAudioDetected = () => {
     if (audioVisualAlertsEnabled) {
       triggerDetectionPulse();
+    }
+    if (audioSoundAlertsEnabled && isAudioSupported()) {
+      const now = Date.now();
+      const timeSinceLastPulse = now - lastPulseTime;
+      // Use same cooldown for sound as visual pulse
+      if (timeSinceLastPulse >= 5000) {
+        playAudioAlert();
+      }
     }
   };
 
@@ -142,6 +165,16 @@ function App() {
   const handleAudioVisualAlertsToggle = (enabled: boolean) => {
     setAudioVisualAlertsEnabled(enabled);
     localStorage.setItem('audioVisualAlerts', enabled.toString());
+  };
+
+  const handleMotionSoundAlertsToggle = (enabled: boolean) => {
+    setMotionSoundAlertsEnabled(enabled);
+    localStorage.setItem('motionSoundAlerts', enabled.toString());
+  };
+
+  const handleAudioSoundAlertsToggle = (enabled: boolean) => {
+    setAudioSoundAlertsEnabled(enabled);
+    localStorage.setItem('audioSoundAlerts', enabled.toString());
   };
 
   const syncStatus = calculateTimestampSyncStatus(streamStatus?.frame_age_seconds || null);
@@ -293,6 +326,10 @@ function App() {
           onMotionVisualAlertsToggle={handleMotionVisualAlertsToggle}
           audioVisualAlertsEnabled={audioVisualAlertsEnabled}
           onAudioVisualAlertsToggle={handleAudioVisualAlertsToggle}
+          motionSoundAlertsEnabled={motionSoundAlertsEnabled}
+          onMotionSoundAlertsToggle={handleMotionSoundAlertsToggle}
+          audioSoundAlertsEnabled={audioSoundAlertsEnabled}
+          onAudioSoundAlertsToggle={handleAudioSoundAlertsToggle}
         />
       </ErrorBoundary>
 

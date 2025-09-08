@@ -17,6 +17,10 @@ interface ControlPanelProps {
   onMotionVisualAlertsToggle: (enabled: boolean) => void;
   audioVisualAlertsEnabled: boolean;
   onAudioVisualAlertsToggle: (enabled: boolean) => void;
+  motionSoundAlertsEnabled: boolean;
+  onMotionSoundAlertsToggle: (enabled: boolean) => void;
+  audioSoundAlertsEnabled: boolean;
+  onAudioSoundAlertsToggle: (enabled: boolean) => void;
 }
 
 export function ControlPanel({ 
@@ -27,7 +31,11 @@ export function ControlPanel({
   motionVisualAlertsEnabled,
   onMotionVisualAlertsToggle,
   audioVisualAlertsEnabled,
-  onAudioVisualAlertsToggle
+  onAudioVisualAlertsToggle,
+  motionSoundAlertsEnabled,
+  onMotionSoundAlertsToggle,
+  audioSoundAlertsEnabled,
+  onAudioSoundAlertsToggle
 }: ControlPanelProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion' | 'audio'>('presets');
   const { applyPreset } = useCameraPresets();
@@ -228,6 +236,8 @@ export function ControlPanel({
                 onMotionDetected={onMotionDetected}
                 visualAlertsEnabled={motionVisualAlertsEnabled}
                 onVisualAlertsToggle={onMotionVisualAlertsToggle}
+                soundAlertsEnabled={motionSoundAlertsEnabled}
+                onSoundAlertsToggle={onMotionSoundAlertsToggle}
               />
             </ErrorBoundary>
           )}
@@ -238,6 +248,8 @@ export function ControlPanel({
                 onAudioDetected={onAudioDetected}
                 visualAlertsEnabled={audioVisualAlertsEnabled}
                 onVisualAlertsToggle={onAudioVisualAlertsToggle}
+                soundAlertsEnabled={audioSoundAlertsEnabled}
+                onSoundAlertsToggle={onAudioSoundAlertsToggle}
               />
             </ErrorBoundary>
           )}

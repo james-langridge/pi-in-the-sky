@@ -13,9 +13,17 @@ interface AudioDetectionProps {
   onAudioDetected?: () => void;
   visualAlertsEnabled: boolean;
   onVisualAlertsToggle: (enabled: boolean) => void;
+  soundAlertsEnabled: boolean;
+  onSoundAlertsToggle: (enabled: boolean) => void;
 }
 
-export function AudioDetection({ onAudioDetected, visualAlertsEnabled, onVisualAlertsToggle }: AudioDetectionProps) {
+export function AudioDetection({ 
+  onAudioDetected, 
+  visualAlertsEnabled, 
+  onVisualAlertsToggle,
+  soundAlertsEnabled,
+  onSoundAlertsToggle
+}: AudioDetectionProps) {
   const [isEnabled, setIsEnabled] = useState(false);
   const [config, setConfig] = useState<AudioDetectionConfig>({
     enabled: false,
@@ -190,26 +198,51 @@ export function AudioDetection({ onAudioDetected, visualAlertsEnabled, onVisualA
 
   return (
     <div className="space-y-4">
-      {/* Visual Alert Toggle */}
-      <div className="p-4 bg-gray-700 rounded-lg">
-        <div className="flex items-center justify-between">
-          <span className="text-gray-200 font-medium">Visual Screen Alerts</span>
-          <button
-            onClick={() => onVisualAlertsToggle(!visualAlertsEnabled)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              visualAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
-            }`}
-          >
-            <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                visualAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+      {/* Alert Settings */}
+      <div className="space-y-3">
+        {/* Visual Alert Toggle */}
+        <div className="p-4 bg-gray-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-200 font-medium">Visual Screen Alerts</span>
+            <button
+              onClick={() => onVisualAlertsToggle(!visualAlertsEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                visualAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
               }`}
-            />
-          </button>
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  visualAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Flash yellow screen when audio is detected
+          </p>
         </div>
-        <p className="text-xs text-gray-400 mt-1">
-          Flash yellow screen when audio is detected
-        </p>
+
+        {/* Sound Alert Toggle */}
+        <div className="p-4 bg-gray-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-200 font-medium">Sound Alerts</span>
+            <button
+              onClick={() => onSoundAlertsToggle(!soundAlertsEnabled)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                soundAlertsEnabled ? 'bg-blue-500' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  soundAlertsEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Play beep when audio is detected
+          </p>
+        </div>
       </div>
 
       {/* Audio Detection Control */}
