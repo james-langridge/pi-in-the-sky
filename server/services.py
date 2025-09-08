@@ -6,6 +6,8 @@ import time
 import logging
 from datetime import datetime
 from typing import Optional, Generator, Union, Tuple
+import numpy as np
+from PIL import Image
 
 try:
     from picamera2 import Picamera2
@@ -91,9 +93,29 @@ class CameraService:
         if not self._initialized:
             raise RuntimeError("Camera not initialized")
             
-        stream = io.BytesIO()
-        self._camera.capture_file(stream, format='jpeg')
-        return stream.getvalue()
+        try:
+            # Use capture_array to avoid blocking issues
+            # Capture as numpy array (non-blocking)
+            array = self._camera.capture_array("main")
+            
+            # Convert to JPEG - handle RGBA by converting to RGB
+            image = Image.fromarray(array)
+            if image.mode == 'RGBA':
+                # Convert RGBA to RGB for JPEG
+                rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+                rgb_image.paste(image, mask=image.split()[3] if len(image.split()) > 3 else None)
+                image = rgb_image
+            elif image.mode != 'RGB':
+                # Convert any other mode to RGB
+                image = image.convert('RGB')
+                
+            stream = io.BytesIO()
+            image.save(stream, format='JPEG', quality=85)
+            return stream.getvalue()
+        except Exception as e:
+            logger.error(f"Error capturing frame: {e}")
+            # Return empty bytes on error rather than hanging
+            return b''
     
     def apply_preset(self, preset: Union[CameraPreset, str]) -> StringResult[str]:
         """
