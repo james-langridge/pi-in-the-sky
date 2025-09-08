@@ -21,6 +21,8 @@ export function VideoStream({ streamConnected: _streamConnected, streamHealthy, 
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const hasStartedLoadingRef = useRef(false);
+  const wasHiddenRef = useRef(false);
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!imgRef.current || hasStartedLoadingRef.current) return;
@@ -28,12 +30,16 @@ export function VideoStream({ streamConnected: _streamConnected, streamHealthy, 
     const img = imgRef.current;
     const streamUrl = api.getStreamUrl();
 
+    let firstLoad = true;
     const handleLoad = () => {
-      // MJPEG streams fire onload for every frame
-      setImgLoaded(true);
-      setLoading(false);
-      setError(null);
-      reconnectAttemptsRef.current = 0;
+      // MJPEG streams fire onload for every frame - only handle first one
+      if (firstLoad) {
+        firstLoad = false;
+        setImgLoaded(true);
+        setLoading(false);
+        setError(null);
+        reconnectAttemptsRef.current = 0;
+      }
     };
 
     const handleError = () => {
@@ -93,31 +99,30 @@ export function VideoStream({ streamConnected: _streamConnected, streamHealthy, 
 
   // Handle page visibility changes to refresh stream after phone unlock/app resume
   useEffect(() => {
-    let wasHidden = false;
+    // Mark that we've initialized after a short delay to avoid initial pageshow
+    setTimeout(() => {
+      hasInitializedRef.current = true;
+    }, 1000);
     
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        wasHidden = true;
-      } else if (wasHidden) {
+        wasHiddenRef.current = true;
+      } else if (wasHiddenRef.current) {
         // Only refresh when transitioning from hidden to visible
-        wasHidden = false;
-        if (imgRef.current) {
+        wasHiddenRef.current = false;
+        if (imgRef.current && hasInitializedRef.current) {
           const streamUrl = api.getStreamUrl();
           imgRef.current.src = streamUrl + '?t=' + Date.now();
           setLoading(true);
           setError(null);
-        }
-        // Restart audio stream if enabled
-        if (audioPlayerRef.current && audioEnabled && streamHealthy) {
-          audioPlayerRef.current.start('/audio_feed').catch(() => {});
         }
       }
     };
 
     // Also handle pageshow event for iOS PWA
     const handlePageShow = (event: PageTransitionEvent) => {
-      // Only refresh if page was restored from cache
-      if (event.persisted && imgRef.current) {
+      // Only refresh if page was restored from cache AND we've initialized
+      if (event.persisted && imgRef.current && hasInitializedRef.current) {
         const streamUrl = api.getStreamUrl();
         imgRef.current.src = streamUrl + '?t=' + Date.now();
         setLoading(true);
@@ -132,7 +137,7 @@ export function VideoStream({ streamConnected: _streamConnected, streamHealthy, 
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [audioEnabled, streamHealthy]);
+  }, []); // No dependencies - run once and keep stable references
 
   // Don't react to stream status changes - let the img element handle its own state
   // This prevents race conditions and NS_BINDING_ABORTED errors
