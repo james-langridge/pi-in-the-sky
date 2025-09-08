@@ -9,7 +9,8 @@ interface VideoStreamProps {
   onRetryNeeded?: () => void;
 }
 
-export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: VideoStreamProps) {
+export function VideoStream({ streamConnected: _streamConnected, streamHealthy, onRetryNeeded }: VideoStreamProps) {
+  // _streamConnected is intentionally unused to prevent race conditions
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -19,9 +20,10 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
   const audioPlayerRef = useRef<StreamingAudioPlayer | null>(null);
   const reconnectTimeoutRef = useRef<number | undefined>(undefined);
   const reconnectAttemptsRef = useRef(0);
+  const hasStartedLoadingRef = useRef(false);
 
   useEffect(() => {
-    if (!imgRef.current) return;
+    if (!imgRef.current || hasStartedLoadingRef.current) return;
 
     const img = imgRef.current;
     const streamUrl = api.getStreamUrl();
@@ -43,8 +45,8 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     img.addEventListener('load', handleLoad);
     img.addEventListener('error', handleError);
     
-    // Always start loading stream - don't wait for health check
-    // The stream itself needs to be requested for it to become "healthy"
+    // Mark that we've started loading and set the src once
+    hasStartedLoadingRef.current = true;
     img.src = streamUrl + '?t=' + Date.now();
 
     return () => {
@@ -54,7 +56,7 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, []); // Remove streamHealthy dependency - always load stream on mount
+  }, []); // Only run once on mount
 
   // Initialize audio player
   useEffect(() => {
@@ -91,10 +93,14 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
 
   // Handle page visibility changes to refresh stream after phone unlock/app resume
   useEffect(() => {
+    let wasHidden = false;
+    
     const handleVisibilityChange = () => {
-      // When page becomes visible again (e.g., after phone unlock)
-      if (!document.hidden) {
-        // Always refresh video stream when becoming visible
+      if (document.hidden) {
+        wasHidden = true;
+      } else if (wasHidden) {
+        // Only refresh when transitioning from hidden to visible
+        wasHidden = false;
         if (imgRef.current) {
           const streamUrl = api.getStreamUrl();
           imgRef.current.src = streamUrl + '?t=' + Date.now();
@@ -110,7 +116,7 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
 
     // Also handle pageshow event for iOS PWA
     const handlePageShow = (event: PageTransitionEvent) => {
-      // Persisted means the page was restored from bfcache
+      // Only refresh if page was restored from cache
       if (event.persisted && imgRef.current) {
         const streamUrl = api.getStreamUrl();
         imgRef.current.src = streamUrl + '?t=' + Date.now();
@@ -128,24 +134,8 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     };
   }, [audioEnabled, streamHealthy]);
 
-  // React to external stream status changes
-  useEffect(() => {
-    if (!streamConnected || !streamHealthy) {
-      setImgLoaded(false);
-      if (!streamConnected) {
-        setError('Waiting for stream connection...');
-      } else if (!streamHealthy) {
-        setError('Stream quality issues detected');
-      }
-    } else if (error && streamConnected && streamHealthy) {
-      // Clear error when stream becomes healthy
-      setError(null);
-      // Refresh the image when stream becomes healthy
-      if (imgRef.current) {
-        imgRef.current.src = api.getStreamUrl() + '?t=' + Date.now();
-      }
-    }
-  }, [streamConnected, streamHealthy, error]);
+  // Don't react to stream status changes - let the img element handle its own state
+  // This prevents race conditions and NS_BINDING_ABORTED errors
 
   const handleManualReconnect = () => {
     if (imgRef.current) {
