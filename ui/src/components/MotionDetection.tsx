@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useMotionDetection, usePushNotifications } from '../api/hooks';
 import { MOTION_PRESETS } from '../types';
 import { toast } from 'react-toastify';
@@ -23,7 +23,7 @@ export function MotionDetection({
   const [selectedPreset, setSelectedPreset] = useState('normal');
   const [isApplyingPreset, setIsApplyingPreset] = useState(false);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
-  const lastEventTimeRef = useRef<number>(0);
+  const [lastEventTime, setLastEventTime] = useState<number>(0);
 
   // Request notification permission when enabling motion detection
   useEffect(() => {
@@ -41,12 +41,12 @@ export function MotionDetection({
     const latestEvent = events.find(e => e.triggered);
     if (latestEvent) {
       const eventTime = new Date(latestEvent.timestamp).getTime();
-      if (eventTime > lastEventTimeRef.current) {
-        lastEventTimeRef.current = eventTime;
+      if (eventTime > lastEventTime) {
+        setLastEventTime(eventTime);
         onMotionDetected?.();
       }
     }
-  }, [events, status?.enabled, visualAlertsEnabled, onMotionDetected]);
+  }, [events, status?.enabled, visualAlertsEnabled, lastEventTime, onMotionDetected]);
 
   const handleToggleMotion = async () => {
     if (!status) return;

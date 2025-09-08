@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Mic, MicOff, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -33,7 +33,7 @@ export function AudioDetection({
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const lastDetectionTimeRef = useRef<number>(0);
+  const [lastDetectionTime, setLastDetectionTime] = useState<number>(0);
 
   // Load current status on mount
   useEffect(() => {
@@ -50,8 +50,8 @@ export function AudioDetection({
         const data = await response.json();
         if (data.detected && data.timestamp) {
           const detectionTime = new Date(data.timestamp).getTime();
-          if (detectionTime > lastDetectionTimeRef.current) {
-            lastDetectionTimeRef.current = detectionTime;
+          if (detectionTime > lastDetectionTime) {
+            setLastDetectionTime(detectionTime);
             onAudioDetected?.();
           }
         }
@@ -65,7 +65,7 @@ export function AudioDetection({
     const interval = setInterval(checkAudioDetection, 2000);
 
     return () => clearInterval(interval);
-  }, [isEnabled, visualAlertsEnabled, onAudioDetected]);
+  }, [isEnabled, visualAlertsEnabled, lastDetectionTime, onAudioDetected]);
 
   const fetchStatus = async () => {
     try {
