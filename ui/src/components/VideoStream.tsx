@@ -37,17 +37,14 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     const handleError = () => {
       setImgLoaded(false);
       setLoading(false);
-      
-      // Don't auto-retry - let the unified stream status handle reconnection logic
-      if (!streamHealthy) {
-        setError('Stream connection lost');
-      }
+      setError('Stream connection lost');
     };
 
     img.addEventListener('load', handleLoad);
     img.addEventListener('error', handleError);
     
-    // Start loading stream
+    // Always start loading stream - don't wait for health check
+    // The stream itself needs to be requested for it to become "healthy"
     img.src = streamUrl + '?t=' + Date.now();
 
     return () => {
@@ -57,7 +54,7 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, [streamHealthy]);
+  }, []); // Remove streamHealthy dependency - always load stream on mount
 
   // Initialize audio player
   useEffect(() => {
@@ -96,16 +93,16 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
   useEffect(() => {
     const handleVisibilityChange = () => {
       // When page becomes visible again (e.g., after phone unlock)
-      if (!document.hidden && streamHealthy) {
-        // Refresh video stream
+      if (!document.hidden) {
+        // Always refresh video stream when becoming visible
         if (imgRef.current) {
           const streamUrl = api.getStreamUrl();
           imgRef.current.src = streamUrl + '?t=' + Date.now();
           setLoading(true);
           setError(null);
         }
-        // Restart audio stream
-        if (audioPlayerRef.current && audioEnabled) {
+        // Restart audio stream if enabled
+        if (audioPlayerRef.current && audioEnabled && streamHealthy) {
           audioPlayerRef.current.start('/audio_feed').catch(() => {});
         }
       }
@@ -114,7 +111,7 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     // Also handle pageshow event for iOS PWA
     const handlePageShow = (event: PageTransitionEvent) => {
       // Persisted means the page was restored from bfcache
-      if (event.persisted && imgRef.current && streamHealthy) {
+      if (event.persisted && imgRef.current) {
         const streamUrl = api.getStreamUrl();
         imgRef.current.src = streamUrl + '?t=' + Date.now();
         setLoading(true);
@@ -129,7 +126,7 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pageshow', handlePageShow);
     };
-  }, [streamHealthy]);
+  }, [audioEnabled, streamHealthy]);
 
   // React to external stream status changes
   useEffect(() => {
@@ -241,7 +238,7 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
         ref={imgRef}
         alt="Camera stream"
         className="w-full h-full object-contain"
-        style={{ display: imgLoaded && streamConnected ? 'block' : 'none' }}
+        style={{ display: imgLoaded ? 'block' : 'none' }}
       />
 
 
