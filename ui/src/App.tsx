@@ -15,13 +15,13 @@ import './App.css';
 // Pure function to calculate timestamp sync status
 function calculateTimestampSyncStatus(frameAgeSeconds: number | null): {
   status: 'ok' | 'warning' | 'danger';
-  colorClass: string;
+  iconColorClass: string;
   bgColorClass: string;
 } {
   if (frameAgeSeconds === null) {
     return {
       status: 'ok',
-      colorClass: 'text-gray-300',
+      iconColorClass: 'text-gray-300',
       bgColorClass: 'bg-gray-700/50'
     };
   }
@@ -29,19 +29,19 @@ function calculateTimestampSyncStatus(frameAgeSeconds: number | null): {
   if (frameAgeSeconds < 5) {
     return {
       status: 'ok',
-      colorClass: 'text-green-400',
+      iconColorClass: 'text-green-400',
       bgColorClass: 'bg-green-500/20'
     };
   } else if (frameAgeSeconds < 10) {
     return {
       status: 'warning',
-      colorClass: 'text-yellow-400',
+      iconColorClass: 'text-yellow-400',
       bgColorClass: 'bg-yellow-500/20'
     };
   } else {
     return {
       status: 'danger',
-      colorClass: 'text-red-400',
+      iconColorClass: 'text-red-400',
       bgColorClass: 'bg-red-500/20'
     };
   }
@@ -268,10 +268,10 @@ function App() {
               className={`flex items-center space-x-2 px-3 py-1 rounded-full ${syncStatus.bgColorClass}`}
               title={ageText}
             >
-              <svg className={`w-3 h-3 ${syncStatus.colorClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-3 h-3 ${syncStatus.iconColorClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className={`text-xs font-mono ${syncStatus.colorClass}`}>
+              <span className="text-xs font-mono text-white">
                 {streamTimestamp}
               </span>
             </div>
