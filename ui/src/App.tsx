@@ -7,6 +7,7 @@ import { PowerControl } from './components/PowerControl';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useHealthCheck, useAppInfo, useStreamStatus } from './api/hooks';
 import { playMotionAlert, playAudioAlert, isAudioSupported } from './utils/alertSounds';
+import { loadZoomLevel, saveZoomLevel } from './utils/zoomCalculations';
 import PWABadge from './PWABadge';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -52,6 +53,7 @@ function App() {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [showDetectionPulse, setShowDetectionPulse] = useState(false);
   const [lastPulseTime, setLastPulseTime] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(() => loadZoomLevel(0));
   const [motionVisualAlertsEnabled, setMotionVisualAlertsEnabled] = useState(() => {
     return localStorage.getItem('motionVisualAlerts') !== 'false';
   });
@@ -177,6 +179,11 @@ function App() {
     localStorage.setItem('audioSoundAlerts', enabled.toString());
   };
 
+  const handleZoomChange = (newZoom: number) => {
+    setZoomLevel(newZoom);
+    saveZoomLevel(newZoom);
+  };
+
   const syncStatus = calculateTimestampSyncStatus(streamStatus?.frame_age_seconds || null);
 
   return (
@@ -281,13 +288,14 @@ function App() {
 
       {/* Main video stream */}
       <ErrorBoundary>
-        <VideoStream 
+        <VideoStream
           streamConnected={streamConnected}
           streamHealthy={streamHealthy}
           onRetryNeeded={() => {
             // Force a refresh of stream status when manual retry is requested
             window.location.reload();
           }}
+          zoomLevel={zoomLevel}
         />
       </ErrorBoundary>
 
@@ -330,6 +338,8 @@ function App() {
           onMotionSoundAlertsToggle={handleMotionSoundAlertsToggle}
           audioSoundAlertsEnabled={audioSoundAlertsEnabled}
           onAudioSoundAlertsToggle={handleAudioSoundAlertsToggle}
+          zoomLevel={zoomLevel}
+          onZoomChange={handleZoomChange}
         />
       </ErrorBoundary>
 

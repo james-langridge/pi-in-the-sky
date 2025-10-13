@@ -2,14 +2,16 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '../api/client';
 import { toast } from 'react-toastify';
 import { StreamingAudioPlayer } from '../utils/audioPlayer';
+import { calculateZoomScale } from '../utils/zoomCalculations';
 
 interface VideoStreamProps {
   streamConnected: boolean;
   streamHealthy: boolean;
   onRetryNeeded?: () => void;
+  zoomLevel?: number;
 }
 
-export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: VideoStreamProps) {
+export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded, zoomLevel = 0 }: VideoStreamProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -206,6 +208,9 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
     }
   };
 
+  const zoomScale = calculateZoomScale(zoomLevel);
+  const isZoomed = zoomLevel > 0;
+
   return (
     <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
       {/* Loading state */}
@@ -236,13 +241,25 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded }: V
         </div>
       )}
 
-      {/* Video stream */}
-      <img
-        ref={imgRef}
-        alt="Camera stream"
-        className="w-full h-full object-contain"
-        style={{ display: imgLoaded && streamConnected ? 'block' : 'none' }}
-      />
+      {/* Scrollable container for zoomed video */}
+      <div
+        className={`w-full h-full ${isZoomed ? 'overflow-auto' : 'overflow-hidden'}`}
+        style={{
+          display: imgLoaded && streamConnected ? 'block' : 'none',
+        }}
+      >
+        {/* Video stream */}
+        <img
+          ref={imgRef}
+          alt="Camera stream"
+          className="w-full h-full object-contain"
+          style={{
+            transform: `scale(${zoomScale})`,
+            transformOrigin: 'center center',
+            transition: 'transform 0.2s ease-out',
+          }}
+        />
+      </div>
 
 
       {/* Controls overlay - only show when stream is healthy */}
