@@ -25,15 +25,6 @@ const ZoomControl: React.FC<ZoomControlProps> = ({ zoomLevel, onZoomChange, isOp
 
   return (
     <>
-      {/* Backdrop - click outside to close */}
-      {isOpen && (
-        <div
-          className="absolute inset-0 z-[19]"
-          onClick={onToggle}
-          aria-label="Close zoom controls"
-        />
-      )}
-
       {/* Collapsed icon button */}
       {!isOpen && (
         <button
@@ -50,7 +41,7 @@ const ZoomControl: React.FC<ZoomControlProps> = ({ zoomLevel, onZoomChange, isOp
 
       {/* Expanded vertical controls */}
       {isOpen && (
-        <div className="flex flex-col items-center gap-1 bg-gray-900/90 backdrop-blur-sm rounded-lg shadow-lg p-2 z-20">
+        <div className="relative flex flex-col items-center gap-1 bg-gray-900/90 backdrop-blur-sm rounded-lg shadow-lg p-2 z-[21]">
           <button
             onClick={handleZoomIn}
             disabled={zoomLevel === 200}
