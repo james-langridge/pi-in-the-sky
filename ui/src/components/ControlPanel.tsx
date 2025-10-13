@@ -83,14 +83,25 @@ export function ControlPanel({
   });
 
   return (
-    <div
-      {...swipeHandlers}
-      className={`absolute bottom-0 left-0 right-0 bg-gray-800 rounded-t-2xl shadow-2xl 
-                  transform transition-transform duration-300 ease-out z-10 ${
-                    isOpen ? 'translate-y-0' : 'translate-y-full'
-                  }`}
-      style={{ maxHeight: '70vh' }}
-    >
+    <>
+      {/* Backdrop - click outside to close */}
+      {isOpen && (
+        <div
+          className="absolute inset-0 bg-black/50 z-[9] transition-opacity duration-300"
+          onClick={onToggle}
+          aria-label="Close control panel"
+        />
+      )}
+
+      {/* Control panel */}
+      <div
+        {...swipeHandlers}
+        className={`absolute bottom-0 left-0 right-0 bg-gray-800 rounded-t-2xl shadow-2xl
+                    transform transition-transform duration-300 ease-out z-10 ${
+                      isOpen ? 'translate-y-0' : 'translate-y-full'
+                    }`}
+        style={{ maxHeight: '70vh' }}
+      >
         {/* Handle bar */}
         <div className="flex justify-center py-2">
           <div className="w-12 h-1 bg-gray-600 rounded-full"></div>
@@ -254,6 +265,7 @@ export function ControlPanel({
             </ErrorBoundary>
           )}
         </div>
-    </div>
+      </div>
+    </>
   );
 }
