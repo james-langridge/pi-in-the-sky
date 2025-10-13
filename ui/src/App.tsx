@@ -325,15 +325,6 @@ function App() {
         </button>
       )}
 
-      {/* Zoom panel backdrop - click outside to close */}
-      {zoomPanelOpen && (
-        <div
-          className="absolute inset-0 z-[19]"
-          onClick={() => setZoomPanelOpen(false)}
-          aria-label="Close zoom controls"
-        />
-      )}
-
       {/* Zoom control - right of center at bottom */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 ml-16 z-20">
         <ErrorBoundary>
