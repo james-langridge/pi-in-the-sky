@@ -324,8 +324,8 @@ function App() {
         </button>
       )}
 
-      {/* Zoom control - floating overlay on right edge */}
-      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
+      {/* Zoom control - centered at bottom above other controls */}
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20">
         <ErrorBoundary>
           <ZoomControl zoomLevel={zoomLevel} onZoomChange={handleZoomChange} />
         </ErrorBoundary>

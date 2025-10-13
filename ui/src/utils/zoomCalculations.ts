@@ -4,17 +4,17 @@
 
 /**
  * Calculate CSS scale transform from zoom level
- * @param zoomLevel - Zoom level from 0 to 100
- * @returns Scale multiplier (1.0 to 3.0)
+ * @param zoomLevel - Zoom level from 0 to 200
+ * @returns Scale multiplier (1.0 to 5.0)
  */
 export function calculateZoomScale(zoomLevel: number): number {
-  // 0 = 1x, 50 = 2x, 100 = 3x
+  // 0 = 1x, 50 = 2x, 100 = 3x, 150 = 4x, 200 = 5x
   return 1 + (zoomLevel / 50);
 }
 
 /**
  * Format zoom level as percentage string for display
- * @param zoomLevel - Zoom level from 0 to 100
+ * @param zoomLevel - Zoom level from 0 to 200
  * @returns Formatted string like "100%" or "200%"
  */
 export function formatZoomPercentage(zoomLevel: number): string {
@@ -32,7 +32,7 @@ export function loadZoomLevel(defaultZoom: number = 0): number {
     const stored = localStorage.getItem('videoZoomLevel');
     if (stored !== null) {
       const parsed = parseInt(stored, 10);
-      if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 200) {
         return parsed;
       }
     }
