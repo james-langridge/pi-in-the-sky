@@ -52,6 +52,7 @@ function calculateTimestampSyncStatus(frameAgeSeconds: number | null): {
 function App() {
   const [controlsOpen, setControlsOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [zoomPanelOpen, setZoomPanelOpen] = useState(false);
   const [showDetectionPulse, setShowDetectionPulse] = useState(false);
   const [lastPulseTime, setLastPulseTime] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(() => loadZoomLevel(0));
@@ -324,10 +325,15 @@ function App() {
         </button>
       )}
 
-      {/* Zoom control - centered at bottom above other controls */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20">
+      {/* Zoom control - right of center at bottom */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 ml-16 z-20">
         <ErrorBoundary>
-          <ZoomControl zoomLevel={zoomLevel} onZoomChange={handleZoomChange} />
+          <ZoomControl
+            zoomLevel={zoomLevel}
+            onZoomChange={handleZoomChange}
+            isOpen={zoomPanelOpen}
+            onToggle={() => setZoomPanelOpen(prev => !prev)}
+          />
         </ErrorBoundary>
       </div>
 
