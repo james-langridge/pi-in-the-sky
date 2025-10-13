@@ -3,7 +3,6 @@ import { useSwipeable } from 'react-swipeable';
 import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
 import { AudioDetection } from './AudioDetection';
-import ZoomControl from './ZoomControl';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useCameraPresets } from '../api/hooks';
 import { toast } from 'react-toastify';
@@ -22,8 +21,6 @@ interface ControlPanelProps {
   onMotionSoundAlertsToggle: (enabled: boolean) => void;
   audioSoundAlertsEnabled: boolean;
   onAudioSoundAlertsToggle: (enabled: boolean) => void;
-  zoomLevel: number;
-  onZoomChange: (zoom: number) => void;
 }
 
 export function ControlPanel({
@@ -38,9 +35,7 @@ export function ControlPanel({
   motionSoundAlertsEnabled,
   onMotionSoundAlertsToggle,
   audioSoundAlertsEnabled,
-  onAudioSoundAlertsToggle,
-  zoomLevel,
-  onZoomChange
+  onAudioSoundAlertsToggle
 }: ControlPanelProps) {
   const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion' | 'audio'>('presets');
   const { applyPreset } = useCameraPresets();
@@ -230,14 +225,9 @@ export function ControlPanel({
           )}
 
           {activeTab === 'controls' && (
-            <div className="space-y-4">
-              <ErrorBoundary>
-                <ZoomControl zoomLevel={zoomLevel} onZoomChange={onZoomChange} />
-              </ErrorBoundary>
-              <ErrorBoundary>
-                <CameraControls />
-              </ErrorBoundary>
-            </div>
+            <ErrorBoundary>
+              <CameraControls />
+            </ErrorBoundary>
           )}
           
           {activeTab === 'motion' && (

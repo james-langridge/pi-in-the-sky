@@ -22,36 +22,31 @@ const ZoomControl: React.FC<ZoomControlProps> = ({ zoomLevel, onZoomChange }) =>
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-4">
-      <h3 className="text-lg font-semibold mb-3">Zoom</h3>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleZoomOut}
-          disabled={zoomLevel === 0}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-bold"
-          aria-label="Zoom out"
-        >
-          −
-        </button>
-        <button
-          onClick={handleReset}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-          aria-label="Reset zoom"
-        >
-          {formatZoomPercentage(zoomLevel)}
-        </button>
-        <button
-          onClick={handleZoomIn}
-          disabled={zoomLevel === 100}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-bold"
-          aria-label="Zoom in"
-        >
-          +
-        </button>
-      </div>
-      <p className="text-xs text-gray-500 mt-2">
-        Click buttons to zoom, tap percentage to reset
-      </p>
+    <div className="flex flex-col items-center gap-1 bg-gray-900/80 backdrop-blur-sm rounded-lg shadow-lg p-2">
+      <button
+        onClick={handleZoomIn}
+        disabled={zoomLevel === 100}
+        className="w-10 h-10 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed font-bold text-xl flex items-center justify-center transition-colors"
+        aria-label="Zoom in"
+      >
+        +
+      </button>
+      <button
+        onClick={handleReset}
+        className="w-10 h-10 bg-gray-700 text-white rounded-lg hover:bg-gray-600 text-xs font-mono flex items-center justify-center transition-colors"
+        aria-label="Reset zoom"
+        title="Click to reset zoom"
+      >
+        {formatZoomPercentage(zoomLevel)}
+      </button>
+      <button
+        onClick={handleZoomOut}
+        disabled={zoomLevel === 0}
+        className="w-10 h-10 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-600 disabled:cursor-not-allowed font-bold text-xl flex items-center justify-center transition-colors"
+        aria-label="Zoom out"
+      >
+        −
+      </button>
     </div>
   );
 };

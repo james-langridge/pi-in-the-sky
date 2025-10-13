@@ -4,6 +4,7 @@ import { VideoStream } from './components/VideoStream';
 import { ControlPanel } from './components/ControlPanel';
 import { PhotoGallery } from './components/PhotoGallery';
 import { PowerControl } from './components/PowerControl';
+import ZoomControl from './components/ZoomControl';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useHealthCheck, useAppInfo, useStreamStatus } from './api/hooks';
 import { playMotionAlert, playAudioAlert, isAudioSupported } from './utils/alertSounds';
@@ -323,6 +324,13 @@ function App() {
         </button>
       )}
 
+      {/* Zoom control - floating overlay on right edge */}
+      <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
+        <ErrorBoundary>
+          <ZoomControl zoomLevel={zoomLevel} onZoomChange={handleZoomChange} />
+        </ErrorBoundary>
+      </div>
+
       {/* Control panel */}
       <ErrorBoundary>
         <ControlPanel
@@ -338,8 +346,6 @@ function App() {
           onMotionSoundAlertsToggle={handleMotionSoundAlertsToggle}
           audioSoundAlertsEnabled={audioSoundAlertsEnabled}
           onAudioSoundAlertsToggle={handleAudioSoundAlertsToggle}
-          zoomLevel={zoomLevel}
-          onZoomChange={handleZoomChange}
         />
       </ErrorBoundary>
 
