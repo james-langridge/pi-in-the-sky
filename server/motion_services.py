@@ -341,7 +341,7 @@ class NotificationService:
                 # Mark endpoint as failed if gone or expired
                 if e.response and e.response.status_code == 410:
                     self._failed_endpoints.add(subscription.endpoint)
-                    self._storage.delete_subscription(subscription.id)
+                    self._storage.remove_subscription(subscription.endpoint)
                     logger.info(f"Removed expired subscription {subscription.id}")
                 
                 failed_count += 1
