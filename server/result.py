@@ -4,7 +4,9 @@ from dataclasses import dataclass
 from typing import TypeVar, Generic, Optional, Callable, Union
 
 T = TypeVar('T')
+U = TypeVar('U')
 E = TypeVar('E')
+F = TypeVar('F')
 
 
 @dataclass(frozen=True)
@@ -61,29 +63,29 @@ class Result(Generic[T, E]):
         """Get value or return default if failure."""
         return self._value if self.is_success else default
     
-    def map(self, func: Callable[[T], T]) -> 'Result[T, E]':
+    def map(self, func: Callable[[T], U]) -> 'Result[U, E]':
         """
         Apply function to success value, pass through failures.
         Pure functional transformation.
         """
         if self.is_success:
             return Result.success(func(self._value))
-        return self
+        return Result.failure(self._error)
     
-    def flat_map(self, func: Callable[[T], 'Result[T, E]']) -> 'Result[T, E]':
+    def flat_map(self, func: Callable[[T], 'Result[U, E]']) -> 'Result[U, E]':
         """
         Apply function that returns Result, flattening the result.
         Useful for chaining operations that might fail.
         """
         if self.is_success:
             return func(self._value)
-        return self
+        return Result.failure(self._error)
     
-    def map_error(self, func: Callable[[E], E]) -> 'Result[T, E]':
+    def map_error(self, func: Callable[[E], F]) -> 'Result[T, F]':
         """Transform error value if present."""
         if self.is_failure:
             return Result.failure(func(self._error))
-        return self
+        return Result.success(self._value)
     
     def to_dict(self) -> dict:
         """
