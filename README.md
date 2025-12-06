@@ -815,11 +815,22 @@ python3 server.py
 
 ## Headless Setup in New Location
 
-When moving to a new location with only an Ethernet cable and no monitor:
+When moving to a new location without a monitor:
+
+**If the Pi already knows the WiFi network** (previously configured):
+1. Just power on the Pi - it will auto-connect
+2. Find its WiFi IP using the methods below
+3. SSH in and you're done
+
+**If the Pi doesn't know the WiFi network** (new location):
+1. Connect the Pi to the router via Ethernet cable
+2. Find its Ethernet IP using the methods below
+3. SSH in and configure WiFi (see Step 3)
+4. Disconnect Ethernet - Pi will use WiFi
 
 ### 1. Find the Pi's IP Address
 
-After connecting the Pi to Ethernet/WiFi and powering it on, find its IP from your laptop.
+Power on the Pi (connected to Ethernet or known WiFi), then find its IP from your laptop.
 
 **First, find your network subnet:**
 ```bash
