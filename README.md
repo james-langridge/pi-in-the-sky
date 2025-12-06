@@ -819,34 +819,59 @@ When moving to a new location with only an Ethernet cable and no monitor:
 
 ### 1. Find the Pi's IP Address
 
-After connecting the Pi to Ethernet and powering it on, find its IP from your laptop:
+After connecting the Pi to Ethernet/WiFi and powering it on, find its IP from your laptop.
 
-**Option A: Using nmap (most reliable)**
+**First, find your network subnet:**
 ```bash
-# Install nmap if needed
-# Mac: brew install nmap
-# Linux: sudo apt install nmap
-# Windows: Download from nmap.org
-
-# Scan your network (adjust IP range to match your network)
-nmap -sn 192.168.1.0/24
-# or
-sudo nmap -sn 192.168.0.0/24
-
-# Look for "Raspberry Pi" in the output
+ip route | grep default
+# Example output: default via 192.168.4.1 dev wlan0 ...
+# Your subnet is 192.168.4.0/24
 ```
 
-**Option B: Using arp**
-```bash
-# Mac/Linux: Look for Raspberry Pi MAC addresses (start with B8:27:EB or DC:A6:32)
-arp -a | grep -i "b8:27:eb\|dc:a6:32"
+**Option A: Before/after scan (most reliable)**
 
-# Windows
-arp -a
-# Look for MAC addresses starting with b8-27-eb or dc-a6-32
+This method works regardless of MAC address or hostname:
+
+```bash
+# BEFORE powering on the Pi, save current devices:
+nmap -sn 192.168.4.0/24 | grep "Nmap scan report" | awk '{print $NF}' | sort > /tmp/before.txt
+
+# Power on the Pi, wait 30-60 seconds, then scan again:
+nmap -sn 192.168.4.0/24 | grep "Nmap scan report" | awk '{print $NF}' | sort > /tmp/after.txt
+
+# Compare to find new device(s):
+diff /tmp/before.txt /tmp/after.txt
 ```
 
-**Option C: Check router's DHCP client list**
+If multiple new IPs appear, check which has SSH open:
+```bash
+nmap -p 22 192.168.4.90 192.168.4.93 192.168.4.94
+# The Pi will show "22/tcp open ssh"
+```
+
+**Option B: Using nmap with MAC detection**
+```bash
+# Requires sudo for MAC address detection
+sudo nmap -sn 192.168.4.0/24
+
+# Look for Raspberry Pi MAC prefixes in the output
+```
+
+Raspberry Pi MAC address prefixes (varies by model):
+- `b8:27:eb` - Older Pi models
+- `dc:a6:32` - Pi 4
+- `e4:5f:01` - Pi 4
+- `d8:3a:dd` - Pi 4/5
+- `2c:cf:67` - Pi 5
+- `28:cd:c1` - Pi Foundation
+
+**Option C: Using arp table**
+```bash
+# After pinging the network, check ARP cache for Pi MACs:
+ip neigh | grep -iE "b8:27:eb|dc:a6:32|e4:5f:01|d8:3a:dd|2c:cf:67"
+```
+
+**Option D: Check router's DHCP client list**
 - Access your router's admin page (usually 192.168.1.1 or 192.168.0.1)
 - Look for DHCP clients/connected devices
 - Find device named "raspberrypi" or with Raspberry Pi MAC address
