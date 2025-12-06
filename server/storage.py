@@ -6,7 +6,7 @@ import logging
 import uuid
 from typing import List, Optional, Dict
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from models import PushSubscription
 
@@ -205,8 +205,7 @@ class SubscriptionStorage:
         Returns:
             Number of subscriptions removed
         """
-        cutoff_date = datetime.utcnow()
-        cutoff_date = cutoff_date.replace(day=cutoff_date.day - days)
+        cutoff_date = datetime.utcnow() - timedelta(days=days)
         cutoff_str = cutoff_date.isoformat()
         
         with self._get_connection() as conn:
