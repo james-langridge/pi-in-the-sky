@@ -454,23 +454,33 @@ def camera_preset_to_controls_dict(preset: CameraPreset) -> Dict[str, Any]:
 def parse_photo_timestamp(filename: str) -> Optional[datetime]:
     """
     Extract timestamp from photo filename.
-    
+
     Args:
-        filename: Photo filename (e.g., 'photo_20240103_143022.jpg')
-        
+        filename: Photo filename (e.g., 'photo_20240103_143022_123456.jpg' or 'motion_20240103_143022_123456.jpg')
+
     Returns:
         datetime object or None if parsing fails
     """
     try:
-        # Expected format: photo_YYYYMMDD_HHMMSS.jpg
-        if not filename.startswith('photo_') or not filename.endswith('.jpg'):
+        if not filename.endswith('.jpg'):
             return None
-        
-        # Extract timestamp portion
-        timestamp_str = filename[6:-4]  # Remove 'photo_' and '.jpg'
-        
-        # Parse timestamp
-        return datetime.strptime(timestamp_str, "%Y%m%d_%H%M%S")
+
+        # Handle both photo_ and motion_ prefixes
+        if filename.startswith('photo_'):
+            timestamp_str = filename[6:-4]  # Remove 'photo_' and '.jpg'
+        elif filename.startswith('motion_'):
+            timestamp_str = filename[7:-4]  # Remove 'motion_' and '.jpg'
+        else:
+            return None
+
+        # Try format with microseconds first, fall back to without
+        for fmt in ("%Y%m%d_%H%M%S_%f", "%Y%m%d_%H%M%S"):
+            try:
+                return datetime.strptime(timestamp_str, fmt)
+            except ValueError:
+                continue
+
+        return None
     except (ValueError, IndexError):
         return None
 

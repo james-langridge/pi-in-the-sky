@@ -317,7 +317,8 @@ class CameraService:
             os.makedirs(photos_dir, exist_ok=True)
 
             # Generate filename with timestamp and source prefix
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            # Include microseconds to prevent collision on rapid captures
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
             prefix = "motion" if source == "motion" else "photo"
             filename = f"{prefix}_{timestamp}.jpg"
             filepath = os.path.join(photos_dir, filename)

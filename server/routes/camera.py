@@ -25,6 +25,7 @@ def video_feed():
     def generate_with_motion_detection():
         """Generate MJPEG stream with motion detection."""
         camera_service = services['camera_service']
+        motion_capture_count = 0
 
         for chunk in streaming_service.generate_mjpeg_stream():
             # Extract frame data for motion detection if enabled
@@ -48,8 +49,14 @@ def video_feed():
                             # Capture photo if enabled
                             config = motion_service.get_config()
                             if config.capture_on_motion:
-                                camera_service.capture_photo(source="motion")
-                                camera_service.cleanup_motion_photos(max_count=100)
+                                result = camera_service.capture_photo(source="motion")
+                                if result.is_success:
+                                    motion_capture_count += 1
+                                    # Cleanup every 10th capture to avoid work in stream loop
+                                    if motion_capture_count % 10 == 0:
+                                        camera_service.cleanup_motion_photos(max_count=100)
+                                else:
+                                    logger.warning(f"Motion photo capture failed: {result.error}")
                 except Exception as e:
                     logger.error(f"Motion detection error: {e}")
 
