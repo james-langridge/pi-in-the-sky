@@ -143,13 +143,14 @@ class Frame:
 @dataclass(frozen=True)
 class MotionDetectionConfig:
     """Immutable configuration for motion detection."""
-    
+
     enabled: bool = False
     sensitivity: float = 0.02  # 0-1 scale, lower = more sensitive
     min_area: int = 500  # Minimum contour area in pixels
     cooldown_seconds: int = 30  # Seconds between notifications
     blur_size: int = 21  # Gaussian blur kernel size
     threshold: int = 25  # Binary threshold for motion detection
+    capture_on_motion: bool = False  # Capture photo when motion detected
 
 
 @dataclass(frozen=True)
@@ -178,11 +179,12 @@ class PushSubscription:
 @dataclass(frozen=True)
 class PhotoMetadata:
     """Immutable photo metadata."""
-    
+
     filename: str
     timestamp: str  # ISO format timestamp
     file_size: int  # Size in bytes
     path: str  # Relative path for serving
+    source: str = "manual"  # "manual" or "motion"
 
 
 @dataclass(frozen=True)

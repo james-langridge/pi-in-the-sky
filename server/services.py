@@ -297,13 +297,14 @@ class CameraService:
             logger.error(f"Error capturing frame: {e}")
             return Result.failure(f"Failed to capture frame: {str(e)}")
     
-    def capture_photo(self, photos_dir: str = None) -> Result[str, str]:
+    def capture_photo(self, photos_dir: str = None, source: str = "manual") -> Result[str, str]:
         """
         Capture a photo and save it to the photos directory.
-        
+
         Args:
             photos_dir: Directory to save photos (default: "photos")
-            
+            source: Photo source - "manual" or "motion"
+
         Returns:
             Result containing the filename or error message
         """
@@ -311,38 +312,40 @@ class CameraService:
             # Default to photos directory in server folder if not specified
             if photos_dir is None:
                 photos_dir = os.path.join(os.path.dirname(__file__), 'photos')
-            
+
             # Ensure photos directory exists
             os.makedirs(photos_dir, exist_ok=True)
-            
-            # Generate filename with timestamp
+
+            # Generate filename with timestamp and source prefix
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"photo_{timestamp}.jpg"
+            prefix = "motion" if source == "motion" else "photo"
+            filename = f"{prefix}_{timestamp}.jpg"
             filepath = os.path.join(photos_dir, filename)
-            
+
             # Capture frame without overlay
             frame_result = self.capture_frame_without_overlay()
             if frame_result.is_failure:
                 return Result.failure(f"Failed to capture photo: {frame_result.error}")
-            
+
             # Save the photo
             with open(filepath, 'wb') as f:
                 f.write(frame_result.value.data)
-            
-            logger.info(f"Photo saved: {filename}")
+
+            logger.info(f"Photo saved: {filename} (source: {source})")
             return Result.success(filename)
-            
+
         except Exception as e:
             logger.error(f"Error capturing photo: {e}")
             return Result.failure(f"Failed to capture photo: {str(e)}")
     
-    def list_photos(self, photos_dir: str = None) -> Result[list, str]:
+    def list_photos(self, photos_dir: str = None, source_filter: str = None) -> Result[list, str]:
         """
         List all photos in the photos directory with metadata.
-        
+
         Args:
             photos_dir: Directory containing photos (default: "photos")
-            
+            source_filter: Filter by source - "manual", "motion", or None for all
+
         Returns:
             Result containing list of PhotoMetadata objects or error message
         """
@@ -350,18 +353,25 @@ class CameraService:
             # Default to photos directory in server folder if not specified
             if photos_dir is None:
                 photos_dir = os.path.join(os.path.dirname(__file__), 'photos')
-            
+
             # Check if photos directory exists
             if not os.path.exists(photos_dir):
                 return Result.success([])
-            
+
             photos = []
-            
+
             # Iterate through files in photos directory
             for filename in os.listdir(photos_dir):
                 if filename.endswith('.jpg'):
+                    # Derive source from filename prefix
+                    source = "motion" if filename.startswith("motion_") else "manual"
+
+                    # Apply source filter if specified
+                    if source_filter and source != source_filter:
+                        continue
+
                     filepath = os.path.join(photos_dir, filename)
-                    
+
                     # Extract timestamp from filename
                     photo_dt = parse_photo_timestamp(filename)
                     if photo_dt:
@@ -371,25 +381,26 @@ class CameraService:
                         timestamp = datetime.fromtimestamp(
                             os.path.getmtime(filepath)
                         ).isoformat()
-                    
+
                     # Get file size
                     file_size = os.path.getsize(filepath)
-                    
+
                     # Create immutable PhotoMetadata
                     photo = PhotoMetadata(
                         filename=filename,
                         timestamp=timestamp,
                         file_size=file_size,
-                        path=f"/photos/{filename}"
+                        path=f"/photos/{filename}",
+                        source=source
                     )
                     photos.append(photo)
-            
+
             # Sort photos by date (newest first)
             sorted_photos = sort_photos_by_date(photos)
-            
-            logger.info(f"Listed {len(sorted_photos)} photos")
+
+            logger.info(f"Listed {len(sorted_photos)} photos (filter: {source_filter})")
             return Result.success(sorted_photos)
-            
+
         except Exception as e:
             logger.error(f"Error listing photos: {e}")
             return Result.failure(f"Failed to list photos: {str(e)}")
@@ -435,6 +446,62 @@ class CameraService:
         except Exception as e:
             logger.error(f"Error deleting photo {filename}: {e}")
             return Result.failure(f"Failed to delete photo: {str(e)}")
+
+    def cleanup_motion_photos(self, max_count: int = 100, photos_dir: str = None) -> int:
+        """
+        Delete oldest motion photos when count exceeds limit.
+        Only affects motion-captured photos, never manual photos.
+
+        Args:
+            max_count: Maximum number of motion photos to keep
+            photos_dir: Directory containing photos (default: "photos")
+
+        Returns:
+            Number of photos deleted
+        """
+        try:
+            if photos_dir is None:
+                photos_dir = os.path.join(os.path.dirname(__file__), 'photos')
+
+            if not os.path.exists(photos_dir):
+                return 0
+
+            # Get all motion photos with their timestamps
+            motion_photos = []
+            for filename in os.listdir(photos_dir):
+                if filename.startswith("motion_") and filename.endswith(".jpg"):
+                    filepath = os.path.join(photos_dir, filename)
+                    mtime = os.path.getmtime(filepath)
+                    motion_photos.append((filename, mtime))
+
+            # Check if cleanup needed
+            if len(motion_photos) <= max_count:
+                return 0
+
+            # Sort by modification time (oldest first)
+            motion_photos.sort(key=lambda x: x[1])
+
+            # Delete oldest photos exceeding limit
+            photos_to_delete = len(motion_photos) - max_count
+            deleted_count = 0
+
+            for filename, _ in motion_photos[:photos_to_delete]:
+                filepath = os.path.join(photos_dir, filename)
+                try:
+                    os.remove(filepath)
+                    deleted_count += 1
+                    logger.debug(f"Cleaned up old motion photo: {filename}")
+                except Exception as e:
+                    logger.error(f"Failed to delete {filename}: {e}")
+
+            if deleted_count > 0:
+                logger.info(f"Cleaned up {deleted_count} old motion photos")
+
+            return deleted_count
+
+        except Exception as e:
+            logger.error(f"Error during motion photo cleanup: {e}")
+            return 0
 
 
 class StreamingService:

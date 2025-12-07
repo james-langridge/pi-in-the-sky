@@ -41,6 +41,7 @@ export interface MotionConfig {
   sensitivity: number;
   min_area: number;
   cooldown_seconds: number;
+  capture_on_motion: boolean;
 }
 
 export interface MotionStatus {

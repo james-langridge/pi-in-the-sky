@@ -14,38 +14,63 @@ photos_bp = Blueprint('photos', __name__)
 def list_photos():
     """
     List all photos with metadata.
-    
+
+    Query params:
+        source: Filter by source - "manual", "motion", or omit for all
+
     Returns:
         JSON response with photo list
     """
     camera_service = current_app.config['services']['camera_service']
-    
-    result = camera_service.list_photos()
-    
-    if result.is_success:
-        # Transform PhotoMetadata to JSON-serializable dict
-        photos_list = []
-        for photo in result.value:
-            photos_list.append({
-                'filename': photo.filename,
-                'timestamp': photo.timestamp,
-                'displayDate': format_photo_date(photo.timestamp),
-                'fileSize': photo.file_size,
-                'displaySize': format_file_size(photo.file_size),
-                'path': photo.path
-            })
-        
-        return jsonify({
-            'status': 'success',
-            'photos': photos_list,
-            'count': len(photos_list)
-        })
-    else:
+
+    # Get optional source filter
+    source_filter = request.args.get('source')
+    if source_filter and source_filter not in ('manual', 'motion'):
+        source_filter = None
+
+    # Get all photos first for accurate counts
+    all_result = camera_service.list_photos(source_filter=None)
+    if all_result.is_failure:
         return jsonify({
             'status': 'error',
-            'message': result.error,
+            'message': all_result.error,
             'photos': []
         }), 500
+
+    # Count by source for UI (always from full list)
+    all_photos = all_result.value
+    manual_count = sum(1 for p in all_photos if p.source == 'manual')
+    motion_count = sum(1 for p in all_photos if p.source == 'motion')
+
+    # Apply filter for returned photos
+    if source_filter:
+        filtered_photos = [p for p in all_photos if p.source == source_filter]
+    else:
+        filtered_photos = all_photos
+
+    # Transform PhotoMetadata to JSON-serializable dict
+    photos_list = []
+    for photo in filtered_photos:
+        photos_list.append({
+            'filename': photo.filename,
+            'timestamp': photo.timestamp,
+            'displayDate': format_photo_date(photo.timestamp),
+            'fileSize': photo.file_size,
+            'displaySize': format_file_size(photo.file_size),
+            'path': photo.path,
+            'source': photo.source
+        })
+
+    return jsonify({
+        'status': 'success',
+        'photos': photos_list,
+        'count': len(photos_list),
+        'counts': {
+            'manual': manual_count,
+            'motion': motion_count,
+            'total': manual_count + motion_count
+        }
+    })
 
 
 @photos_bp.route('/photos/<filename>')

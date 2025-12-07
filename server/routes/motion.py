@@ -21,6 +21,9 @@ def motion_status():
     motion_service = current_app.config['services']['motion_service']
     status = motion_service.get_status()
     
+    # Get full config for capture_on_motion field
+    config = motion_service.get_config()
+
     # Format response to match frontend expectations
     return jsonify({
         "enabled": status["enabled"],
@@ -28,7 +31,8 @@ def motion_status():
             "enabled": status["enabled"],
             "sensitivity": status["config"]["sensitivity"],
             "min_area": status["config"]["min_area"],
-            "cooldown_seconds": status["config"]["cooldown_seconds"]
+            "cooldown_seconds": status["config"]["cooldown_seconds"],
+            "capture_on_motion": config.capture_on_motion
         },
         "recent_events": status["recent_events"],
         "triggered_events": status["triggered_events"]
@@ -51,7 +55,8 @@ def get_motion_config():
         "min_area": config.min_area,
         "cooldown_seconds": config.cooldown_seconds,
         "blur_size": config.blur_size,
-        "threshold": config.threshold
+        "threshold": config.threshold,
+        "capture_on_motion": config.capture_on_motion
     })
 
 
@@ -83,7 +88,7 @@ def update_motion_config():
     
     try:
         current_config = motion_service.get_config()
-        
+
         # Create updated config with only provided fields
         config_dict = {
             "enabled": request.json.get("enabled", current_config.enabled),
@@ -91,15 +96,16 @@ def update_motion_config():
             "min_area": request.json.get("min_area", current_config.min_area),
             "cooldown_seconds": request.json.get("cooldown_seconds", current_config.cooldown_seconds),
             "blur_size": request.json.get("blur_size", current_config.blur_size),
-            "threshold": request.json.get("threshold", current_config.threshold)
+            "threshold": request.json.get("threshold", current_config.threshold),
+            "capture_on_motion": request.json.get("capture_on_motion", current_config.capture_on_motion)
         }
-        
+
         # Validate and create new config
         new_config = MotionDetectionConfig(**config_dict)
-        
+
         # Update service
         motion_service.update_config(new_config)
-        
+
         return jsonify({
             "status": "success",
             "config": {
@@ -108,7 +114,8 @@ def update_motion_config():
                 "min_area": new_config.min_area,
                 "cooldown_seconds": new_config.cooldown_seconds,
                 "blur_size": new_config.blur_size,
-                "threshold": new_config.threshold
+                "threshold": new_config.threshold,
+                "capture_on_motion": new_config.capture_on_motion
             }
         })
     except (TypeError, ValueError) as e:

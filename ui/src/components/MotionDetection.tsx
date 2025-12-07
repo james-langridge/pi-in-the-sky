@@ -181,6 +181,29 @@ export function MotionDetection({
             Play double beep when motion is detected
           </p>
         </div>
+
+        {/* Capture Photo on Motion Toggle */}
+        <div className="p-4 bg-gray-700 rounded-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-gray-200 font-medium">Capture Photo on Motion</span>
+            <button
+              onClick={() => updateConfig({ capture_on_motion: !status?.config.capture_on_motion })}
+              disabled={!status?.enabled}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                status?.config.capture_on_motion ? 'bg-blue-500' : 'bg-gray-600'
+              } ${!status?.enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  status?.config.capture_on_motion ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            Save photo to gallery when motion is detected
+          </p>
+        </div>
       </div>
 
       {/* Status Header */}

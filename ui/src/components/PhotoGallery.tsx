@@ -8,7 +8,16 @@ interface Photo {
   fileSize: number;
   displaySize: string;
   path: string;
+  source: 'manual' | 'motion';
 }
+
+interface PhotoCounts {
+  manual: number;
+  motion: number;
+  total: number;
+}
+
+type SourceFilter = 'all' | 'manual' | 'motion';
 
 interface PhotoGalleryProps {
   isOpen: boolean;
@@ -17,6 +26,8 @@ interface PhotoGalleryProps {
 
 export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [counts, setCounts] = useState<PhotoCounts>({ manual: 0, motion: 0, total: 0 });
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
@@ -26,22 +37,26 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch photos when gallery opens
+  // Fetch photos when gallery opens or filter changes
   useEffect(() => {
     if (isOpen) {
-      fetchPhotos();
+      fetchPhotos(sourceFilter);
     }
-  }, [isOpen]);
+  }, [isOpen, sourceFilter]);
 
-  const fetchPhotos = async () => {
+  const fetchPhotos = async (filter: SourceFilter) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/photos');
+      const url = filter === 'all' ? '/api/photos' : `/api/photos?source=${filter}`;
+      const response = await fetch(url);
       const data = await response.json();
-      
+
       if (data.status === 'success') {
         setPhotos(data.photos);
+        if (data.counts) {
+          setCounts(data.counts);
+        }
       } else {
         setError(data.message || 'Failed to load photos');
       }
@@ -226,7 +241,7 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-4 bg-gray-900 bg-opacity-80">
         <h2 className="text-xl font-semibold text-white">
-          Photos ({photos.length})
+          Photos
           {selectionMode && selectedPhotos.size > 0 && (
             <span className="ml-2 text-sm text-blue-400">
               ({selectedPhotos.size} selected)
@@ -238,8 +253,8 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
             <button
               onClick={toggleSelectionMode}
               className={`px-3 py-2 rounded-lg transition-colors ${
-                selectionMode 
-                  ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                selectionMode
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'text-white hover:bg-gray-700'
               }`}
             >
@@ -254,6 +269,40 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
             <X className="w-6 h-6 text-white" />
           </button>
         </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1 px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <button
+          onClick={() => setSourceFilter('all')}
+          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            sourceFilter === 'all'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          All ({counts.total})
+        </button>
+        <button
+          onClick={() => setSourceFilter('manual')}
+          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            sourceFilter === 'manual'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          Manual ({counts.manual})
+        </button>
+        <button
+          onClick={() => setSourceFilter('motion')}
+          className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+            sourceFilter === 'motion'
+              ? 'bg-blue-600 text-white'
+              : 'text-gray-300 hover:bg-gray-700'
+          }`}
+        >
+          Motion ({counts.motion})
+        </button>
       </div>
 
       {/* Selection toolbar */}
@@ -304,7 +353,7 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
             <div className="text-center">
               <p className="text-red-400 mb-4">{error}</p>
               <button
-                onClick={fetchPhotos}
+                onClick={() => fetchPhotos(sourceFilter)}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
                 Retry
