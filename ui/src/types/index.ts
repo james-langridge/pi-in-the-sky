@@ -71,6 +71,19 @@ export interface AppInfo {
   timestamp: string;
 }
 
+export interface LogEntry {
+  timestamp: string;
+  level: string;
+  name: string;
+  message: string;
+}
+
+export interface LogResponse {
+  status: string;
+  count: number;
+  entries: LogEntry[];
+}
+
 export interface StreamStatus {
   timestamp: string | null;
   status: 'streaming' | 'waiting' | 'degraded' | 'stale';

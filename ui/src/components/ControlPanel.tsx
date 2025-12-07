@@ -3,6 +3,7 @@ import { useSwipeable } from 'react-swipeable';
 import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
 import { AudioDetection } from './AudioDetection';
+import { LogViewer } from './LogViewer';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useCameraPresets } from '../api/hooks';
 import { toast } from 'react-toastify';
@@ -37,7 +38,7 @@ export function ControlPanel({
   audioSoundAlertsEnabled,
   onAudioSoundAlertsToggle
 }: ControlPanelProps) {
-  const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion' | 'audio'>('presets');
+  const [activeTab, setActiveTab] = useState<'presets' | 'controls' | 'motion' | 'audio' | 'logs'>('presets');
   const { applyPreset } = useCameraPresets();
   const [applyingPreset, setApplyingPreset] = useState<CameraPreset | null>(null);
   const [activePreset, setActivePreset] = useState<CameraPreset | null>('default');
@@ -149,6 +150,16 @@ export function ControlPanel({
           >
             Audio
           </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+              activeTab === 'logs'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-gray-400 hover:text-gray-300'
+            }`}
+          >
+            Logs
+          </button>
         </div>
 
         {/* Tab content */}
@@ -255,13 +266,19 @@ export function ControlPanel({
           
           {activeTab === 'audio' && (
             <ErrorBoundary>
-              <AudioDetection 
+              <AudioDetection
                 onAudioDetected={onAudioDetected}
                 visualAlertsEnabled={audioVisualAlertsEnabled}
                 onVisualAlertsToggle={onAudioVisualAlertsToggle}
                 soundAlertsEnabled={audioSoundAlertsEnabled}
                 onSoundAlertsToggle={onAudioSoundAlertsToggle}
               />
+            </ErrorBoundary>
+          )}
+
+          {activeTab === 'logs' && (
+            <ErrorBoundary>
+              <LogViewer />
             </ErrorBoundary>
           )}
         </div>

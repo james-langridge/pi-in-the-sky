@@ -8,7 +8,8 @@ import type {
   AppInfo,
   CameraPreset,
   CameraControl,
-  StreamStatus
+  StreamStatus,
+  LogEntry
 } from '../types';
 
 // Generic hook for API calls with loading and error states
@@ -345,4 +346,31 @@ export function useAppInfo() {
   }, []);
 
   return { appInfo, updateAvailable };
+}
+
+// Server logs hook with auto-refresh
+export function useLogs(refreshInterval = 5000, limit = 200) {
+  const [entries, setEntries] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      const response = await api.getLogs(limit);
+      setEntries(response.entries);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch logs'));
+    } finally {
+      setLoading(false);
+    }
+  }, [limit]);
+
+  useEffect(() => {
+    fetchLogs();
+    const interval = setInterval(fetchLogs, refreshInterval);
+    return () => clearInterval(interval);
+  }, [fetchLogs, refreshInterval]);
+
+  return { entries, loading, error, refetch: fetchLogs };
 }

@@ -9,7 +9,8 @@ import type {
   AppInfo,
   CameraPreset,
   CameraControl,
-  StreamStatus
+  StreamStatus,
+  LogResponse
 } from '../types';
 
 export class CameraAPI {
@@ -143,6 +144,11 @@ export class CameraAPI {
   // Stream URL helper
   getStreamUrl(): string {
     return `${this.baseUrl}/video_feed`;
+  }
+
+  // Server Logs
+  async getLogs(limit = 100): Promise<LogResponse> {
+    return this.fetchJSON<LogResponse>(`/api/logs?limit=${limit}`);
   }
 }
 

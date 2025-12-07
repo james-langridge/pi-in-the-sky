@@ -15,12 +15,17 @@ except Exception as e:
 
 from config import AppConfig
 from app_factory import create_app
+from log_handler import setup_memory_handler
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
+
+# Set up in-memory log handler for web UI access
+setup_memory_handler(max_entries=500)
+
 logger = logging.getLogger(__name__)
 
 

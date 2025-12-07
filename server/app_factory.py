@@ -150,6 +150,7 @@ def create_app(config: AppConfig) -> Flask:
     from routes.photos import photos_bp
     from routes.system import system_bp
     from routes.audio import audio_bp
+    from routes.logs import logs_bp
 
     app.register_blueprint(camera_bp)
     app.register_blueprint(motion_bp)
@@ -158,6 +159,7 @@ def create_app(config: AppConfig) -> Flask:
     app.register_blueprint(photos_bp)
     app.register_blueprint(system_bp)
     app.register_blueprint(audio_bp)
+    app.register_blueprint(logs_bp)
 
     @app.after_request
     def add_smart_caching(response):
