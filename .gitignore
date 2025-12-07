@@ -12,6 +12,7 @@ __pycache__/
 *.pyc
 venv/
 server/venv/
+server/logs/
 node_modules/
 dist/
 photos/

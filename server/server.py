@@ -1,6 +1,7 @@
 """Flask server for Raspberry Pi camera streaming."""
 
 import logging
+from logging.handlers import RotatingFileHandler
 import os
 
 # Try to load .env file if it exists
@@ -18,13 +19,22 @@ from app_factory import create_app
 from log_handler import setup_memory_handler
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 
 # Set up in-memory log handler for web UI access
 setup_memory_handler(max_entries=500)
+
+# Set up file logging for crash investigation
+LOG_DIR = os.path.join(os.path.dirname(__file__), 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+file_handler = RotatingFileHandler(
+    os.path.join(LOG_DIR, 'server.log'),
+    maxBytes=1_000_000,  # 1MB per file
+    backupCount=5        # Keep 5 old files
+)
+file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
+logging.getLogger().addHandler(file_handler)
 
 logger = logging.getLogger(__name__)
 
