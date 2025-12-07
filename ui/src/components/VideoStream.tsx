@@ -9,9 +9,10 @@ interface VideoStreamProps {
   streamHealthy: boolean;
   onRetryNeeded?: () => void;
   zoomLevel?: number;
+  controlsOpen?: boolean;
 }
 
-export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded, zoomLevel = 0 }: VideoStreamProps) {
+export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded, zoomLevel = 0, controlsOpen = false }: VideoStreamProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -262,8 +263,8 @@ export function VideoStream({ streamConnected, streamHealthy, onRetryNeeded, zoo
       </div>
 
 
-      {/* Controls overlay - only show when stream is healthy */}
-      {imgLoaded && streamHealthy && (
+      {/* Controls overlay - only show when stream is healthy and control panel is closed */}
+      {imgLoaded && streamHealthy && !controlsOpen && (
         <>
           {/* Audio toggle button - left of center */}
           <button

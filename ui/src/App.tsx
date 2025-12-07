@@ -298,6 +298,7 @@ function App() {
             window.location.reload();
           }}
           zoomLevel={zoomLevel}
+          controlsOpen={controlsOpen}
         />
       </ErrorBoundary>
 
