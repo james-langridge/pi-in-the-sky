@@ -301,16 +301,18 @@ function App() {
         />
       </ErrorBoundary>
 
-      {/* Gallery button - bottom left */}
-      <button
-        onClick={() => setGalleryOpen(true)}
-        className="absolute bottom-8 left-8 z-20 w-12 h-12 bg-gray-700 hover:bg-gray-600 
-                   text-white rounded-full shadow-lg transition-all duration-200 
-                   flex items-center justify-center"
-        aria-label="Open photo gallery"
-      >
-        <Images className="w-6 h-6" />
-      </button>
+      {/* Gallery button - bottom left (hide when control panel open) */}
+      {!controlsOpen && (
+        <button
+          onClick={() => setGalleryOpen(true)}
+          className="absolute bottom-8 left-8 z-20 w-12 h-12 bg-gray-700 hover:bg-gray-600
+                     text-white rounded-full shadow-lg transition-all duration-200
+                     flex items-center justify-center"
+          aria-label="Open photo gallery"
+        >
+          <Images className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Settings toggle button - only show when panel is closed */}
       {!controlsOpen && (
@@ -325,17 +327,19 @@ function App() {
         </button>
       )}
 
-      {/* Zoom control - right of center at bottom */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 ml-16 z-20">
-        <ErrorBoundary>
-          <ZoomControl
-            zoomLevel={zoomLevel}
-            onZoomChange={handleZoomChange}
-            isOpen={zoomPanelOpen}
-            onToggle={() => setZoomPanelOpen(prev => !prev)}
-          />
-        </ErrorBoundary>
-      </div>
+      {/* Zoom control - right of center at bottom (hide when control panel open) */}
+      {!controlsOpen && (
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 ml-16 z-20">
+          <ErrorBoundary>
+            <ZoomControl
+              zoomLevel={zoomLevel}
+              onZoomChange={handleZoomChange}
+              isOpen={zoomPanelOpen}
+              onToggle={() => setZoomPanelOpen(prev => !prev)}
+            />
+          </ErrorBoundary>
+        </div>
+      )}
 
       {/* Control panel */}
       <ErrorBoundary>
