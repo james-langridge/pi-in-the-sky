@@ -101,6 +101,8 @@ pip install -r requirements.txt
 
 Check Pi IP with `hostname -I` and ensure firewall allows port 8080.
 
+For access outside your home network, see [Remote Access via Tailscale](docs/raspberry-pi.md#remote-access-via-tailscale).
+
 ## Documentation
 
 - [API Reference](docs/api.md) - Complete endpoint documentation

@@ -158,6 +158,69 @@ static routers=192.168.1.1
 static domain_name_servers=192.168.1.1 8.8.8.8
 ```
 
+## Remote Access via Tailscale
+
+Access your camera from anywhere (outside your home network) using Tailscale, a zero-config VPN.
+
+### Why Tailscale?
+
+- No port forwarding or exposing your home IP
+- End-to-end encrypted (WireGuard)
+- Works behind any NAT/firewall
+- Free for personal use
+- No changes to the camera app required
+
+### Setup
+
+**1. Install Tailscale on the Pi:**
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+```
+
+Follow the authentication URL to link to your Tailscale account.
+
+**2. Get the Pi's Tailscale IP:**
+
+```bash
+tailscale ip -4
+# Example output: 100.76.141.42
+```
+
+**3. Install Tailscale on your phone/laptop:**
+
+- iOS/Android: Install from App Store / Play Store
+- macOS/Windows/Linux: https://tailscale.com/download
+
+**4. Access your camera:**
+
+```
+https://100.x.x.x:8080
+```
+
+Replace with your Pi's Tailscale IP. Use `https://` (the server runs HTTPS).
+
+Your browser will show a certificate warning (self-signed cert) - click through to proceed.
+
+### Verify Connectivity
+
+From any device with Tailscale:
+
+```bash
+tailscale status          # Shows all connected devices
+ping 100.x.x.x            # Test connectivity to Pi
+curl -k https://100.x.x.x:8080/health  # Test the server
+```
+
+### Optional: Friendly Hostname
+
+In the [Tailscale admin console](https://login.tailscale.com/admin/machines), rename your Pi to something memorable. With MagicDNS enabled, access it as:
+
+```
+https://pi-camera.your-tailnet.ts.net:8080
+```
+
 ## Camera Presets
 
 ### Default
