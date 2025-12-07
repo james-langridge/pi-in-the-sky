@@ -349,14 +349,14 @@ export function useAppInfo() {
 }
 
 // Server logs hook with auto-refresh
-export function useLogs(refreshInterval = 5000, limit = 200) {
+export function useLogs(refreshInterval = 5000, limit = 200, source: 'memory' | 'file' = 'memory') {
   const [entries, setEntries] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   const fetchLogs = useCallback(async () => {
     try {
-      const response = await api.getLogs(limit);
+      const response = await api.getLogs(limit, source);
       setEntries(response.entries);
       setError(null);
     } catch (err) {
@@ -364,7 +364,7 @@ export function useLogs(refreshInterval = 5000, limit = 200) {
     } finally {
       setLoading(false);
     }
-  }, [limit]);
+  }, [limit, source]);
 
   useEffect(() => {
     fetchLogs();

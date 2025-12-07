@@ -147,8 +147,8 @@ export class CameraAPI {
   }
 
   // Server Logs
-  async getLogs(limit = 100): Promise<LogResponse> {
-    return this.fetchJSON<LogResponse>(`/api/logs?limit=${limit}`);
+  async getLogs(limit = 100, source: 'memory' | 'file' = 'memory'): Promise<LogResponse> {
+    return this.fetchJSON<LogResponse>(`/api/logs?limit=${limit}&source=${source}`);
   }
 }
 
