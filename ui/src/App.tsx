@@ -72,7 +72,7 @@ function App() {
   
   const { isHealthy } = useOptimizedHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
-  const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy, mode: streamMode } = useOptimizedStreamStatus();
+  const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy } = useOptimizedStreamStatus();
 
   // Keep-alive mechanism for iOS PWA
   useEffect(() => {
@@ -288,18 +288,6 @@ function App() {
           );
         })()}
         
-        {/* Connection mode indicator */}
-        <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-gray-800/50">
-          {streamMode === 'sse' ? (
-            <>
-              <span className="text-xs text-green-400">⚡ Optimized</span>
-            </>
-          ) : (
-            <>
-              <span className="text-xs text-yellow-400">📡 Fallback</span>
-            </>
-          )}
-        </div>
       </div>
 
       {/* Main video stream */}
