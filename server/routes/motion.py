@@ -32,6 +32,8 @@ def motion_status():
             "sensitivity": status["config"]["sensitivity"],
             "min_area": status["config"]["min_area"],
             "cooldown_seconds": status["config"]["cooldown_seconds"],
+            "blur_size": config.blur_size,
+            "threshold": config.threshold,
             "capture_on_motion": config.capture_on_motion
         },
         "recent_events": status["recent_events"],
