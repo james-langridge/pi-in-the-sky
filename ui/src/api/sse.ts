@@ -1,6 +1,6 @@
 /**
  * Server-Sent Events client for real-time updates.
- * Replaces aggressive polling with efficient server push.
+ * Uses a singleton pattern to share a single SSE connection across all hooks.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -9,99 +9,121 @@ import type { StreamStatus } from '../types';
 interface SSEMessage {
   type: string;
   timestamp: string;
-  data: any;
+  data: unknown;
 }
 
-interface SSEOptions {
-  onStreamStatus?: (status: StreamStatus) => void;
-  onHealth?: (status: any) => void;
-  onMotionDetected?: (event: any) => void;
-  onLogEntry?: (entry: any) => void;
-  onError?: (error: Error) => void;
-}
+type SSEEventType =
+  | 'stream_status'
+  | 'health'
+  | 'motion_detected'
+  | 'motion_status'
+  | 'log_entry';
+
+type SSEHandler = (data: unknown) => void;
 
 /**
- * Hook for Server-Sent Events with automatic reconnection and fallback.
+ * Singleton SSE connection manager.
+ * Maintains a single EventSource and distributes events to all subscribers.
  */
-export function useSSE(options: SSEOptions) {
-  const [connected, setConnected] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectAttemptsRef = useRef(0);
+class SSEConnectionManager {
+  private eventSource: EventSource | null = null;
+  private listeners: Map<SSEEventType, Set<SSEHandler>> = new Map();
+  private connectionListeners: Set<(connected: boolean) => void> = new Set();
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
+  private _connected = false;
 
-  const connect = useCallback(() => {
-    // Clean up existing connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+  get connected(): boolean {
+    return this._connected;
+  }
+
+  subscribe(eventType: SSEEventType, handler: SSEHandler): () => void {
+    if (!this.listeners.has(eventType)) {
+      this.listeners.set(eventType, new Set());
+    }
+    this.listeners.get(eventType)!.add(handler);
+
+    // Start connection if this is the first subscriber
+    if (this.getTotalListeners() === 1) {
+      this.connect();
+    }
+
+    // Return unsubscribe function
+    return () => {
+      this.listeners.get(eventType)?.delete(handler);
+      // Disconnect if no more listeners
+      if (this.getTotalListeners() === 0) {
+        this.disconnect();
+      }
+    };
+  }
+
+  onConnectionChange(handler: (connected: boolean) => void): () => void {
+    this.connectionListeners.add(handler);
+    // Immediately notify of current state
+    handler(this._connected);
+    return () => {
+      this.connectionListeners.delete(handler);
+    };
+  }
+
+  private getTotalListeners(): number {
+    let total = 0;
+    for (const listeners of this.listeners.values()) {
+      total += listeners.size;
+    }
+    return total;
+  }
+
+  private setConnected(connected: boolean): void {
+    this._connected = connected;
+    for (const handler of this.connectionListeners) {
+      handler(connected);
+    }
+  }
+
+  private connect(): void {
+    if (this.eventSource) {
+      return;
     }
 
     try {
-      const eventSource = new EventSource('/api/sse/events');
-      eventSourceRef.current = eventSource;
+      this.eventSource = new EventSource('/api/sse/events');
 
-      eventSource.onopen = () => {
+      this.eventSource.onopen = () => {
         console.log('SSE connection established');
-        setConnected(true);
-        reconnectAttemptsRef.current = 0;
+        this.setConnected(true);
+        this.reconnectAttempts = 0;
       };
 
-      eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
-        setConnected(false);
-        options.onError?.(new Error('SSE connection lost'));
-
-        // Reconnect with exponential backoff
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-        reconnectAttemptsRef.current++;
-
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log(`Attempting SSE reconnection (attempt ${reconnectAttemptsRef.current})...`);
-          connect();
-        }, delay);
+      this.eventSource.onerror = () => {
+        console.error('SSE connection error');
+        this.setConnected(false);
+        this.scheduleReconnect();
       };
 
-      // Handle specific event types
-      eventSource.addEventListener('stream_status', (event) => {
-        try {
-          const message: SSEMessage = JSON.parse(event.data);
-          setLastUpdate(new Date(message.timestamp));
-          options.onStreamStatus?.(message.data);
-        } catch (e) {
-          console.error('Failed to parse stream_status:', e);
-        }
-      });
+      // Register event listeners for all event types
+      const eventTypes: SSEEventType[] = [
+        'stream_status',
+        'health',
+        'motion_detected',
+        'motion_status',
+        'log_entry',
+      ];
 
-      eventSource.addEventListener('health', (event) => {
-        try {
-          const message: SSEMessage = JSON.parse(event.data);
-          setLastUpdate(new Date(message.timestamp));
-          options.onHealth?.(message.data);
-        } catch (e) {
-          console.error('Failed to parse health:', e);
-        }
-      });
-
-      eventSource.addEventListener('motion_detected', (event) => {
-        try {
-          const message: SSEMessage = JSON.parse(event.data);
-          options.onMotionDetected?.(message.data);
-        } catch (e) {
-          console.error('Failed to parse motion_detected:', e);
-        }
-      });
-
-      eventSource.addEventListener('log_entry', (event) => {
-        try {
-          const message: SSEMessage = JSON.parse(event.data);
-          options.onLogEntry?.(message.data);
-        } catch (e) {
-          console.error('Failed to parse log_entry:', e);
-        }
-      });
+      for (const eventType of eventTypes) {
+        this.eventSource.addEventListener(eventType, (event) => {
+          try {
+            const message: SSEMessage = JSON.parse(event.data);
+            this.notifyListeners(eventType, message.data);
+          } catch (e) {
+            console.error(`Failed to parse ${eventType}:`, e);
+          }
+        });
+      }
 
       // Handle generic messages
-      eventSource.onmessage = (event) => {
+      this.eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'connected') {
@@ -111,35 +133,169 @@ export function useSSE(options: SSEOptions) {
           console.error('Failed to parse SSE message:', e);
         }
       };
-
     } catch (error) {
       console.error('Failed to create SSE connection:', error);
-      options.onError?.(error instanceof Error ? error : new Error('SSE connection failed'));
+      this.scheduleReconnect();
     }
-  }, [options]);
+  }
 
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
+  private disconnect(): void {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
     }
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
     }
-    setConnected(false);
-  }, []);
+    this.setConnected(false);
+    this.reconnectAttempts = 0;
+  }
+
+  private scheduleReconnect(): void {
+    if (this.reconnectTimeout) {
+      return;
+    }
+
+    // Clean up existing connection
+    if (this.eventSource) {
+      this.eventSource.close();
+      this.eventSource = null;
+    }
+
+    // Only reconnect if there are listeners
+    if (this.getTotalListeners() === 0) {
+      return;
+    }
+
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+    this.reconnectAttempts++;
+
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
+      console.log(
+        `Attempting SSE reconnection (attempt ${this.reconnectAttempts})...`
+      );
+      this.connect();
+    }, delay);
+  }
+
+  private notifyListeners(eventType: SSEEventType, data: unknown): void {
+    const handlers = this.listeners.get(eventType);
+    if (handlers) {
+      for (const handler of handlers) {
+        try {
+          handler(data);
+        } catch (e) {
+          console.error(`Error in SSE handler for ${eventType}:`, e);
+        }
+      }
+    }
+  }
+
+  forceReconnect(): void {
+    this.disconnect();
+    if (this.getTotalListeners() > 0) {
+      this.connect();
+    }
+  }
+}
+
+// Singleton instance
+const sseManager = new SSEConnectionManager();
+
+interface SSEOptions {
+  onStreamStatus?: (status: StreamStatus) => void;
+  onHealth?: (status: unknown) => void;
+  onMotionDetected?: (event: unknown) => void;
+  onMotionStatus?: (status: unknown) => void;
+  onLogEntry?: (entry: unknown) => void;
+  onError?: (error: Error) => void;
+}
+
+/**
+ * Hook for Server-Sent Events with automatic reconnection.
+ * Uses a shared singleton connection for efficiency.
+ */
+export function useSSE(options: SSEOptions) {
+  const [connected, setConnected] = useState(sseManager.connected);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  // Use refs to avoid stale closures in callbacks
+  const optionsRef = useRef(options);
+  optionsRef.current = options;
 
   useEffect(() => {
-    connect();
-    return () => disconnect();
+    const unsubscribers: (() => void)[] = [];
+
+    // Subscribe to connection state changes
+    unsubscribers.push(
+      sseManager.onConnectionChange((isConnected) => {
+        setConnected(isConnected);
+        if (!isConnected) {
+          optionsRef.current.onError?.(new Error('SSE connection lost'));
+        }
+      })
+    );
+
+    // Subscribe to events based on provided handlers
+    if (optionsRef.current.onStreamStatus) {
+      unsubscribers.push(
+        sseManager.subscribe('stream_status', (data) => {
+          setLastUpdate(new Date());
+          optionsRef.current.onStreamStatus?.(data as StreamStatus);
+        })
+      );
+    }
+
+    if (optionsRef.current.onHealth) {
+      unsubscribers.push(
+        sseManager.subscribe('health', (data) => {
+          setLastUpdate(new Date());
+          optionsRef.current.onHealth?.(data);
+        })
+      );
+    }
+
+    if (optionsRef.current.onMotionDetected) {
+      unsubscribers.push(
+        sseManager.subscribe('motion_detected', (data) => {
+          optionsRef.current.onMotionDetected?.(data);
+        })
+      );
+    }
+
+    if (optionsRef.current.onMotionStatus) {
+      unsubscribers.push(
+        sseManager.subscribe('motion_status', (data) => {
+          optionsRef.current.onMotionStatus?.(data);
+        })
+      );
+    }
+
+    if (optionsRef.current.onLogEntry) {
+      unsubscribers.push(
+        sseManager.subscribe('log_entry', (data) => {
+          optionsRef.current.onLogEntry?.(data);
+        })
+      );
+    }
+
+    return () => {
+      for (const unsubscribe of unsubscribers) {
+        unsubscribe();
+      }
+    };
+  }, []); // Empty deps - we use refs for handler updates
+
+  const reconnect = useCallback(() => {
+    sseManager.forceReconnect();
   }, []);
 
   return {
     connected,
     lastUpdate,
-    reconnect: connect,
-    disconnect
+    reconnect,
   };
 }
 
@@ -164,52 +320,64 @@ export function useSmartPolling<T>(
     minInterval = 1000,
     onSuccess,
     onError,
-    enabled = true
+    enabled = true,
   } = options;
 
-  const [interval, setInterval] = useState(initialInterval);
+  const [interval, setIntervalState] = useState(initialInterval);
   const [isPolling, setIsPolling] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const successCountRef = useRef(0);
   const errorCountRef = useRef(0);
 
-  const adjustInterval = useCallback((success: boolean) => {
-    if (success) {
-      successCountRef.current++;
-      errorCountRef.current = 0;
+  // Use refs to avoid stale closures
+  const fetchFnRef = useRef(fetchFn);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
 
-      // After 3 successful polls, increase interval (reduce frequency)
-      if (successCountRef.current >= 3) {
-        setInterval(prev => Math.min(prev * 1.5, maxInterval));
-        successCountRef.current = 0;
-      }
-    } else {
-      errorCountRef.current++;
-      successCountRef.current = 0;
+  fetchFnRef.current = fetchFn;
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
 
-      // After error, decrease interval (increase frequency) to recover faster
-      if (errorCountRef.current >= 2) {
-        setInterval(prev => Math.max(prev * 0.75, minInterval));
+  const adjustInterval = useCallback(
+    (success: boolean) => {
+      if (success) {
+        successCountRef.current++;
         errorCountRef.current = 0;
+
+        if (successCountRef.current >= 3) {
+          setIntervalState((prev) => Math.min(prev * 1.5, maxInterval));
+          successCountRef.current = 0;
+        }
+      } else {
+        errorCountRef.current++;
+        successCountRef.current = 0;
+
+        if (errorCountRef.current >= 2) {
+          setIntervalState((prev) => Math.max(prev * 0.75, minInterval));
+          errorCountRef.current = 0;
+        }
       }
-    }
-  }, [maxInterval, minInterval]);
+    },
+    [maxInterval, minInterval]
+  );
 
   const poll = useCallback(async () => {
     if (!enabled || isPolling) return;
 
     setIsPolling(true);
     try {
-      const data = await fetchFn();
-      onSuccess?.(data);
+      const data = await fetchFnRef.current();
+      onSuccessRef.current?.(data);
       adjustInterval(true);
     } catch (error) {
-      onError?.(error instanceof Error ? error : new Error('Polling failed'));
+      onErrorRef.current?.(
+        error instanceof Error ? error : new Error('Polling failed')
+      );
       adjustInterval(false);
     } finally {
       setIsPolling(false);
     }
-  }, [fetchFn, onSuccess, onError, adjustInterval, enabled, isPolling]);
+  }, [adjustInterval, enabled, isPolling]);
 
   useEffect(() => {
     if (!enabled) {
@@ -227,7 +395,6 @@ export function useSmartPolling<T>(
       }, interval);
     };
 
-    // Initial poll
     poll();
     scheduleNextPoll();
 
@@ -242,6 +409,6 @@ export function useSmartPolling<T>(
   return {
     isPolling,
     currentInterval: interval,
-    resetInterval: () => setInterval(initialInterval)
+    resetInterval: () => setIntervalState(initialInterval),
   };
 }

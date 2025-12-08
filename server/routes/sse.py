@@ -4,9 +4,9 @@ import json
 import time
 import logging
 from typing import Generator
-from flask import Blueprint, Response, current_app
-from threading import Thread, Event
-from queue import Queue, Empty
+from flask import Blueprint, Response, current_app, request
+from threading import Thread, Event, Lock
+from queue import Queue, Empty, Full
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -16,22 +16,27 @@ sse_bp = Blueprint('sse', __name__)
 
 class SSEManager:
     """Manages Server-Sent Events for broadcasting real-time updates."""
-    
+
     def __init__(self):
         self.clients = []
+        self._clients_lock = Lock()
         self.update_thread = None
         self.stop_event = Event()
+        self._last_motion_status = None
+        self._last_motion_broadcast = 0
         
     def add_client(self, client_queue: Queue):
         """Add a new SSE client."""
-        self.clients.append(client_queue)
-        logger.info(f"SSE client connected. Total clients: {len(self.clients)}")
-        
+        with self._clients_lock:
+            self.clients.append(client_queue)
+            logger.info(f"SSE client connected. Total clients: {len(self.clients)}")
+
     def remove_client(self, client_queue: Queue):
         """Remove a disconnected SSE client."""
-        if client_queue in self.clients:
-            self.clients.remove(client_queue)
-            logger.info(f"SSE client disconnected. Total clients: {len(self.clients)}")
+        with self._clients_lock:
+            if client_queue in self.clients:
+                self.clients.remove(client_queue)
+                logger.info(f"SSE client disconnected. Total clients: {len(self.clients)}")
     
     def broadcast_update(self, event_type: str, data: dict):
         """Broadcast an update to all connected clients."""
@@ -40,16 +45,20 @@ class SSEManager:
             'timestamp': datetime.now().isoformat(),
             'data': data
         }
-        
-        # Send to all connected clients
+
         disconnected = []
-        for client_queue in self.clients:
+        with self._clients_lock:
+            clients_snapshot = list(self.clients)
+
+        for client_queue in clients_snapshot:
             try:
                 client_queue.put_nowait(message)
-            except:
+            except Full:
                 disconnected.append(client_queue)
-        
-        # Clean up disconnected clients
+            except Exception as e:
+                logger.warning(f"Error sending to SSE client: {e}")
+                disconnected.append(client_queue)
+
         for client in disconnected:
             self.remove_client(client)
     
@@ -95,19 +104,23 @@ class SSEManager:
                     })
                     last_health_update = now
                 
-                # Check for motion events
+                # Check for motion events (throttled to 5s unless changed)
                 services = current_app.config.get('services', {})
                 if 'motion_service' in services:
                     motion_service = services['motion_service']
-                    if motion_service.is_enabled():
-                        # Get latest motion status
-                        status = {
-                            'enabled': motion_service.is_enabled(),
-                            'last_trigger': motion_service.last_motion_time,
-                            'events_count': len(motion_service.get_recent_events())
-                        }
+                    status = {
+                        'enabled': motion_service.is_enabled(),
+                        'last_trigger': motion_service.last_motion_time,
+                        'events_count': len(motion_service.get_recent_events())
+                    }
+                    status_changed = status != self._last_motion_status
+                    time_since_broadcast = now - self._last_motion_broadcast
+
+                    if status_changed or time_since_broadcast >= 5:
                         self.broadcast_update('motion_status', status)
-                
+                        self._last_motion_status = status
+                        self._last_motion_broadcast = now
+
                 time.sleep(0.5)  # Check every 500ms for responsiveness
                 
             except Exception as e:
@@ -184,19 +197,24 @@ def sse_events():
 def broadcast_event():
     """
     Internal endpoint to broadcast events to SSE clients.
-    Used by other parts of the application to push updates.
+    Restricted to localhost for security.
     """
-    from flask import request, jsonify
-    
+    from flask import jsonify
+
+    remote_addr = request.remote_addr
+    if remote_addr not in ('127.0.0.1', '::1', 'localhost'):
+        logger.warning(f"Broadcast attempt from non-localhost: {remote_addr}")
+        return jsonify({'error': 'Forbidden'}), 403
+
     data = request.get_json()
     if not data:
         return jsonify({'error': 'No data provided'}), 400
-    
+
     event_type = data.get('type', 'update')
     event_data = data.get('data', {})
-    
+
     sse_manager.broadcast_update(event_type, event_data)
-    
+
     return jsonify({'status': 'broadcasted', 'clients': len(sse_manager.clients)})
 
 
