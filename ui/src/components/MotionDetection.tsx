@@ -29,6 +29,9 @@ export function MotionDetection({
   const [lastEventTime, setLastEventTime] = useState<number>(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  // Local state for slider values (for immediate UI feedback)
+  const [localConfig, setLocalConfig] = useState<Partial<MotionConfig>>({});
+
   // Check if current config matches any preset
   const activePreset = useMemo(() => {
     if (!status?.config) return null;
@@ -148,19 +151,33 @@ export function MotionDetection({
     }
   };
 
-  const handleConfigChange = async (key: keyof MotionConfig, value: number | boolean) => {
-    try {
-      await updateConfig({ [key]: value });
-    } catch (error) {
-      toast.error(`Failed to update ${key}`);
-      console.error('Config update error:', error);
-    }
-  };
+  const handleConfigChange = useCallback(
+    async (key: keyof MotionConfig, value: number | boolean) => {
+      try {
+        await updateConfig({ [key]: value });
+      } catch (error) {
+        toast.error(`Failed to update ${key}`);
+        console.error('Config update error:', error);
+      } finally {
+        // Clear local override so UI syncs with server value
+        setLocalConfig(prev => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+      }
+    },
+    [updateConfig]
+  );
 
   // Debounced config change for sliders
   const debounceTimerRef = useRef<Record<string, number>>({});
   const debouncedConfigChange = useCallback(
     (key: keyof MotionConfig, value: number) => {
+      // Update local state immediately for responsive UI
+      setLocalConfig(prev => ({ ...prev, [key]: value }));
+
+      // Debounce the server update
       if (debounceTimerRef.current[key]) {
         clearTimeout(debounceTimerRef.current[key]);
       }
@@ -169,6 +186,24 @@ export function MotionDetection({
       }, 300);
     },
     [handleConfigChange]
+  );
+
+  // Cleanup debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimerRef.current).forEach(clearTimeout);
+    };
+  }, []);
+
+  // Get the display value for a config key (local override or server value)
+  const getConfigValue = useCallback(
+    <K extends keyof MotionConfig>(key: K): MotionConfig[K] | undefined => {
+      if (key in localConfig) {
+        return localConfig[key] as MotionConfig[K];
+      }
+      return status?.config?.[key];
+    },
+    [localConfig, status?.config]
   );
 
   if (loading) {
@@ -363,14 +398,14 @@ export function MotionDetection({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300">Sensitivity</label>
-                  <span className="text-xs text-gray-400 font-mono">{status.config.sensitivity}</span>
+                  <span className="text-xs text-gray-400 font-mono">{getConfigValue('sensitivity')}</span>
                 </div>
                 <input
                   type="range"
                   min="0.001"
                   max="0.1"
                   step="0.001"
-                  value={status.config.sensitivity}
+                  value={getConfigValue('sensitivity') ?? 0.01}
                   onChange={(e) => debouncedConfigChange('sensitivity', parseFloat(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
@@ -383,14 +418,14 @@ export function MotionDetection({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300">Minimum Area</label>
-                  <span className="text-xs text-gray-400 font-mono">{status.config.min_area}px</span>
+                  <span className="text-xs text-gray-400 font-mono">{getConfigValue('min_area')}px</span>
                 </div>
                 <input
                   type="range"
                   min="100"
                   max="5000"
                   step="100"
-                  value={status.config.min_area}
+                  value={getConfigValue('min_area') ?? 500}
                   onChange={(e) => debouncedConfigChange('min_area', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
@@ -403,14 +438,14 @@ export function MotionDetection({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300">Cooldown</label>
-                  <span className="text-xs text-gray-400 font-mono">{status.config.cooldown_seconds}s</span>
+                  <span className="text-xs text-gray-400 font-mono">{getConfigValue('cooldown_seconds')}s</span>
                 </div>
                 <input
                   type="range"
                   min="5"
                   max="300"
                   step="5"
-                  value={status.config.cooldown_seconds}
+                  value={getConfigValue('cooldown_seconds') ?? 30}
                   onChange={(e) => debouncedConfigChange('cooldown_seconds', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
@@ -423,14 +458,14 @@ export function MotionDetection({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300">Blur Size</label>
-                  <span className="text-xs text-gray-400 font-mono">{status.config.blur_size}px</span>
+                  <span className="text-xs text-gray-400 font-mono">{getConfigValue('blur_size')}px</span>
                 </div>
                 <input
                   type="range"
                   min="3"
                   max="51"
                   step="2"
-                  value={status.config.blur_size}
+                  value={getConfigValue('blur_size') ?? 21}
                   onChange={(e) => debouncedConfigChange('blur_size', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
@@ -443,14 +478,14 @@ export function MotionDetection({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300">Threshold</label>
-                  <span className="text-xs text-gray-400 font-mono">{status.config.threshold}</span>
+                  <span className="text-xs text-gray-400 font-mono">{getConfigValue('threshold')}</span>
                 </div>
                 <input
                   type="range"
                   min="5"
                   max="100"
                   step="1"
-                  value={status.config.threshold}
+                  value={getConfigValue('threshold') ?? 25}
                   onChange={(e) => debouncedConfigChange('threshold', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
