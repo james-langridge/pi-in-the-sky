@@ -43,8 +43,8 @@ class SSEConnectionManager {
     }
     this.listeners.get(eventType)!.add(handler);
 
-    // Start connection if this is the first subscriber
-    if (this.getTotalListeners() === 1) {
+    // Start connection if not already connected
+    if (!this.eventSource) {
       this.connect();
     }
 
