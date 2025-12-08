@@ -26,14 +26,14 @@ export function useOptimizedHealthCheck() {
   // Try SSE first
   const { connected: sseConnected } = useSSE({
     onHealth: (data) => {
-      setHealth(data);
+      setHealth(data as HealthResponse);
       setIsHealthy(true);
       setUseSSEMode(true);
     },
     onError: () => {
       // Fall back to polling if SSE fails
       setUseSSEMode(false);
-    }
+    },
   });
 
   // Smart polling as fallback (only active when SSE is not connected)
@@ -140,9 +140,9 @@ export function useConditionalLogs(
   useSSE({
     onLogEntry: (entry) => {
       if (enabled && sseActiveRef.current) {
-        setEntries(prev => [...prev.slice(-limit + 1), entry]);
+        setEntries((prev) => [...prev.slice(-limit + 1), entry as LogEntry]);
       }
-    }
+    },
   });
 
   // Initial fetch when enabled
@@ -179,7 +179,7 @@ export function useOptimizedMotionDetection() {
       try {
         const [statusData, eventsData] = await Promise.all([
           api.getMotionStatus(),
-          api.getMotionEvents()
+          api.getMotionEvents(),
         ]);
         setStatus(statusData);
         setEvents(eventsData);
@@ -195,45 +195,57 @@ export function useOptimizedMotionDetection() {
   // SSE for real-time motion updates
   useSSE({
     onMotionDetected: (event) => {
-      // Add new event
-      setEvents(prev => [...prev.slice(-99), event]);
-      // Update status
-      if (status) {
-        setStatus(prev => prev ? {
-          ...prev,
-          last_motion_time: new Date().toISOString()
-        } : null);
-      }
-    }
+      setEvents((prev) => [...prev.slice(-99), event as MotionEvent]);
+      setStatus((prev) =>
+        prev
+          ? {
+              ...prev,
+              last_motion_time: new Date().toISOString(),
+            }
+          : null
+      );
+    },
   });
 
   const updateConfig = useCallback(async (config: Partial<MotionConfig>) => {
     try {
       await api.updateMotionConfig(config);
-      if (status) {
-        setStatus({
-          ...status,
-          config: { ...status.config, ...config }
-        });
-      }
+      setStatus((prev) =>
+        prev
+          ? {
+              ...prev,
+              config: { ...prev.config, ...config },
+            }
+          : null
+      );
       return true;
     } catch (error) {
       console.error('Failed to update motion config:', error);
       return false;
     }
-  }, [status]);
+  }, []);
 
   const toggleMotion = useCallback(async () => {
-    if (!status) return false;
-    return updateConfig({ enabled: !status.enabled });
-  }, [status, updateConfig]);
+    setStatus((prev) => {
+      if (!prev) return null;
+      const newEnabled = !prev.enabled;
+      api.updateMotionConfig({ enabled: newEnabled }).catch((error) => {
+        console.error('Failed to toggle motion detection:', error);
+        // Revert on failure
+        setStatus((current) =>
+          current ? { ...current, enabled: !newEnabled } : null
+        );
+      });
+      return { ...prev, enabled: newEnabled };
+    });
+  }, []);
 
   return {
     status,
     events,
     loading,
     updateConfig,
-    toggleMotion
+    toggleMotion,
   };
 }
 
@@ -250,6 +262,6 @@ export function useOptimizedUpdates() {
     stream,
     motion,
     // Overall connection mode
-    connectionMode: stream.mode === 'sse' ? 'optimized' : 'fallback'
+    connectionMode: stream.mode === 'sse' ? 'optimized' : 'fallback',
   };
 }
