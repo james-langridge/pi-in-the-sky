@@ -155,16 +155,11 @@ export function MotionDetection({
     async (key: keyof MotionConfig, value: number | boolean) => {
       try {
         await updateConfig({ [key]: value });
-        // Clear local override after successful update
-        setLocalConfig(prev => {
-          const next = { ...prev };
-          delete next[key];
-          return next;
-        });
       } catch (error) {
         toast.error(`Failed to update ${key}`);
         console.error('Config update error:', error);
-        // Clear local override on error too so it resets to server value
+      } finally {
+        // Clear local override so UI syncs with server value
         setLocalConfig(prev => {
           const next = { ...prev };
           delete next[key];
@@ -192,6 +187,13 @@ export function MotionDetection({
     },
     [handleConfigChange]
   );
+
+  // Cleanup debounce timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimerRef.current).forEach(clearTimeout);
+    };
+  }, []);
 
   // Get the display value for a config key (local override or server value)
   const getConfigValue = useCallback(
