@@ -96,16 +96,15 @@ export function ControlPanel({
 
       {/* Control panel */}
       <div
-        {...swipeHandlers}
         className={`absolute bottom-0 left-0 right-0 bg-gray-800 rounded-t-2xl shadow-2xl
                     transform transition-transform duration-300 ease-out z-10 ${
                       isOpen ? 'translate-y-0' : 'translate-y-full'
                     }`}
         style={{ maxHeight: '70vh' }}
       >
-        {/* Handle bar */}
-        <div className="flex justify-center py-2">
-          <div className="w-12 h-1 bg-gray-600 rounded-full"></div>
+        {/* Handle bar - swipe down here to close */}
+        <div {...swipeHandlers} className="flex justify-center py-3 cursor-grab active:cursor-grabbing">
+          <div className="w-12 h-1.5 bg-gray-600 rounded-full"></div>
         </div>
 
         {/* Tabs */}
