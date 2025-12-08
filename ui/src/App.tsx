@@ -6,7 +6,8 @@ import { PhotoGallery } from './components/PhotoGallery';
 import { PowerControl } from './components/PowerControl';
 import ZoomControl from './components/ZoomControl';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { useHealthCheck, useAppInfo, useStreamStatus } from './api/hooks';
+import { useAppInfo } from './api/hooks';
+import { useOptimizedHealthCheck, useOptimizedStreamStatus } from './api/optimized-hooks';
 import { playMotionAlert, playAudioAlert, isAudioSupported } from './utils/alertSounds';
 import { loadZoomLevel, saveZoomLevel } from './utils/zoomCalculations';
 import PWABadge from './PWABadge';
@@ -69,9 +70,9 @@ function App() {
     return localStorage.getItem('audioSoundAlerts') === 'true';
   });
   
-  const { isHealthy } = useHealthCheck();
+  const { isHealthy } = useOptimizedHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
-  const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy } = useStreamStatus();
+  const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy, mode: streamMode } = useOptimizedStreamStatus();
 
   // Keep-alive mechanism for iOS PWA
   useEffect(() => {
@@ -286,6 +287,19 @@ function App() {
             </div>
           );
         })()}
+        
+        {/* Connection mode indicator */}
+        <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-gray-800/50">
+          {streamMode === 'sse' ? (
+            <>
+              <span className="text-xs text-green-400">⚡ Optimized</span>
+            </>
+          ) : (
+            <>
+              <span className="text-xs text-yellow-400">📡 Fallback</span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Main video stream */}

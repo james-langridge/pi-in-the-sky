@@ -3,7 +3,7 @@ import { useSwipeable } from 'react-swipeable';
 import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
 import { AudioDetection } from './AudioDetection';
-import { LogViewer } from './LogViewer';
+import { OptimizedLogViewer } from './OptimizedLogViewer';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useCameraPresets } from '../api/hooks';
 import { toast } from 'react-toastify';
@@ -278,7 +278,7 @@ export function ControlPanel({
 
           {activeTab === 'logs' && (
             <ErrorBoundary>
-              <LogViewer />
+              <OptimizedLogViewer isVisible={activeTab === 'logs' && isOpen} />
             </ErrorBoundary>
           )}
         </div>
