@@ -151,7 +151,7 @@ def create_app(config: AppConfig) -> Flask:
     from routes.system import system_bp
     from routes.audio import audio_bp
     from routes.logs import logs_bp
-    from routes.sse import sse_bp
+    from routes.sse import sse_bp, sse_manager
 
     app.register_blueprint(camera_bp)
     app.register_blueprint(motion_bp)
@@ -162,6 +162,9 @@ def create_app(config: AppConfig) -> Flask:
     app.register_blueprint(audio_bp)
     app.register_blueprint(logs_bp)
     app.register_blueprint(sse_bp)
+
+    # Initialize SSE manager with app for background thread context
+    sse_manager.init_app(app)
 
     @app.after_request
     def add_smart_caching(response):

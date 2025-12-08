@@ -24,6 +24,11 @@ class SSEManager:
         self.stop_event = Event()
         self._last_motion_status = None
         self._last_motion_broadcast = 0
+        self._app = None
+
+    def init_app(self, app):
+        """Initialize with Flask app reference for background thread context."""
+        self._app = app
         
     def add_client(self, client_queue: Queue):
         """Add a new SSE client."""
@@ -81,48 +86,54 @@ class SSEManager:
     
     def _update_loop(self):
         """Background loop to send periodic updates."""
+        if not self._app:
+            logger.error("SSE update loop started without app context")
+            return
+
         last_stream_update = 0
         last_health_update = 0
-        
+
         while not self.stop_event.is_set():
             try:
-                now = time.time()
-                
-                # Stream status update every 2 seconds (reduced from 1 second)
-                if now - last_stream_update >= 2:
-                    services = current_app.config.get('services', {})
-                    if 'streaming_service' in services:
-                        stream_status = services['streaming_service'].get_stream_status()
-                        self.broadcast_update('stream_status', stream_status)
-                    last_stream_update = now
-                
-                # Health update every 10 seconds (reduced from 5 seconds)
-                if now - last_health_update >= 10:
-                    self.broadcast_update('health', {
-                        'status': 'healthy',
-                        'timestamp': datetime.now().isoformat()
-                    })
-                    last_health_update = now
-                
-                # Check for motion events (throttled to 5s unless changed)
-                services = current_app.config.get('services', {})
-                if 'motion_service' in services:
-                    motion_service = services['motion_service']
-                    status = {
-                        'enabled': motion_service.is_enabled(),
-                        'last_trigger': motion_service.last_motion_time,
-                        'events_count': len(motion_service.get_recent_events())
-                    }
-                    status_changed = status != self._last_motion_status
-                    time_since_broadcast = now - self._last_motion_broadcast
+                with self._app.app_context():
+                    now = time.time()
 
-                    if status_changed or time_since_broadcast >= 5:
-                        self.broadcast_update('motion_status', status)
-                        self._last_motion_status = status
-                        self._last_motion_broadcast = now
+                    # Stream status update every 2 seconds
+                    if now - last_stream_update >= 2:
+                        services = self._app.config.get('services', {})
+                        if 'streaming_service' in services:
+                            stream_status = services['streaming_service'].get_stream_status()
+                            self.broadcast_update('stream_status', stream_status)
+                        last_stream_update = now
+
+                    # Health update every 10 seconds
+                    if now - last_health_update >= 10:
+                        self.broadcast_update('health', {
+                            'status': 'healthy',
+                            'timestamp': datetime.now().isoformat()
+                        })
+                        last_health_update = now
+
+                    # Check for motion events (throttled to 5s unless changed)
+                    services = self._app.config.get('services', {})
+                    if 'motion_service' in services:
+                        motion_service = services['motion_service']
+                        motion_status = motion_service.get_status()
+                        status = {
+                            'enabled': motion_status['enabled'],
+                            'last_trigger': motion_status['last_trigger_time'],
+                            'events_count': motion_status['recent_events']
+                        }
+                        status_changed = status != self._last_motion_status
+                        time_since_broadcast = now - self._last_motion_broadcast
+
+                        if status_changed or time_since_broadcast >= 5:
+                            self.broadcast_update('motion_status', status)
+                            self._last_motion_status = status
+                            self._last_motion_broadcast = now
 
                 time.sleep(0.5)  # Check every 500ms for responsiveness
-                
+
             except Exception as e:
                 logger.error(f"Error in SSE update loop: {e}")
                 time.sleep(1)
@@ -136,23 +147,23 @@ sse_manager = SSEManager()
 def sse_events():
     """
     Server-Sent Events endpoint for real-time updates.
-    
+
     Sends:
         - Stream status and timestamps
         - Server health status
         - Motion detection events
         - Log entries (when requested)
     """
-    # Create queue for this client
-    client_queue = Queue()
-    
+    # Create queue for this client (maxsize prevents memory issues)
+    client_queue = Queue(maxsize=100)
+
     def generate():
         # Register client
         sse_manager.add_client(client_queue)
-        
+
         # Start update loop if not running
         sse_manager.start_update_loop()
-        
+
         try:
             # Send initial connection message
             yield f"data: {json.dumps({'type': 'connected', 'timestamp': datetime.now().isoformat()})}\n\n"
