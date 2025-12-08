@@ -1,7 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useMotionDetection, usePushNotifications } from '../api/hooks';
 import { MOTION_PRESETS, MotionConfig } from '../types';
 import { toast } from 'react-toastify';
+
+const EPSILON = 0.0001;
+const floatEquals = (a: number, b: number) => Math.abs(a - b) < EPSILON;
 
 interface MotionDetectionProps {
   onMotionDetected?: () => void;
@@ -33,7 +36,8 @@ export function MotionDetection({
     for (const [key, preset] of Object.entries(MOTION_PRESETS)) {
       const pc = preset.config;
       if (
-        pc.sensitivity === config.sensitivity &&
+        pc.sensitivity !== undefined &&
+        floatEquals(pc.sensitivity, config.sensitivity) &&
         pc.min_area === config.min_area &&
         pc.cooldown_seconds === config.cooldown_seconds &&
         pc.blur_size === config.blur_size &&
@@ -152,6 +156,20 @@ export function MotionDetection({
       console.error('Config update error:', error);
     }
   };
+
+  // Debounced config change for sliders
+  const debounceTimerRef = useRef<Record<string, number>>({});
+  const debouncedConfigChange = useCallback(
+    (key: keyof MotionConfig, value: number) => {
+      if (debounceTimerRef.current[key]) {
+        clearTimeout(debounceTimerRef.current[key]);
+      }
+      debounceTimerRef.current[key] = window.setTimeout(() => {
+        handleConfigChange(key, value);
+      }, 300);
+    },
+    [handleConfigChange]
+  );
 
   if (loading) {
     return (
@@ -353,7 +371,7 @@ export function MotionDetection({
                   max="0.1"
                   step="0.001"
                   value={status.config.sensitivity}
-                  onChange={(e) => handleConfigChange('sensitivity', parseFloat(e.target.value))}
+                  onChange={(e) => debouncedConfigChange('sensitivity', parseFloat(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
                            disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
@@ -373,7 +391,7 @@ export function MotionDetection({
                   max="5000"
                   step="100"
                   value={status.config.min_area}
-                  onChange={(e) => handleConfigChange('min_area', parseInt(e.target.value))}
+                  onChange={(e) => debouncedConfigChange('min_area', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
                            disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
@@ -393,7 +411,7 @@ export function MotionDetection({
                   max="300"
                   step="5"
                   value={status.config.cooldown_seconds}
-                  onChange={(e) => handleConfigChange('cooldown_seconds', parseInt(e.target.value))}
+                  onChange={(e) => debouncedConfigChange('cooldown_seconds', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
                            disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
@@ -413,7 +431,7 @@ export function MotionDetection({
                   max="51"
                   step="2"
                   value={status.config.blur_size}
-                  onChange={(e) => handleConfigChange('blur_size', parseInt(e.target.value))}
+                  onChange={(e) => debouncedConfigChange('blur_size', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
                            disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
@@ -433,7 +451,7 @@ export function MotionDetection({
                   max="100"
                   step="1"
                   value={status.config.threshold}
-                  onChange={(e) => handleConfigChange('threshold', parseInt(e.target.value))}
+                  onChange={(e) => debouncedConfigChange('threshold', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
                            disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
