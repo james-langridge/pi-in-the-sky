@@ -68,7 +68,7 @@ class SSEConnectionManager {
   }
 
   private getTotalListeners(): number {
-    let total = 0;
+    let total = this.connectionListeners.size;
     for (const listeners of this.listeners.values()) {
       total += listeners.size;
     }
@@ -170,6 +170,12 @@ class SSEConnectionManager {
 
     const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
     this.reconnectAttempts++;
+
+    if (delay === 30000 && this.reconnectAttempts > 5) {
+      console.warn(
+        'SSE reconnection at maximum delay (30s). Server may be unavailable.'
+      );
+    }
 
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;

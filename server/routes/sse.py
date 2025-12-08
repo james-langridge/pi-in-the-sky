@@ -198,6 +198,10 @@ def broadcast_event():
     """
     Internal endpoint to broadcast events to SSE clients.
     Restricted to localhost for security.
+
+    Note: When behind a reverse proxy, ensure the proxy doesn't forward
+    external requests to this endpoint, as remote_addr will show the
+    proxy's address (typically localhost).
     """
     from flask import jsonify
 

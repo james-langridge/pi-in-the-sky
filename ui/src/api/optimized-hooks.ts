@@ -228,12 +228,15 @@ export function useOptimizedMotionDetection() {
   const toggleMotion = useCallback(async () => {
     setStatus((prev) => {
       if (!prev) return null;
-      api
-        .updateMotionConfig({ enabled: !prev.enabled })
-        .catch((error) =>
-          console.error('Failed to toggle motion detection:', error)
+      const newEnabled = !prev.enabled;
+      api.updateMotionConfig({ enabled: newEnabled }).catch((error) => {
+        console.error('Failed to toggle motion detection:', error);
+        // Revert on failure
+        setStatus((current) =>
+          current ? { ...current, enabled: !newEnabled } : null
         );
-      return { ...prev, enabled: !prev.enabled };
+      });
+      return { ...prev, enabled: newEnabled };
     });
   }, []);
 
