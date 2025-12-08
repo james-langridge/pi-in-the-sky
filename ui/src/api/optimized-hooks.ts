@@ -1,11 +1,11 @@
 /**
- * Optimized React hooks that use SSE with smart polling fallback.
- * Dramatically reduces server load while maintaining real-time updates.
+ * Optimized React hooks using SSE for real-time updates.
+ * Polling fallback has been disabled - SSE is the only update mechanism.
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from './client';
-import { useSSE, useSmartPolling } from './sse';
+import { useSSE } from './sse';
 import type {
   HealthResponse,
   MotionStatus,
@@ -16,94 +16,51 @@ import type {
 } from '../types';
 
 /**
- * Optimized health check using SSE with smart polling fallback.
+ * Optimized health check using SSE only (polling fallback disabled).
  */
 export function useOptimizedHealthCheck() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [isHealthy, setIsHealthy] = useState(true);
-  const [useSSEMode, setUseSSEMode] = useState(true);
 
-  // Try SSE first
+  // SSE only - no polling fallback
   const { connected: sseConnected } = useSSE({
     onHealth: (data) => {
       setHealth(data as HealthResponse);
       setIsHealthy(true);
-      setUseSSEMode(true);
     },
     onError: () => {
-      // Fall back to polling if SSE fails
-      setUseSSEMode(false);
+      setIsHealthy(false);
     },
   });
 
-  // Smart polling as fallback (only active when SSE is not connected)
-  useSmartPolling(
-    () => api.getHealth(),
-    {
-      initialInterval: 10000, // Start at 10s instead of 5s
-      maxInterval: 60000,     // Can go up to 60s when stable
-      minInterval: 5000,      // Never faster than 5s
-      enabled: !sseConnected && !useSSEMode,
-      onSuccess: (data) => {
-        setHealth(data);
-        setIsHealthy(true);
-      },
-      onError: () => {
-        setIsHealthy(false);
-      }
-    }
-  );
-
-  return { health, isHealthy, mode: sseConnected ? 'sse' : 'polling' };
+  return { health, isHealthy, mode: sseConnected ? 'sse' : 'disconnected' };
 }
 
 /**
- * Optimized stream status using SSE with smart polling fallback.
+ * Optimized stream status using SSE only (polling fallback disabled).
  */
 export function useOptimizedStreamStatus() {
   const [streamStatus, setStreamStatus] = useState<StreamStatus | null>(null);
   const [streamConnected, setStreamConnected] = useState(false);
-  const [useSSEMode, setUseSSEMode] = useState(true);
 
-  // SSE for real-time updates
+  // SSE only - no polling fallback
   const { connected: sseConnected } = useSSE({
     onStreamStatus: (status: StreamStatus) => {
       setStreamStatus(status);
       const connected = status.healthy && status.status === 'streaming';
       setStreamConnected(connected);
-      setUseSSEMode(true);
     },
     onError: () => {
-      setUseSSEMode(false);
+      setStreamConnected(false);
     }
   });
-
-  // Smart polling fallback with adaptive intervals
-  useSmartPolling(
-    () => api.getStreamStatus(),
-    {
-      initialInterval: 3000,  // Start at 3s for stream status
-      maxInterval: 15000,     // Max 15s when stable
-      minInterval: 2000,      // Min 2s for responsiveness
-      enabled: !sseConnected && !useSSEMode,
-      onSuccess: (status) => {
-        setStreamStatus(status);
-        const connected = status.healthy && status.status === 'streaming';
-        setStreamConnected(connected);
-      },
-      onError: () => {
-        setStreamConnected(false);
-        setStreamStatus(prev => prev ? { ...prev, healthy: false, status: 'waiting' } : null);
-      }
-    }
-  );
 
   return {
     streamStatus,
     streamConnected,
     timestamp: streamStatus?.timestamp || '',
     streamHealthy: streamStatus?.healthy || false,
-    mode: sseConnected ? 'sse' : 'polling'
+    mode: sseConnected ? 'sse' : 'disconnected'
   };
 }
 
