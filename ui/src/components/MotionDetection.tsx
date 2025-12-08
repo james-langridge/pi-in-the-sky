@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMotionDetection, usePushNotifications } from '../api/hooks';
-import { MOTION_PRESETS } from '../types';
+import { MOTION_PRESETS, MotionConfig } from '../types';
 import { toast } from 'react-toastify';
 
 interface MotionDetectionProps {
@@ -24,6 +24,26 @@ export function MotionDetection({
   const [isApplyingPreset, setIsApplyingPreset] = useState(false);
   const [isTestingNotification, setIsTestingNotification] = useState(false);
   const [lastEventTime, setLastEventTime] = useState<number>(0);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Check if current config matches any preset
+  const activePreset = useMemo(() => {
+    if (!status?.config) return null;
+    const config = status.config;
+    for (const [key, preset] of Object.entries(MOTION_PRESETS)) {
+      const pc = preset.config;
+      if (
+        pc.sensitivity === config.sensitivity &&
+        pc.min_area === config.min_area &&
+        pc.cooldown_seconds === config.cooldown_seconds &&
+        pc.blur_size === config.blur_size &&
+        pc.threshold === config.threshold
+      ) {
+        return key;
+      }
+    }
+    return null;
+  }, [status?.config]);
 
   // Request notification permission when enabling motion detection
   useEffect(() => {
@@ -121,6 +141,15 @@ export function MotionDetection({
       console.error('Test notification error:', error);
     } finally {
       setIsTestingNotification(false);
+    }
+  };
+
+  const handleConfigChange = async (key: keyof MotionConfig, value: number | boolean) => {
+    try {
+      await updateConfig({ [key]: value });
+    } catch (error) {
+      toast.error(`Failed to update ${key}`);
+      console.error('Config update error:', error);
     }
   };
 
@@ -257,11 +286,22 @@ export function MotionDetection({
 
       {/* Preset Selection */}
       <div className="space-y-3">
-        <label className="text-sm font-medium text-gray-300">Detection Preset</label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-gray-300">Detection Preset</label>
+          {activePreset ? (
+            <span className="text-xs px-2 py-1 rounded bg-blue-500/20 text-blue-400">
+              {MOTION_PRESETS[activePreset]?.name}
+            </span>
+          ) : (
+            <span className="text-xs px-2 py-1 rounded bg-yellow-500/20 text-yellow-400">
+              Custom
+            </span>
+          )}
+        </div>
         <select
           value={selectedPreset}
           onChange={(e) => setSelectedPreset(e.target.value)}
-          className="w-full px-3 py-2 bg-gray-700 text-gray-200 rounded-lg border border-gray-600 
+          className="w-full px-3 py-2 bg-gray-700 text-gray-200 rounded-lg border border-gray-600
                    focus:border-blue-500 focus:outline-none"
         >
           {Object.entries(MOTION_PRESETS).map(([key, preset]) => (
@@ -273,35 +313,142 @@ export function MotionDetection({
         <button
           onClick={handleApplyPreset}
           disabled={isApplyingPreset || !status?.enabled}
-          className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg 
+          className="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg
                    transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isApplyingPreset ? 'Applying...' : 'Apply Preset'}
         </button>
       </div>
 
-      {/* Current Configuration */}
+      {/* Advanced Settings */}
       {status && (
-        <div className="p-4 bg-gray-700/50 rounded-lg space-y-2">
-          <h4 className="text-sm font-medium text-gray-300 mb-3">Current Settings</h4>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <span className="text-gray-400">Sensitivity:</span>
-              <span className="ml-2 text-gray-200">{status.config.sensitivity}</span>
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center justify-between w-full text-sm font-medium text-gray-300
+                     hover:text-gray-200 transition-colors"
+          >
+            <span>Advanced Settings</span>
+            <svg
+              className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          {showAdvanced && (
+            <div className="p-4 bg-gray-700/50 rounded-lg space-y-4">
+              {/* Sensitivity */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300">Sensitivity</label>
+                  <span className="text-xs text-gray-400 font-mono">{status.config.sensitivity}</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.001"
+                  max="0.1"
+                  step="0.001"
+                  value={status.config.sensitivity}
+                  onChange={(e) => handleConfigChange('sensitivity', parseFloat(e.target.value))}
+                  disabled={!status.enabled}
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
+                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                />
+                <p className="text-xs text-gray-500">Lower = more sensitive to motion</p>
+              </div>
+
+              {/* Minimum Area */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300">Minimum Area</label>
+                  <span className="text-xs text-gray-400 font-mono">{status.config.min_area}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="100"
+                  max="5000"
+                  step="100"
+                  value={status.config.min_area}
+                  onChange={(e) => handleConfigChange('min_area', parseInt(e.target.value))}
+                  disabled={!status.enabled}
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
+                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                />
+                <p className="text-xs text-gray-500">Minimum contour area to trigger detection</p>
+              </div>
+
+              {/* Cooldown */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300">Cooldown</label>
+                  <span className="text-xs text-gray-400 font-mono">{status.config.cooldown_seconds}s</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="300"
+                  step="5"
+                  value={status.config.cooldown_seconds}
+                  onChange={(e) => handleConfigChange('cooldown_seconds', parseInt(e.target.value))}
+                  disabled={!status.enabled}
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
+                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                />
+                <p className="text-xs text-gray-500">Seconds between notifications</p>
+              </div>
+
+              {/* Blur Kernel Size */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300">Blur Size</label>
+                  <span className="text-xs text-gray-400 font-mono">{status.config.blur_size}px</span>
+                </div>
+                <input
+                  type="range"
+                  min="3"
+                  max="51"
+                  step="2"
+                  value={status.config.blur_size}
+                  onChange={(e) => handleConfigChange('blur_size', parseInt(e.target.value))}
+                  disabled={!status.enabled}
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
+                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                />
+                <p className="text-xs text-gray-500">Gaussian blur for noise reduction (odd values)</p>
+              </div>
+
+              {/* Binary Threshold */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300">Threshold</label>
+                  <span className="text-xs text-gray-400 font-mono">{status.config.threshold}</span>
+                </div>
+                <input
+                  type="range"
+                  min="5"
+                  max="100"
+                  step="1"
+                  value={status.config.threshold}
+                  onChange={(e) => handleConfigChange('threshold', parseInt(e.target.value))}
+                  disabled={!status.enabled}
+                  className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
+                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                />
+                <p className="text-xs text-gray-500">Binary threshold for motion detection</p>
+              </div>
+
+              {/* Stats */}
+              <div className="pt-2 border-t border-gray-600">
+                <div className="text-xs text-gray-400">
+                  Recent Events: {status.recent_events} | Triggered: {status.triggered_events}
+                </div>
+              </div>
             </div>
-            <div>
-              <span className="text-gray-400">Min Area:</span>
-              <span className="ml-2 text-gray-200">{status.config.min_area}px</span>
-            </div>
-            <div>
-              <span className="text-gray-400">Cooldown:</span>
-              <span className="ml-2 text-gray-200">{status.config.cooldown_seconds}s</span>
-            </div>
-            <div>
-              <span className="text-gray-400">Recent Events:</span>
-              <span className="ml-2 text-gray-200">{status.recent_events}</span>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
