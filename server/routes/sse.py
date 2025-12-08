@@ -103,6 +103,16 @@ class SSEManager:
                         services = self._app.config.get('services', {})
                         if 'streaming_service' in services:
                             stream_status = services['streaming_service'].get_stream_status()
+                            # Add status field to match client expectations
+                            if stream_status["healthy"]:
+                                stream_status["status"] = "streaming"
+                            elif stream_status["timestamp"] and stream_status["frame_age_seconds"] is not None:
+                                if stream_status["frame_age_seconds"] > 10:
+                                    stream_status["status"] = "stale"
+                                else:
+                                    stream_status["status"] = "degraded"
+                            else:
+                                stream_status["status"] = "waiting"
                             self.broadcast_update('stream_status', stream_status)
                         last_stream_update = now
 
