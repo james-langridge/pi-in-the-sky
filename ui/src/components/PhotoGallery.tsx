@@ -430,40 +430,53 @@ export function PhotoGallery({ isOpen, onClose }: PhotoGalleryProps) {
       {/* Full-size photo viewer */}
       {selectedPhoto && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-95 z-60 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black bg-opacity-95 z-60 flex flex-col items-center justify-center p-4"
           onClick={() => setSelectedPhoto(null)}
         >
-          <div className="relative max-w-full max-h-full">
+          {/* Action buttons at top */}
+          <div className="absolute top-4 right-4 flex gap-2 z-10">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteConfirm(selectedPhoto);
+              }}
+              className="p-2 bg-red-600 rounded-full hover:bg-red-700 transition-colors"
+              aria-label="Delete photo"
+            >
+              <Trash2 className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedPhoto(null);
+              }}
+              className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors"
+              aria-label="Close viewer"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          {/* Photo container - takes remaining space minus metadata */}
+          <div
+            className="flex-1 flex items-center justify-center w-full min-h-0"
+            onClick={(e) => e.stopPropagation()}
+          >
             <img
               src={selectedPhoto.path}
               alt={selectedPhoto.filename}
               className="max-w-full max-h-full object-contain"
-              onClick={(e) => e.stopPropagation()}
             />
-            <div className="absolute top-4 right-4 flex gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteConfirm(selectedPhoto);
-                }}
-                className="p-2 bg-red-600 rounded-full hover:bg-red-700 transition-colors"
-                aria-label="Delete photo"
-              >
-                <Trash2 className="w-5 h-5 text-white" />
-              </button>
-              <button
-                onClick={() => setSelectedPhoto(null)}
-                className="p-2 bg-gray-800 rounded-full hover:bg-gray-700 transition-colors"
-                aria-label="Close viewer"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
-            </div>
-            <div className="absolute bottom-4 left-4 bg-gray-900 bg-opacity-80 p-3 rounded-lg">
-              <p className="text-white text-sm">{selectedPhoto.displayDate}</p>
-              <p className="text-gray-300 text-xs">{selectedPhoto.filename}</p>
-              <p className="text-gray-400 text-xs">{selectedPhoto.displaySize}</p>
-            </div>
+          </div>
+
+          {/* Metadata below photo - never covers the image */}
+          <div
+            className="w-full max-w-md bg-gray-900 bg-opacity-80 p-3 rounded-lg mt-3 flex-shrink-0"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-white text-sm text-center">{selectedPhoto.displayDate}</p>
+            <p className="text-gray-300 text-xs text-center">{selectedPhoto.filename}</p>
+            <p className="text-gray-400 text-xs text-center">{selectedPhoto.displaySize}</p>
           </div>
         </div>
       )}
