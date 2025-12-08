@@ -41,6 +41,8 @@ export interface MotionConfig {
   sensitivity: number;
   min_area: number;
   cooldown_seconds: number;
+  blur_size: number;
+  threshold: number;
   capture_on_motion: boolean;
 }
 
@@ -107,7 +109,9 @@ export const MOTION_PRESETS: Record<string, MotionPreset> = {
     config: {
       sensitivity: 0.01,
       min_area: 300,
-      cooldown_seconds: 15
+      cooldown_seconds: 15,
+      blur_size: 15,
+      threshold: 20
     }
   },
   normal: {
@@ -116,7 +120,9 @@ export const MOTION_PRESETS: Record<string, MotionPreset> = {
     config: {
       sensitivity: 0.02,
       min_area: 500,
-      cooldown_seconds: 30
+      cooldown_seconds: 30,
+      blur_size: 21,
+      threshold: 25
     }
   },
   outdoor: {
@@ -124,17 +130,21 @@ export const MOTION_PRESETS: Record<string, MotionPreset> = {
     description: 'Weather/trees',
     config: {
       sensitivity: 0.05,
-      min_area: 800,
-      cooldown_seconds: 45
+      min_area: 1000,
+      cooldown_seconds: 60,
+      blur_size: 31,
+      threshold: 35
     }
   },
   security: {
     name: 'Security',
     description: 'Night vision',
     config: {
-      sensitivity: 0.03,
-      min_area: 600,
-      cooldown_seconds: 60
+      sensitivity: 0.015,
+      min_area: 400,
+      cooldown_seconds: 10,
+      blur_size: 17,
+      threshold: 22
     }
   }
 };
