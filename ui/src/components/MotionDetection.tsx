@@ -409,7 +409,13 @@ export function MotionDetection({
                   onChange={(e) => debouncedConfigChange('sensitivity', parseFloat(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
-                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
+                           [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500
+                           [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
+                           [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                           [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:rounded-full
+                           [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                 />
                 <p className="text-xs text-gray-500">Lower = more sensitive to motion</p>
               </div>
@@ -429,7 +435,13 @@ export function MotionDetection({
                   onChange={(e) => debouncedConfigChange('min_area', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
-                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
+                           [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500
+                           [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
+                           [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                           [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:rounded-full
+                           [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                 />
                 <p className="text-xs text-gray-500">Minimum contour area to trigger detection</p>
               </div>
@@ -449,7 +461,13 @@ export function MotionDetection({
                   onChange={(e) => debouncedConfigChange('cooldown_seconds', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
-                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
+                           [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500
+                           [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
+                           [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                           [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:rounded-full
+                           [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                 />
                 <p className="text-xs text-gray-500">Seconds between notifications</p>
               </div>
@@ -469,7 +487,13 @@ export function MotionDetection({
                   onChange={(e) => debouncedConfigChange('blur_size', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
-                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
+                           [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500
+                           [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
+                           [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                           [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:rounded-full
+                           [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                 />
                 <p className="text-xs text-gray-500">Gaussian blur for noise reduction (odd values)</p>
               </div>
@@ -489,7 +513,13 @@ export function MotionDetection({
                   onChange={(e) => debouncedConfigChange('threshold', parseInt(e.target.value))}
                   disabled={!status.enabled}
                   className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
-                           disabled:opacity-50 disabled:cursor-not-allowed accent-blue-500"
+                           disabled:opacity-50 disabled:cursor-not-allowed
+                           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4
+                           [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-500
+                           [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
+                           [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4
+                           [&::-moz-range-thumb]:bg-blue-500 [&::-moz-range-thumb]:rounded-full
+                           [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer"
                 />
                 <p className="text-xs text-gray-500">Binary threshold for motion detection</p>
               </div>
