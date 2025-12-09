@@ -92,18 +92,25 @@ function useLayoutMode(): LayoutMode {
   });
 
   useEffect(() => {
+    let timeoutId: number;
     const handleResize = () => {
-      if (window.innerWidth >= 1024) {
-        setMode('desktop');
-      } else if (window.innerWidth >= 768) {
-        setMode('tablet');
-      } else {
-        setMode('mobile');
-      }
+      clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        if (window.innerWidth >= 1024) {
+          setMode('desktop');
+        } else if (window.innerWidth >= 768) {
+          setMode('tablet');
+        } else {
+          setMode('mobile');
+        }
+      }, 100);
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   return mode;
@@ -143,7 +150,7 @@ export function ControlPanel({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onToggle]);
 
-  const handlePresetClick = async (preset: CameraPreset) => {
+  const handlePresetClick = useCallback(async (preset: CameraPreset) => {
     setApplyingPreset(preset);
     const success = await applyPreset(preset);
     if (success) {
@@ -157,7 +164,7 @@ export function ControlPanel({
       toast.error(`Failed to apply preset`);
       setApplyingPreset(null);
     }
-  };
+  }, [applyPreset]);
 
   // Setup swipe handlers (only for bottom sheet mode)
   const swipeHandlers = useSwipeable({
@@ -296,6 +303,7 @@ export function ControlPanel({
     activeTab,
     activePreset,
     applyingPreset,
+    handlePresetClick,
     isOpen,
     onMotionDetected,
     onAudioDetected,
