@@ -297,14 +297,16 @@ function App() {
         </div>
       )}
 
-      {/* Stream status indicator */}
-      <div
-        className={`absolute top-4 right-4 z-20 flex items-center space-x-2 px-3 py-1.5 rounded-full ${status.bgColor}`}
-        title={status.title}
-      >
-        <div className={`w-2 h-2 rounded-full ${status.dotColor} animate-pulse`} />
-        <span className="text-xs text-white">{status.label}</span>
-      </div>
+      {/* Stream status indicator - hide when control panel open on desktop */}
+      {!controlsOpen && (
+        <div
+          className={`absolute top-4 right-4 z-20 flex items-center space-x-2 px-3 py-1.5 rounded-full ${status.bgColor}`}
+          title={status.title}
+        >
+          <div className={`w-2 h-2 rounded-full ${status.dotColor} animate-pulse`} />
+          <span className="text-xs text-white">{status.label}</span>
+        </div>
+      )}
 
       {/* Main video stream */}
       <ErrorBoundary>
