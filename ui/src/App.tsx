@@ -18,7 +18,7 @@ import './App.css';
 // Pure function to calculate unified stream status
 // Frame age is the source of truth - if frames are fresh, system works
 function calculateUnifiedStatus(
-  sseConnected: boolean,
+  mode: 'connecting' | 'sse' | 'disconnected',
   frameAge: number | null,
   timestamp: string | null
 ): {
@@ -28,16 +28,29 @@ function calculateUnifiedStatus(
   title: string;
   severity: 'ok' | 'warning' | 'danger';
 } {
-  if (!sseConnected) {
+  // Still establishing initial connection
+  if (mode === 'connecting') {
+    return {
+      label: 'Connecting...',
+      dotColor: 'bg-yellow-500',
+      bgColor: 'bg-yellow-500/20',
+      title: 'Establishing connection',
+      severity: 'ok',
+    };
+  }
+
+  // Lost connection after being connected
+  if (mode === 'disconnected') {
     return {
       label: 'Offline',
       dotColor: 'bg-red-500',
       bgColor: 'bg-red-500/20',
-      title: 'Server not reachable',
+      title: 'Connection lost',
       severity: 'danger',
     };
   }
 
+  // Connected but no stream data yet
   if (!timestamp) {
     return {
       label: 'Connecting...',
@@ -113,7 +126,7 @@ function App() {
   const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy, mode } = useOptimizedStreamStatus();
 
   const status = calculateUnifiedStatus(
-    mode === 'sse',
+    mode as 'connecting' | 'sse' | 'disconnected',
     streamStatus?.frame_age_seconds ?? null,
     streamTimestamp || null
   );

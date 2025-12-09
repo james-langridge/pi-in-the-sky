@@ -225,6 +225,7 @@ interface SSEOptions {
  */
 export function useSSE(options: SSEOptions) {
   const [connected, setConnected] = useState(sseManager.connected);
+  const [hasEverConnected, setHasEverConnected] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   // Use refs to avoid stale closures in callbacks
@@ -238,8 +239,8 @@ export function useSSE(options: SSEOptions) {
     unsubscribers.push(
       sseManager.onConnectionChange((isConnected) => {
         setConnected(isConnected);
-        if (!isConnected) {
-          optionsRef.current.onError?.(new Error('SSE connection lost'));
+        if (isConnected) {
+          setHasEverConnected(true);
         }
       })
     );
@@ -300,6 +301,7 @@ export function useSSE(options: SSEOptions) {
 
   return {
     connected,
+    hasEverConnected,
     lastUpdate,
     reconnect,
   };

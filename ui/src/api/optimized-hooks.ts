@@ -44,23 +44,23 @@ export function useOptimizedStreamStatus() {
   const [streamConnected, setStreamConnected] = useState(false);
 
   // SSE only - no polling fallback
-  const { connected: sseConnected } = useSSE({
+  const { connected: sseConnected, hasEverConnected } = useSSE({
     onStreamStatus: (status: StreamStatus) => {
       setStreamStatus(status);
       const connected = status.healthy && status.status === 'streaming';
       setStreamConnected(connected);
     },
-    onError: () => {
-      setStreamConnected(false);
-    }
   });
+
+  // Three states: connecting (never connected), sse (connected), disconnected (lost connection)
+  const mode = sseConnected ? 'sse' : hasEverConnected ? 'disconnected' : 'connecting';
 
   return {
     streamStatus,
     streamConnected,
     timestamp: streamStatus?.timestamp || '',
     streamHealthy: streamStatus?.healthy || false,
-    mode: sseConnected ? 'sse' : 'disconnected'
+    mode,
   };
 }
 
