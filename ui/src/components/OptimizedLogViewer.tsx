@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useConditionalLogs } from '../api/optimized-hooks';
-import { RefreshCw, Download, Trash2 } from 'lucide-react';
+import { RefreshCw, Download, Trash2, Copy } from 'lucide-react';
 
 const LEVEL_COLORS: Record<string, string> = {
   DEBUG: 'text-gray-400',
@@ -52,19 +52,25 @@ export function OptimizedLogViewer({ isVisible = true }: OptimizedLogViewerProps
     lastScrollPosRef.current = scrollTop;
   };
 
-  // Export logs
+  // Format logs as text
+  const formatLogs = () => entries.map(entry =>
+    `${entry.timestamp} [${entry.level}] ${entry.name}: ${entry.message}`
+  ).join('\n');
+
+  // Export logs to file
   const exportLogs = () => {
-    const logText = entries.map(entry => 
-      `${entry.timestamp} [${entry.level}] ${entry.name}: ${entry.message}`
-    ).join('\n');
-    
-    const blob = new Blob([logText], { type: 'text/plain' });
+    const blob = new Blob([formatLogs()], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `logs_${new Date().toISOString()}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Copy logs to clipboard
+  const copyLogs = async () => {
+    await navigator.clipboard.writeText(formatLogs());
   };
 
   if (!isVisible) {
@@ -94,81 +100,86 @@ export function OptimizedLogViewer({ isVisible = true }: OptimizedLogViewerProps
   }
 
   return (
-    <div className="space-y-3 h-full flex flex-col">
-      {/* Header with controls */}
-      <div className="flex items-center justify-between flex-shrink-0">
-        <h3 className="text-lg font-semibold text-gray-200">Server Logs</h3>
-        
-        <div className="flex items-center gap-2">
-          {/* Auto-scroll indicator */}
-          <div className={`text-xs px-2 py-1 rounded ${
-            autoScroll ? 'bg-green-600/20 text-green-400' : 'bg-gray-600/20 text-gray-400'
-          }`}>
-            {autoScroll ? 'Auto-scroll ON' : 'Auto-scroll OFF'}
+    <div className="flex-1 min-h-0 flex flex-col gap-3">
+      {/* Header with controls - two rows for better layout */}
+      <div className="flex-shrink-0 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Source selector */}
+            <div className="flex rounded-lg overflow-hidden border border-gray-600">
+              <button
+                onClick={() => setSource('memory')}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  source === 'memory'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                Memory
+              </button>
+              <button
+                onClick={() => setSource('file')}
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  source === 'file'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                File
+              </button>
+            </div>
+            <span className="text-sm text-gray-500">{entries.length} entries</span>
           </div>
-          
-          {/* Entry count */}
-          <span className="text-sm text-gray-500">{entries.length} entries</span>
-          
-          {/* Source selector */}
-          <div className="flex rounded-lg overflow-hidden border border-gray-600">
-            <button
-              onClick={() => setSource('memory')}
-              className={`px-3 py-1 text-xs font-medium transition-colors ${
-                source === 'memory'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              Memory
-            </button>
-            <button
-              onClick={() => setSource('file')}
-              className={`px-3 py-1 text-xs font-medium transition-colors ${
-                source === 'file'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              File
-            </button>
-          </div>
-          
+
           {/* Action buttons */}
-          <button
-            onClick={refetch}
-            className="p-1.5 hover:bg-gray-700 rounded transition-colors"
-            title="Refresh logs"
-          >
-            <RefreshCw className="w-4 h-4 text-gray-400" />
-          </button>
-          
-          <button
-            onClick={exportLogs}
-            className="p-1.5 hover:bg-gray-700 rounded transition-colors"
-            title="Export logs"
-            disabled={entries.length === 0}
-          >
-            <Download className="w-4 h-4 text-gray-400" />
-          </button>
-          
-          <button
-            onClick={clear}
-            className="p-1.5 hover:bg-gray-700 rounded transition-colors"
-            title="Clear displayed logs"
-            disabled={entries.length === 0}
-          >
-            <Trash2 className="w-4 h-4 text-gray-400" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={refetch}
+              className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+              title="Refresh logs"
+            >
+              <RefreshCw className="w-4 h-4 text-gray-400" />
+            </button>
+            <button
+              onClick={copyLogs}
+              className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+              title="Copy logs to clipboard"
+              disabled={entries.length === 0}
+            >
+              <Copy className="w-4 h-4 text-gray-400" />
+            </button>
+            <button
+              onClick={exportLogs}
+              className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+              title="Download logs"
+              disabled={entries.length === 0}
+            >
+              <Download className="w-4 h-4 text-gray-400" />
+            </button>
+            <button
+              onClick={clear}
+              className="p-1.5 hover:bg-gray-700 rounded transition-colors"
+              title="Clear displayed logs"
+              disabled={entries.length === 0}
+            >
+              <Trash2 className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+        </div>
+
+        {/* Auto-scroll indicator */}
+        <div className={`text-xs px-2 py-1 rounded inline-block ${
+          autoScroll ? 'bg-green-600/20 text-green-400' : 'bg-gray-600/20 text-gray-400'
+        }`}>
+          {autoScroll ? 'Auto-scroll ON' : 'Scroll up to pause'}
         </div>
       </div>
 
-      {/* Log entries */}
+      {/* Log entries - fills remaining space */}
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 bg-gray-900 rounded-lg p-3 overflow-y-auto font-mono text-xs space-y-1"
-        style={{ minHeight: '200px', maxHeight: '600px' }}
+        className="flex-1 min-h-0 bg-gray-900 rounded-lg p-3 overflow-y-auto font-mono text-xs space-y-1"
       >
         {entries.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
@@ -195,11 +206,6 @@ export function OptimizedLogViewer({ isVisible = true }: OptimizedLogViewerProps
         
         {/* Auto-scroll anchor */}
         {autoScroll && <div className="h-0" />}
-      </div>
-
-      {/* Footer with tips */}
-      <div className="text-xs text-gray-500 text-center flex-shrink-0">
-        💡 Tip: Scroll up to pause auto-scroll, scroll to bottom to resume
       </div>
     </div>
   );

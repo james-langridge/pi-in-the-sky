@@ -182,7 +182,7 @@ export function ControlPanel({
     switch (activeTab) {
       case 'presets':
         return (
-          <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto space-y-4">
             <h3 className="text-lg font-semibold text-gray-200 mb-4">Camera Presets</h3>
 
             <div className="grid grid-cols-2 gap-3">
@@ -264,33 +264,39 @@ export function ControlPanel({
         );
       case 'controls':
         return (
-          <ErrorBoundary>
-            <CameraControls />
-          </ErrorBoundary>
+          <div className="flex-1 overflow-y-auto">
+            <ErrorBoundary>
+              <CameraControls />
+            </ErrorBoundary>
+          </div>
         );
       case 'motion':
         return (
-          <ErrorBoundary>
-            <MotionDetection
-              onMotionDetected={onMotionDetected}
-              visualAlertsEnabled={motionVisualAlertsEnabled}
-              onVisualAlertsToggle={onMotionVisualAlertsToggle}
-              soundAlertsEnabled={motionSoundAlertsEnabled}
-              onSoundAlertsToggle={onMotionSoundAlertsToggle}
-            />
-          </ErrorBoundary>
+          <div className="flex-1 overflow-y-auto">
+            <ErrorBoundary>
+              <MotionDetection
+                onMotionDetected={onMotionDetected}
+                visualAlertsEnabled={motionVisualAlertsEnabled}
+                onVisualAlertsToggle={onMotionVisualAlertsToggle}
+                soundAlertsEnabled={motionSoundAlertsEnabled}
+                onSoundAlertsToggle={onMotionSoundAlertsToggle}
+              />
+            </ErrorBoundary>
+          </div>
         );
       case 'audio':
         return (
-          <ErrorBoundary>
-            <AudioDetection
-              onAudioDetected={onAudioDetected}
-              visualAlertsEnabled={audioVisualAlertsEnabled}
-              onVisualAlertsToggle={onAudioVisualAlertsToggle}
-              soundAlertsEnabled={audioSoundAlertsEnabled}
-              onSoundAlertsToggle={onAudioSoundAlertsToggle}
-            />
-          </ErrorBoundary>
+          <div className="flex-1 overflow-y-auto">
+            <ErrorBoundary>
+              <AudioDetection
+                onAudioDetected={onAudioDetected}
+                visualAlertsEnabled={audioVisualAlertsEnabled}
+                onVisualAlertsToggle={onAudioVisualAlertsToggle}
+                soundAlertsEnabled={audioSoundAlertsEnabled}
+                onSoundAlertsToggle={onAudioSoundAlertsToggle}
+              />
+            </ErrorBoundary>
+          </div>
         );
       case 'logs':
         return (
@@ -374,7 +380,7 @@ export function ControlPanel({
             </div>
 
             {/* Tab content */}
-            <div className="flex-1 p-4 overflow-y-auto">
+            <div className="flex-1 p-4 overflow-hidden flex flex-col">
               {renderTabContent()}
             </div>
           </div>
