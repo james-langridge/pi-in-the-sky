@@ -7,7 +7,7 @@ import { PowerControl } from './components/PowerControl';
 import ZoomControl from './components/ZoomControl';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAppInfo } from './api/hooks';
-import { useOptimizedHealthCheck, useOptimizedStreamStatus } from './api/optimized-hooks';
+import { useOptimizedStreamStatus } from './api/optimized-hooks';
 import { playMotionAlert, playAudioAlert, isAudioSupported } from './utils/alertSounds';
 import { loadZoomLevel, saveZoomLevel } from './utils/zoomCalculations';
 import PWABadge from './PWABadge';
@@ -15,39 +15,78 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
-// Pure function to calculate timestamp sync status
-function calculateTimestampSyncStatus(frameAgeSeconds: number | null): {
-  status: 'ok' | 'warning' | 'danger';
-  iconColorClass: string;
-  bgColorClass: string;
+// Pure function to calculate unified stream status
+// Frame age is the source of truth - if frames are fresh, system works
+function calculateUnifiedStatus(
+  sseConnected: boolean,
+  frameAge: number | null,
+  timestamp: string | null
+): {
+  label: string;
+  dotColor: string;
+  bgColor: string;
+  title: string;
+  severity: 'ok' | 'warning' | 'danger';
 } {
-  if (frameAgeSeconds === null) {
+  if (!sseConnected) {
     return {
-      status: 'ok',
-      iconColorClass: 'text-gray-300',
-      bgColorClass: 'bg-gray-700/50'
+      label: 'Offline',
+      dotColor: 'bg-red-500',
+      bgColor: 'bg-red-500/20',
+      title: 'Server not reachable',
+      severity: 'danger',
     };
   }
-  
-  if (frameAgeSeconds < 5) {
+
+  if (!timestamp) {
     return {
-      status: 'ok',
-      iconColorClass: 'text-green-400',
-      bgColorClass: 'bg-green-500/20'
-    };
-  } else if (frameAgeSeconds < 10) {
-    return {
-      status: 'warning',
-      iconColorClass: 'text-yellow-400',
-      bgColorClass: 'bg-yellow-500/20'
-    };
-  } else {
-    return {
-      status: 'danger',
-      iconColorClass: 'text-red-400',
-      bgColorClass: 'bg-red-500/20'
+      label: 'Connecting...',
+      dotColor: 'bg-yellow-500',
+      bgColor: 'bg-yellow-500/20',
+      title: 'Waiting for stream',
+      severity: 'ok',
     };
   }
+
+  const age = frameAge ?? 0;
+
+  if (age < 2) {
+    return {
+      label: 'Live',
+      dotColor: 'bg-green-500',
+      bgColor: 'bg-green-500/20',
+      title: `${age.toFixed(1)}s delay`,
+      severity: 'ok',
+    };
+  }
+
+  if (age < 5) {
+    return {
+      label: `${age.toFixed(1)}s delay`,
+      dotColor: 'bg-green-400',
+      bgColor: 'bg-green-500/20',
+      title: timestamp,
+      severity: 'ok',
+    };
+  }
+
+  if (age < 10) {
+    return {
+      label: `${age.toFixed(1)}s delay`,
+      dotColor: 'bg-orange-500',
+      bgColor: 'bg-orange-500/20',
+      title: timestamp,
+      severity: 'warning',
+    };
+  }
+
+  return {
+    label: `Stale (${age.toFixed(0)}s)`,
+    dotColor: 'bg-red-500',
+    bgColor: 'bg-red-500/20',
+    title: timestamp,
+    severity: 'danger',
+  };
 }
 
 function App() {
@@ -70,9 +109,14 @@ function App() {
     return localStorage.getItem('audioSoundAlerts') === 'true';
   });
   
-  const { isHealthy } = useOptimizedHealthCheck();
   const { appInfo, updateAvailable } = useAppInfo();
-  const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy } = useOptimizedStreamStatus();
+  const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy, mode } = useOptimizedStreamStatus();
+
+  const status = calculateUnifiedStatus(
+    mode === 'sse',
+    streamStatus?.frame_age_seconds ?? null,
+    streamTimestamp || null
+  );
 
   // Keep-alive mechanism for iOS PWA
   useEffect(() => {
@@ -187,15 +231,13 @@ function App() {
     saveZoomLevel(newZoom);
   };
 
-  const syncStatus = calculateTimestampSyncStatus(streamStatus?.frame_age_seconds || null);
-
   return (
     <div className="relative w-screen h-screen bg-gray-900 overflow-hidden">
       {/* Sync warning overlay - pulses when out of sync */}
-      {syncStatus.status === 'warning' && (
+      {status.severity === 'warning' && (
         <div className="absolute inset-0 bg-yellow-500 pulse-warning-overlay pointer-events-none z-10"></div>
       )}
-      {syncStatus.status === 'danger' && (
+      {status.severity === 'danger' && (
         <div className="absolute inset-0 bg-red-500 pulse-danger-overlay pointer-events-none z-10"></div>
       )}
       
@@ -242,52 +284,13 @@ function App() {
         </div>
       )}
 
-      {/* Unified status indicator */}
-      <div className="absolute top-4 right-4 z-20 flex flex-col gap-2">
-        {/* Connection status */}
-        <div className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
-          !isHealthy ? 'bg-red-500/20' : 
-          streamHealthy ? 'bg-green-500/20' : 
-          streamStatus?.status === 'degraded' ? 'bg-orange-500/20' :
-          streamStatus?.status === 'stale' ? 'bg-red-500/20' :
-          'bg-yellow-500/20'
-        }`}>
-          <div className={`w-2 h-2 rounded-full ${
-            !isHealthy ? 'bg-red-500' : 
-            streamHealthy ? 'bg-green-500' : 
-            streamStatus?.status === 'degraded' ? 'bg-orange-500' :
-            streamStatus?.status === 'stale' ? 'bg-red-500' :
-            'bg-yellow-500'
-          } animate-pulse`}></div>
-          <span className="text-xs text-white">
-            {!isHealthy ? 'Server Offline' : 
-             streamHealthy ? 'Streaming' : 
-             streamStatus?.status === 'degraded' ? 'Stream Issues' :
-             streamStatus?.status === 'stale' ? 'Stream Stale' :
-             'Connecting...'}
-          </span>
-        </div>
-        
-        {/* Frame timestamp - always show when available */}
-        {streamTimestamp && (() => {
-          const frameAge = streamStatus?.frame_age_seconds || null;
-          const ageText = frameAge !== null ? `${frameAge.toFixed(1)}s delay` : 'No delay info';
-          
-          return (
-            <div 
-              className={`flex items-center space-x-2 px-3 py-1 rounded-full ${syncStatus.bgColorClass}`}
-              title={ageText}
-            >
-              <svg className={`w-3 h-3 ${syncStatus.iconColorClass}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-xs font-mono text-white">
-                {streamTimestamp}
-              </span>
-            </div>
-          );
-        })()}
-        
+      {/* Stream status indicator */}
+      <div
+        className={`absolute top-4 right-4 z-20 flex items-center space-x-2 px-3 py-1.5 rounded-full ${status.bgColor}`}
+        title={status.title}
+      >
+        <div className={`w-2 h-2 rounded-full ${status.dotColor} animate-pulse`} />
+        <span className="text-xs text-white">{status.label}</span>
       </div>
 
       {/* Main video stream */}
