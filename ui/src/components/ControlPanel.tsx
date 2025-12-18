@@ -24,6 +24,8 @@ interface ControlPanelProps {
   onMotionSoundAlertsToggle: (enabled: boolean) => void;
   audioSoundAlertsEnabled: boolean;
   onAudioSoundAlertsToggle: (enabled: boolean) => void;
+  showZoneOverlay?: boolean;
+  onZoneOverlayToggle?: (enabled: boolean) => void;
 }
 
 type TabId = 'presets' | 'controls' | 'motion' | 'breathing' | 'audio' | 'logs';
@@ -140,7 +142,9 @@ export function ControlPanel({
   motionSoundAlertsEnabled,
   onMotionSoundAlertsToggle,
   audioSoundAlertsEnabled,
-  onAudioSoundAlertsToggle
+  onAudioSoundAlertsToggle,
+  showZoneOverlay,
+  onZoneOverlayToggle,
 }: ControlPanelProps) {
   const [activeTab, setActiveTab] = useState<TabId>('presets');
   const { applyPreset } = useCameraPresets();
@@ -305,6 +309,8 @@ export function ControlPanel({
                   onToggle(); // Close panel first
                   onStartZoneSelection?.();
                 }}
+                showZoneOverlay={showZoneOverlay}
+                onZoneOverlayToggle={onZoneOverlayToggle}
               />
             </ErrorBoundary>
           </div>
@@ -348,6 +354,8 @@ export function ControlPanel({
     onMotionSoundAlertsToggle,
     audioSoundAlertsEnabled,
     onAudioSoundAlertsToggle,
+    showZoneOverlay,
+    onZoneOverlayToggle,
   ]);
 
   // Desktop sidebar layout

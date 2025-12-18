@@ -10,9 +10,15 @@ import { BreathingWaveform } from './BreathingWaveform';
 
 interface BreathingDetectionProps {
   onStartZoneSelection: () => void;
+  showZoneOverlay?: boolean;
+  onZoneOverlayToggle?: (enabled: boolean) => void;
 }
 
-export function BreathingDetection({ onStartZoneSelection }: BreathingDetectionProps) {
+export function BreathingDetection({
+  onStartZoneSelection,
+  showZoneOverlay,
+  onZoneOverlayToggle,
+}: BreathingDetectionProps) {
   const { status, waveform, loading, clearZone, updateConfig } = useOptimizedBreathingDetection();
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -44,7 +50,7 @@ export function BreathingDetection({ onStartZoneSelection }: BreathingDetectionP
       {/* Zone Setup */}
       <div className="space-y-3">
         {hasZone ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-400">Detection zone active</span>
               <button
@@ -60,6 +66,29 @@ export function BreathingDetection({ onStartZoneSelection }: BreathingDetectionP
                 Size: {status.zone.width}x{status.zone.height}px
               </div>
             )}
+            {/* Show zone overlay toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">Show zone on video</span>
+              <button
+                onClick={() => onZoneOverlayToggle?.(!showZoneOverlay)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  showZoneOverlay ? 'bg-blue-600' : 'bg-gray-600'
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    showZoneOverlay ? 'translate-x-5' : ''
+                  }`}
+                />
+              </button>
+            </div>
+            {/* Redraw zone button */}
+            <button
+              onClick={onStartZoneSelection}
+              className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm transition-colors"
+            >
+              Redraw Zone
+            </button>
           </div>
         ) : (
           <button

@@ -6,6 +6,7 @@ import { PhotoGallery } from './components/PhotoGallery';
 import { PowerControl } from './components/PowerControl';
 import ZoomControl from './components/ZoomControl';
 import { BreathingZoneSelector } from './components/BreathingZoneSelector';
+import { BreathingZoneOverlay } from './components/BreathingZoneOverlay';
 import { BreathingStatusBadge } from './components/BreathingStatusBadge';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAppInfo } from './api/hooks';
@@ -112,6 +113,9 @@ function App() {
   const [lastPulseTime, setLastPulseTime] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(() => loadZoomLevel(0));
   const [zoneSelectorActive, setZoneSelectorActive] = useState(false);
+  const [showZoneOverlay, setShowZoneOverlay] = useState(() => {
+    return localStorage.getItem('showBreathingZoneOverlay') !== 'false';
+  });
   const [motionVisualAlertsEnabled, setMotionVisualAlertsEnabled] = useState(() => {
     return localStorage.getItem('motionVisualAlerts') !== 'false';
   });
@@ -263,6 +267,11 @@ function App() {
     setZoneSelectorActive(false);
   }, []);
 
+  const handleZoneOverlayToggle = useCallback((enabled: boolean) => {
+    setShowZoneOverlay(enabled);
+    localStorage.setItem('showBreathingZoneOverlay', enabled ? 'true' : 'false');
+  }, []);
+
   // Assume standard video dimensions (can be made dynamic)
   const VIDEO_WIDTH = 1280;
   const VIDEO_HEIGHT = 720;
@@ -351,6 +360,16 @@ function App() {
         />
       </ErrorBoundary>
 
+      {/* Breathing zone overlay */}
+      {showZoneOverlay && breathingStatus?.zone && !zoneSelectorActive && (
+        <BreathingZoneOverlay
+          zone={breathingStatus.zone}
+          videoWidth={VIDEO_WIDTH}
+          videoHeight={VIDEO_HEIGHT}
+          isDetecting={breathingStatus.detected}
+        />
+      )}
+
       {/* Gallery button - bottom left (hide when control panel open) */}
       {!controlsOpen && (
         <button
@@ -407,6 +426,8 @@ function App() {
           audioSoundAlertsEnabled={audioSoundAlertsEnabled}
           onAudioSoundAlertsToggle={handleAudioSoundAlertsToggle}
           onStartZoneSelection={handleStartZoneSelection}
+          showZoneOverlay={showZoneOverlay}
+          onZoneOverlayToggle={handleZoneOverlayToggle}
         />
       </ErrorBoundary>
 
