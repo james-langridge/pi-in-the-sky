@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import type { StreamStatus } from '../types';
+import type { StreamStatus, BreathingStatus, BreathingWaveformPoint } from '../types';
 
 interface SSEMessage {
   type: string;
@@ -17,7 +17,9 @@ type SSEEventType =
   | 'health'
   | 'motion_detected'
   | 'motion_status'
-  | 'log_entry';
+  | 'log_entry'
+  | 'breathing_status'
+  | 'breathing_waveform';
 
 type SSEHandler = (data: unknown) => void;
 
@@ -109,6 +111,8 @@ class SSEConnectionManager {
         'motion_detected',
         'motion_status',
         'log_entry',
+        'breathing_status',
+        'breathing_waveform',
       ];
 
       for (const eventType of eventTypes) {
@@ -216,6 +220,8 @@ interface SSEOptions {
   onMotionDetected?: (event: unknown) => void;
   onMotionStatus?: (status: unknown) => void;
   onLogEntry?: (entry: unknown) => void;
+  onBreathingStatus?: (status: BreathingStatus) => void;
+  onBreathingWaveform?: (point: BreathingWaveformPoint) => void;
   onError?: (error: Error) => void;
 }
 
@@ -284,6 +290,22 @@ export function useSSE(options: SSEOptions) {
       unsubscribers.push(
         sseManager.subscribe('log_entry', (data) => {
           optionsRef.current.onLogEntry?.(data);
+        })
+      );
+    }
+
+    if (optionsRef.current.onBreathingStatus) {
+      unsubscribers.push(
+        sseManager.subscribe('breathing_status', (data) => {
+          optionsRef.current.onBreathingStatus?.(data as BreathingStatus);
+        })
+      );
+    }
+
+    if (optionsRef.current.onBreathingWaveform) {
+      unsubscribers.push(
+        sseManager.subscribe('breathing_waveform', (data) => {
+          optionsRef.current.onBreathingWaveform?.(data as BreathingWaveformPoint);
         })
       );
     }

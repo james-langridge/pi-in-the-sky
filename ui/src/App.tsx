@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Settings, Images } from 'lucide-react';
 import { VideoStream } from './components/VideoStream';
 import { ControlPanel } from './components/ControlPanel';
 import { PhotoGallery } from './components/PhotoGallery';
 import { PowerControl } from './components/PowerControl';
 import ZoomControl from './components/ZoomControl';
+import { BreathingZoneSelector } from './components/BreathingZoneSelector';
+import { BreathingStatusBadge } from './components/BreathingStatusBadge';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useAppInfo } from './api/hooks';
-import { useOptimizedStreamStatus } from './api/optimized-hooks';
+import { useOptimizedStreamStatus, useOptimizedBreathingDetection } from './api/optimized-hooks';
 import { playMotionAlert, playAudioAlert, isAudioSupported } from './utils/alertSounds';
 import { loadZoomLevel, saveZoomLevel } from './utils/zoomCalculations';
 import PWABadge from './PWABadge';
@@ -109,6 +111,7 @@ function App() {
   const [showDetectionPulse, setShowDetectionPulse] = useState(false);
   const [lastPulseTime, setLastPulseTime] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(() => loadZoomLevel(0));
+  const [zoneSelectorActive, setZoneSelectorActive] = useState(false);
   const [motionVisualAlertsEnabled, setMotionVisualAlertsEnabled] = useState(() => {
     return localStorage.getItem('motionVisualAlerts') !== 'false';
   });
@@ -121,9 +124,10 @@ function App() {
   const [audioSoundAlertsEnabled, setAudioSoundAlertsEnabled] = useState(() => {
     return localStorage.getItem('audioSoundAlerts') === 'true';
   });
-  
+
   const { appInfo, updateAvailable } = useAppInfo();
   const { streamStatus, streamConnected, timestamp: streamTimestamp, streamHealthy, mode } = useOptimizedStreamStatus();
+  const { status: breathingStatus, setZone: setBreathingZone } = useOptimizedBreathingDetection();
 
   const status = calculateUnifiedStatus(
     mode as 'connecting' | 'sse' | 'disconnected',
@@ -244,6 +248,25 @@ function App() {
     saveZoomLevel(newZoom);
   };
 
+  const handleStartZoneSelection = useCallback(() => {
+    setZoneSelectorActive(true);
+  }, []);
+
+  const handleZoneSave = useCallback(async (zone: { x: number; y: number; width: number; height: number }) => {
+    const success = await setBreathingZone(zone);
+    if (success) {
+      setZoneSelectorActive(false);
+    }
+  }, [setBreathingZone]);
+
+  const handleZoneCancel = useCallback(() => {
+    setZoneSelectorActive(false);
+  }, []);
+
+  // Assume standard video dimensions (can be made dynamic)
+  const VIDEO_WIDTH = 1280;
+  const VIDEO_HEIGHT = 720;
+
   return (
     <div className="relative w-screen h-screen bg-gray-900 overflow-hidden">
       {/* Sync warning overlay - pulses when out of sync */}
@@ -299,12 +322,18 @@ function App() {
 
       {/* Stream status indicator - hide when control panel open on desktop */}
       {!controlsOpen && (
-        <div
-          className={`absolute top-4 right-4 z-20 flex items-center space-x-2 px-3 py-1.5 rounded-full ${status.bgColor}`}
-          title={status.title}
-        >
-          <div className={`w-2 h-2 rounded-full ${status.dotColor} animate-pulse`} />
-          <span className="text-xs text-white">{status.label}</span>
+        <div className="absolute top-4 right-4 z-20 flex items-center space-x-2">
+          {/* Breathing status badge */}
+          <BreathingStatusBadge status={breathingStatus} compact />
+
+          {/* Stream status */}
+          <div
+            className={`flex items-center space-x-2 px-3 py-1.5 rounded-full ${status.bgColor}`}
+            title={status.title}
+          >
+            <div className={`w-2 h-2 rounded-full ${status.dotColor} animate-pulse`} />
+            <span className="text-xs text-white">{status.label}</span>
+          </div>
         </div>
       )}
 
@@ -377,8 +406,21 @@ function App() {
           onMotionSoundAlertsToggle={handleMotionSoundAlertsToggle}
           audioSoundAlertsEnabled={audioSoundAlertsEnabled}
           onAudioSoundAlertsToggle={handleAudioSoundAlertsToggle}
+          onStartZoneSelection={handleStartZoneSelection}
         />
       </ErrorBoundary>
+
+      {/* Breathing zone selector overlay */}
+      {zoneSelectorActive && (
+        <ErrorBoundary>
+          <BreathingZoneSelector
+            videoWidth={VIDEO_WIDTH}
+            videoHeight={VIDEO_HEIGHT}
+            onSave={handleZoneSave}
+            onCancel={handleZoneCancel}
+          />
+        </ErrorBoundary>
+      )}
 
       {/* Photo gallery */}
       <ErrorBoundary>

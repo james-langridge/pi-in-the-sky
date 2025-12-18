@@ -95,6 +95,40 @@ export interface StreamStatus {
   frame_age_seconds: number | null;
 }
 
+// Breathing Detection Types
+export interface BreathingZone {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  enabled: boolean;
+}
+
+export interface BreathingConfig {
+  enabled: boolean;
+  zone: BreathingZone | null;
+  analysis_window_seconds: number;
+  min_frequency_hz: number;
+  max_frequency_hz: number;
+  confidence_threshold: number;
+  alert_after_seconds: number;
+}
+
+export interface BreathingStatus {
+  detected: boolean;
+  rate_bpm: number | null;
+  confidence: number;
+  last_detected_time: string | null;
+  alert_active: boolean;
+  status: 'monitoring' | 'detected' | 'warning' | 'alert' | 'disabled';
+  zone: BreathingZone | null;
+}
+
+export interface BreathingWaveformPoint {
+  timestamp: number;
+  intensity: number;
+}
+
 // Motion Detection Presets
 export interface MotionPreset {
   name: string;

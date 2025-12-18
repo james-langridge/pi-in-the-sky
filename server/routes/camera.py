@@ -12,7 +12,7 @@ camera_bp = Blueprint('camera', __name__)
 @camera_bp.route('/video_feed')
 def video_feed():
     """
-    Stream video feed as MJPEG with motion detection.
+    Stream video feed as MJPEG with motion and breathing detection.
 
     Returns:
         MJPEG stream response
@@ -21,49 +21,61 @@ def video_feed():
     streaming_service = services['streaming_service']
     motion_service = services['motion_service']
     notification_service = services['notification_service']
+    breathing_service = services.get('breathing_service')
 
-    def generate_with_motion_detection():
-        """Generate MJPEG stream with motion detection."""
+    def generate_with_detection():
+        """Generate MJPEG stream with motion and breathing detection."""
         camera_service = services['camera_service']
         motion_capture_count = 0
 
         for chunk in streaming_service.generate_mjpeg_stream():
-            # Extract frame data for motion detection if enabled
-            if motion_service.is_enabled():
+            # Extract JPEG data from chunk for detection processing
+            jpeg_data = None
+            if motion_service.is_enabled() or (breathing_service and breathing_service.is_enabled()):
                 try:
-                    # Extract JPEG data from chunk (skip MJPEG headers)
                     jpeg_start = chunk.find(b'\xff\xd8')
                     jpeg_end = chunk.find(b'\xff\xd9')
                     if jpeg_start != -1 and jpeg_end != -1:
                         jpeg_data = chunk[jpeg_start:jpeg_end + 2]
+                except Exception as e:
+                    logger.error(f"Frame extraction error: {e}")
 
-                        # Process frame for motion
-                        motion_event = motion_service.process_frame(jpeg_data)
+            # Process frame for motion detection
+            if jpeg_data and motion_service.is_enabled():
+                try:
+                    motion_event = motion_service.process_frame(jpeg_data)
 
-                        # Handle triggered motion event
-                        if motion_event and motion_event.triggered:
-                            # Send notification
-                            if notification_service:
-                                notification_service.send_motion_notification(motion_event)
+                    # Handle triggered motion event
+                    if motion_event and motion_event.triggered:
+                        # Send notification
+                        if notification_service:
+                            notification_service.send_motion_notification(motion_event)
 
-                            # Capture photo if enabled
-                            config = motion_service.get_config()
-                            if config.capture_on_motion:
-                                result = camera_service.capture_photo(source="motion")
-                                if result.is_success:
-                                    motion_capture_count += 1
-                                    # Cleanup every 10th capture to avoid work in stream loop
-                                    if motion_capture_count % 10 == 0:
-                                        camera_service.cleanup_motion_photos(max_count=100)
-                                else:
-                                    logger.warning(f"Motion photo capture failed: {result.error}")
+                        # Capture photo if enabled
+                        config = motion_service.get_config()
+                        if config.capture_on_motion:
+                            result = camera_service.capture_photo(source="motion")
+                            if result.is_success:
+                                motion_capture_count += 1
+                                # Cleanup every 10th capture to avoid work in stream loop
+                                if motion_capture_count % 10 == 0:
+                                    camera_service.cleanup_motion_photos(max_count=100)
+                            else:
+                                logger.warning(f"Motion photo capture failed: {result.error}")
                 except Exception as e:
                     logger.error(f"Motion detection error: {e}")
+
+            # Process frame for breathing detection
+            if jpeg_data and breathing_service and breathing_service.is_enabled():
+                try:
+                    breathing_service.process_frame(jpeg_data)
+                except Exception as e:
+                    logger.error(f"Breathing detection error: {e}")
 
             yield chunk
 
     return Response(
-        generate_with_motion_detection(),
+        generate_with_detection(),
         mimetype='multipart/x-mixed-replace; boundary=frame',
         headers={
             'Cache-Control': 'no-cache, no-store, must-revalidate',

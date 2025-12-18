@@ -10,7 +10,11 @@ import type {
   CameraPreset,
   CameraControl,
   StreamStatus,
-  LogResponse
+  LogResponse,
+  BreathingStatus,
+  BreathingConfig,
+  BreathingZone,
+  BreathingWaveformPoint,
 } from '../types';
 
 export class CameraAPI {
@@ -149,6 +153,41 @@ export class CameraAPI {
   // Server Logs
   async getLogs(limit = 100, source: 'memory' | 'file' = 'memory'): Promise<LogResponse> {
     return this.fetchJSON<LogResponse>(`/api/logs?limit=${limit}&source=${source}`);
+  }
+
+  // Breathing Detection
+  async getBreathingStatus(): Promise<BreathingStatus> {
+    return this.fetchJSON<BreathingStatus>('/api/breathing/status');
+  }
+
+  async getBreathingConfig(): Promise<BreathingConfig> {
+    return this.fetchJSON<BreathingConfig>('/api/breathing/config');
+  }
+
+  async updateBreathingConfig(config: Partial<BreathingConfig>): Promise<ApiResponse> {
+    return this.fetchJSON<ApiResponse>('/api/breathing/config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  }
+
+  async setBreathingZone(zone: Omit<BreathingZone, 'enabled'> & { enabled?: boolean }): Promise<ApiResponse> {
+    return this.fetchJSON<ApiResponse>('/api/breathing/zone', {
+      method: 'POST',
+      body: JSON.stringify({ ...zone, enabled: zone.enabled ?? true }),
+    });
+  }
+
+  async clearBreathingZone(): Promise<ApiResponse> {
+    return this.fetchJSON<ApiResponse>('/api/breathing/zone', {
+      method: 'DELETE',
+    });
+  }
+
+  async getBreathingWaveform(seconds = 10): Promise<{ points: BreathingWaveformPoint[]; duration_seconds: number }> {
+    return this.fetchJSON<{ points: BreathingWaveformPoint[]; duration_seconds: number }>(
+      `/api/breathing/waveform?seconds=${seconds}`
+    );
   }
 }
 

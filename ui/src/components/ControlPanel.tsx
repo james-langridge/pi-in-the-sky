@@ -3,6 +3,7 @@ import { useSwipeable } from 'react-swipeable';
 import { CameraControls } from './CameraControls';
 import { MotionDetection } from './MotionDetection';
 import { AudioDetection } from './AudioDetection';
+import { BreathingDetection } from './BreathingDetection';
 import { OptimizedLogViewer } from './OptimizedLogViewer';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useCameraPresets } from '../api/hooks';
@@ -14,6 +15,7 @@ interface ControlPanelProps {
   onToggle: () => void;
   onMotionDetected?: () => void;
   onAudioDetected?: () => void;
+  onStartZoneSelection?: () => void;
   motionVisualAlertsEnabled: boolean;
   onMotionVisualAlertsToggle: (enabled: boolean) => void;
   audioVisualAlertsEnabled: boolean;
@@ -24,7 +26,7 @@ interface ControlPanelProps {
   onAudioSoundAlertsToggle: (enabled: boolean) => void;
 }
 
-type TabId = 'presets' | 'controls' | 'motion' | 'audio' | 'logs';
+type TabId = 'presets' | 'controls' | 'motion' | 'breathing' | 'audio' | 'logs';
 
 interface TabConfig {
   id: TabId;
@@ -58,6 +60,15 @@ const TABS: TabConfig[] = [
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'breathing',
+    label: 'Breathing',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
       </svg>
     ),
   },
@@ -121,6 +132,7 @@ export function ControlPanel({
   onToggle,
   onMotionDetected,
   onAudioDetected,
+  onStartZoneSelection,
   motionVisualAlertsEnabled,
   onMotionVisualAlertsToggle,
   audioVisualAlertsEnabled,
@@ -284,6 +296,19 @@ export function ControlPanel({
             </ErrorBoundary>
           </div>
         );
+      case 'breathing':
+        return (
+          <div className="flex-1 overflow-y-auto">
+            <ErrorBoundary>
+              <BreathingDetection
+                onStartZoneSelection={() => {
+                  onToggle(); // Close panel first
+                  onStartZoneSelection?.();
+                }}
+              />
+            </ErrorBoundary>
+          </div>
+        );
       case 'audio':
         return (
           <div className="flex-1 overflow-y-auto">
@@ -311,8 +336,10 @@ export function ControlPanel({
     applyingPreset,
     handlePresetClick,
     isOpen,
+    onToggle,
     onMotionDetected,
     onAudioDetected,
+    onStartZoneSelection,
     motionVisualAlertsEnabled,
     onMotionVisualAlertsToggle,
     audioVisualAlertsEnabled,

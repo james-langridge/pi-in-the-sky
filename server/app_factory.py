@@ -7,6 +7,7 @@ from flask_cors import CORS
 from config import AppConfig
 from services import CameraService, StreamingService, ControlManager
 from motion_services import MotionDetectionService, NotificationService
+from breathing_services import BreathingDetectionService
 from storage import SubscriptionStorage
 from audio_services import create_audio_service, AudioStreamingService, AudioDetectionService
 
@@ -66,6 +67,9 @@ def create_services(config: AppConfig):
     motion_service = MotionDetectionService()
     subscription_storage = SubscriptionStorage()
 
+    # Breathing detection
+    breathing_service = BreathingDetectionService()
+
     # Push notifications
     vapid_obj, vapid_public_key, vapid_email = load_vapid_keys()
     notification_service = None
@@ -102,7 +106,8 @@ def create_services(config: AppConfig):
         'notification_service': notification_service,
         'audio_capture_service': audio_capture_service,
         'audio_streaming_service': audio_streaming_service,
-        'audio_detection_service': audio_detection_service
+        'audio_detection_service': audio_detection_service,
+        'breathing_service': breathing_service,
     }
 
 
@@ -152,6 +157,7 @@ def create_app(config: AppConfig) -> Flask:
     from routes.audio import audio_bp
     from routes.logs import logs_bp
     from routes.sse import sse_bp, sse_manager
+    from routes.breathing import breathing_bp
 
     app.register_blueprint(camera_bp)
     app.register_blueprint(motion_bp)
@@ -162,6 +168,7 @@ def create_app(config: AppConfig) -> Flask:
     app.register_blueprint(audio_bp)
     app.register_blueprint(logs_bp)
     app.register_blueprint(sse_bp)
+    app.register_blueprint(breathing_bp)
 
     # Initialize SSE manager with app for background thread context
     sse_manager.init_app(app)

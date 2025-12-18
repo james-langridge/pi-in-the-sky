@@ -24,6 +24,9 @@ class SSEManager:
         self.stop_event = Event()
         self._last_motion_status = None
         self._last_motion_broadcast = 0
+        self._last_breathing_status = None
+        self._last_breathing_broadcast = 0
+        self._last_breathing_waveform = 0
         self._app = None
 
     def init_app(self, app):
@@ -141,6 +144,28 @@ class SSEManager:
                             self.broadcast_update('motion_status', status)
                             self._last_motion_status = status
                             self._last_motion_broadcast = now
+
+                    # Check for breathing detection updates
+                    if 'breathing_service' in services:
+                        breathing_service = services['breathing_service']
+                        if breathing_service.is_enabled():
+                            # Breathing status update every 1 second
+                            if now - self._last_breathing_broadcast >= 1:
+                                breathing_status = breathing_service.get_status_dict()
+                                self.broadcast_update('breathing_status', breathing_status)
+                                self._last_breathing_broadcast = now
+
+                            # Waveform data update every 200ms for smooth visualization
+                            if now - self._last_breathing_waveform >= 0.2:
+                                waveform_points = breathing_service.get_waveform_data(seconds=2.0)
+                                if waveform_points:
+                                    # Send only the latest point for efficiency
+                                    latest = waveform_points[-1]
+                                    self.broadcast_update('breathing_waveform', {
+                                        'timestamp': latest.timestamp,
+                                        'intensity': latest.intensity
+                                    })
+                                self._last_breathing_waveform = now
 
                 time.sleep(0.5)  # Check every 500ms for responsiveness
 

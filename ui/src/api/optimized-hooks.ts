@@ -12,7 +12,11 @@ import type {
   MotionConfig,
   MotionEvent,
   StreamStatus,
-  LogEntry
+  LogEntry,
+  BreathingStatus,
+  BreathingConfig,
+  BreathingZone,
+  BreathingWaveformPoint,
 } from '../types';
 
 /**
@@ -203,6 +207,96 @@ export function useOptimizedMotionDetection() {
     loading,
     updateConfig,
     toggleMotion,
+  };
+}
+
+/**
+ * Optimized breathing detection using SSE.
+ * Tracks breathing status and waveform data for visualization.
+ */
+export function useOptimizedBreathingDetection() {
+  const [status, setStatus] = useState<BreathingStatus | null>(null);
+  const [waveform, setWaveform] = useState<BreathingWaveformPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const waveformRef = useRef<BreathingWaveformPoint[]>([]);
+
+  // Initial load
+  useEffect(() => {
+    const fetchInitial = async () => {
+      try {
+        const [statusData, waveformData] = await Promise.all([
+          api.getBreathingStatus(),
+          api.getBreathingWaveform(10),
+        ]);
+        setStatus(statusData);
+        setWaveform(waveformData.points);
+        waveformRef.current = waveformData.points;
+      } catch (error) {
+        console.error('Failed to fetch breathing data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchInitial();
+  }, []);
+
+  // SSE for real-time breathing updates
+  useSSE({
+    onBreathingStatus: (data) => {
+      setStatus(data);
+    },
+    onBreathingWaveform: (point) => {
+      // Keep last 100 points (~10 seconds at 10fps)
+      waveformRef.current = [...waveformRef.current.slice(-99), point];
+      setWaveform([...waveformRef.current]);
+    },
+  });
+
+  const setZone = useCallback(async (zone: Omit<BreathingZone, 'enabled'>) => {
+    try {
+      await api.setBreathingZone(zone);
+      // Refetch status to get updated zone
+      const newStatus = await api.getBreathingStatus();
+      setStatus(newStatus);
+      return true;
+    } catch (error) {
+      console.error('Failed to set breathing zone:', error);
+      return false;
+    }
+  }, []);
+
+  const clearZone = useCallback(async () => {
+    try {
+      await api.clearBreathingZone();
+      setStatus((prev) => prev ? { ...prev, zone: null, status: 'disabled' } : null);
+      setWaveform([]);
+      waveformRef.current = [];
+      return true;
+    } catch (error) {
+      console.error('Failed to clear breathing zone:', error);
+      return false;
+    }
+  }, []);
+
+  const updateConfig = useCallback(async (config: Partial<BreathingConfig>) => {
+    try {
+      await api.updateBreathingConfig(config);
+      const newStatus = await api.getBreathingStatus();
+      setStatus(newStatus);
+      return true;
+    } catch (error) {
+      console.error('Failed to update breathing config:', error);
+      return false;
+    }
+  }, []);
+
+  return {
+    status,
+    waveform,
+    loading,
+    setZone,
+    clearZone,
+    updateConfig,
   };
 }
 

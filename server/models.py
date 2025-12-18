@@ -225,9 +225,53 @@ class AudioDetectionConfig:
 @dataclass(frozen=True)
 class AudioEvent:
     """Immutable audio detection event."""
-    
+
     timestamp: str
     rms_level: float  # 0-1 scale
     peak_level: float  # 0-1 scale
     duration: float  # Duration in seconds
     triggered: bool  # Whether this event triggered a notification
+
+
+@dataclass(frozen=True)
+class BreathingZone:
+    """User-defined region of interest for breathing detection."""
+
+    x: int  # Top-left X coordinate (pixels)
+    y: int  # Top-left Y coordinate (pixels)
+    width: int
+    height: int
+    enabled: bool = False
+
+
+@dataclass(frozen=True)
+class BreathingDetectionConfig:
+    """Immutable configuration for breathing detection."""
+
+    enabled: bool = False
+    zone: Optional[BreathingZone] = None
+    analysis_window_seconds: float = 15.0  # Time window for rhythm analysis
+    min_frequency_hz: float = 0.33  # 20 breaths/min
+    max_frequency_hz: float = 1.0  # 60 breaths/min
+    confidence_threshold: float = 0.6  # Minimum rhythm confidence
+    alert_after_seconds: float = 30.0  # Alert if no breathing detected
+
+
+@dataclass(frozen=True)
+class BreathingStatus:
+    """Current breathing detection status."""
+
+    detected: bool  # Is rhythmic breathing detected?
+    rate_bpm: Optional[float]  # Estimated breaths per minute
+    confidence: float  # Detection confidence (0-1)
+    last_detected_time: Optional[str]  # ISO timestamp
+    alert_active: bool  # True if no breathing alert
+    status: str  # 'monitoring', 'detected', 'warning', 'alert', 'disabled'
+
+
+@dataclass(frozen=True)
+class BreathingWaveformPoint:
+    """Single point in breathing waveform."""
+
+    timestamp: float  # Unix timestamp (milliseconds)
+    intensity: float  # Motion intensity in zone (0-1)
