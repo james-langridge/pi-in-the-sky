@@ -169,17 +169,21 @@ export function BreathingZoneSelector({
       )}
 
       {/* Action buttons */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
+      <div
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3"
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+      >
         <button
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium transition-colors"
+          className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium transition-colors cursor-pointer"
         >
           Cancel
         </button>
         <button
           onClick={handleSave}
           disabled={!currentRect || currentRect.width < 10 || currentRect.height < 10}
-          className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
+          className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors cursor-pointer"
         >
           Save Zone
         </button>
