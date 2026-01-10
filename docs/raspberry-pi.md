@@ -75,51 +75,116 @@ Just power on - it will auto-connect. Find its IP and SSH in.
 1. Connect Pi to router via Ethernet
 2. Find its IP (see below)
 3. SSH in and configure WiFi
-4. Disconnect Ethernet
+4. Switch to WiFi and disconnect Ethernet
 
 ### Finding the Pi's IP Address
 
-**Find your network subnet first:**
+**Step 1: Find your network subnet**
+
+Run this on your laptop/desktop (not the Pi):
 ```bash
 ip route | grep default
-# Example: default via 192.168.4.1 dev wlan0
-# Your subnet is 192.168.4.0/24
 ```
 
+Example output:
+```
+default via 192.168.1.1 dev wlan0
+```
+
+The subnet is based on your gateway IP. Replace the last number with `0/24`:
+- Gateway `192.168.1.1` → Subnet `192.168.1.0/24`
+- Gateway `192.168.4.1` → Subnet `192.168.4.0/24`
+- Gateway `10.0.0.1` → Subnet `10.0.0.0/24`
+
+**Step 2: Find the Pi** (choose one method)
+
 **Option A: Before/after scan (most reliable)**
+
+Requires `nmap` installed (`sudo apt install nmap` or `brew install nmap`).
+
 ```bash
-# Before powering on Pi:
-nmap -sn 192.168.4.0/24 | grep "Nmap scan report" | awk '{print $NF}' | sort > /tmp/before.txt
+# 1. BEFORE connecting the Pi, scan your network:
+nmap -sn 192.168.1.0/24 | grep "Nmap scan report" | awk '{print $NF}' | sort > /tmp/before.txt
 
-# Power on Pi, wait 60 seconds, then:
-nmap -sn 192.168.4.0/24 | grep "Nmap scan report" | awk '{print $NF}' | sort > /tmp/after.txt
+# 2. Connect Pi via ethernet, power it on, wait 60 seconds
 
-# Compare:
+# 3. Scan again:
+nmap -sn 192.168.1.0/24 | grep "Nmap scan report" | awk '{print $NF}' | sort > /tmp/after.txt
+
+# 4. Compare - the new IP is your Pi:
 diff /tmp/before.txt /tmp/after.txt
 ```
 
-**Option B: Using nmap with MAC detection**
+Example output:
+```
+4a5
+> 192.168.1.167
+```
+The Pi's IP is `192.168.1.167`.
+
+**Option B: Scan for Raspberry Pi MAC addresses**
 ```bash
-sudo nmap -sn 192.168.4.0/24
+sudo nmap -sn 192.168.1.0/24
 # Look for Raspberry Pi MAC prefixes:
 # b8:27:eb, dc:a6:32, e4:5f:01, d8:3a:dd, 2c:cf:67
 ```
 
 **Option C: Check router's DHCP client list**
 
-Access your router's admin page and look for "raspberrypi" or Pi MAC addresses.
+Access your router's admin page (usually http://192.168.1.1) and look for "raspberrypi" or Pi MAC addresses in the connected devices list.
 
-### Configure WiFi via SSH
+### SSH into the Pi
 
 ```bash
-# Method 1: nmcli (if NetworkManager installed)
-sudo nmcli dev wifi connect "WiFi-Name" password "WiFi-Password"
+ssh pi@192.168.1.167  # Replace with your Pi's IP and username
+```
 
-# Method 2: wpa_supplicant
+On first connection, you'll see a host key verification prompt:
+```
+The authenticity of host '192.168.1.167' can't be established.
+ED25519 key fingerprint is SHA256:xWoyoJ...
+Are you sure you want to continue connecting (yes/no/[fingerprint])?
+```
+
+Type `yes` and press Enter. This is normal for first-time connections - SSH is verifying the Pi's identity and will remember it for future connections.
+
+### Terminal compatibility note
+
+Some modern terminals (like Ghostty, Kitty, or Alacritty) may not be recognized by the Pi, causing errors like:
+```
+Error opening terminal: xterm-ghostty.
+```
+
+**Fix:** Set a compatible terminal type before running terminal apps:
+```bash
+export TERM=xterm-256color
 sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
 ```
 
-Add to wpa_supplicant.conf:
+Or use `vi` instead of `nano`, which has fewer terminal dependencies.
+
+### Configure WiFi via SSH
+
+**Method 1: nmcli (recommended)**
+
+Most modern Raspberry Pi OS installations use NetworkManager:
+```bash
+sudo nmcli dev wifi connect "Your-WiFi-Name" password "Your-Password"
+```
+
+If successful, you'll see:
+```
+Device 'wlan0' successfully activated with '...'
+```
+
+**Method 2: wpa_supplicant (older systems)**
+
+```bash
+export TERM=xterm-256color  # If needed for nano
+sudo nano /etc/wpa_supplicant/wpa_supplicant.conf
+```
+
+Add:
 ```
 country=US
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
@@ -132,10 +197,36 @@ network={
 }
 ```
 
-Then restart:
+Then restart networking:
 ```bash
 sudo systemctl restart networking
 ```
+
+### Switch from Ethernet to WiFi
+
+After configuring WiFi, no reboot is needed. Get the WiFi IP **while still connected via ethernet**:
+
+```bash
+# Run this on the Pi (via your ethernet SSH session):
+ip addr show wlan0
+```
+
+Look for the `inet` line:
+```
+3: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> ...
+    inet 192.168.1.170/24 brd 192.168.1.255 scope global dynamic wlan0
+```
+
+The WiFi IP is `192.168.1.170` (yours will differ). Write it down.
+
+Now you can safely switch:
+
+1. Disconnect the ethernet cable from the Pi
+2. Exit your current SSH session (it will hang since ethernet is gone)
+3. From your laptop, SSH to the WiFi IP:
+   ```bash
+   ssh pi@192.168.1.170  # Use your WiFi IP
+   ```
 
 ### Make Pi Easier to Find
 
